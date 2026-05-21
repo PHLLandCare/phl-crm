@@ -598,19 +598,21 @@ function openAddEmp() {
 }
 function editEmp(eid) {
   var e = allEmployees.find(function(x){return x.employee_id===eid;});
-  if (!e) return;
+  if (!e) { toast('Employee not found'); return; }
   editingEmpId = eid;
   document.getElementById('emp-drawer-title').textContent = 'Edit — ' + fullName(e);
   document.getElementById('emp-save-lbl').textContent = 'Save changes';
   document.getElementById('ef-fname').value = e.fname||'';
   document.getElementById('ef-lname').value = e.lname||'';
   document.getElementById('ef-eid').value = e.employee_id||'';
+  document.getElementById('ef-eid').removeAttribute('readonly');
   document.getElementById('ef-phone').value = e.phone||'';
   document.getElementById('ef-div').value = e.division||'Lawn & Tree';
   document.getElementById('ef-crew').value = e.crew||'';
   document.getElementById('ef-role').value = e.role||'Time clock only';
   document.getElementById('emp-drawer').classList.add('open');
   document.getElementById('emp-overlay').classList.add('show');
+  setTimeout(function(){ document.getElementById('ef-fname').focus(); }, 250);
 }
 function closeEmpDrawer() {
   document.getElementById('emp-drawer').classList.remove('open');
@@ -695,22 +697,21 @@ async function manualClockIn() {
 // ── QR BADGE MODAL ──
 function showQR(eid) {
   var e = allEmployees.find(function(x){return x.employee_id===eid;});
-  if (!e) return;
+  if (!e) { toast('Employee not found — try refreshing'); return; }
   document.getElementById('qr-modal-title').textContent = 'QR Badge — ' + fullName(e);
   document.getElementById('qr-emp-name').textContent = fullName(e);
   document.getElementById('qr-emp-id').textContent = e.employee_id + ' · ' + e.division;
-  var container = document.getElementById('qr-display');
+  var container = document.getElementById('qr-code-display');
   container.innerHTML = '';
+  var qrUrl = 'https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html?emp=' + encodeURIComponent(e.employee_id) + '&name=' + encodeURIComponent(fullName(e));
   try {
-    new QRCode(container, {
-      text: window.location.href.split('?')[0] + '?emp=' + e.employee_id + '&name=' + encodeURIComponent(fullName(e)),
-      width: 160, height: 160, colorDark: '#0a2540', colorLight: '#ffffff'
-    });
+    new QRCode(container, {text:qrUrl, width:180, height:180, colorDark:'#0a2540', colorLight:'#ffffff'});
   } catch(err) {
-    container.innerHTML = '<div style="width:160px;height:160px;background:#f4f6f9;border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;color:var(--muted);padding:12px">QR Code<br><strong>' + fullName(e) + '</strong><br>' + e.employee_id + '</div>';
+    container.innerHTML = '<div style="width:180px;height:180px;background:#f4f6f9;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:11px;color:var(--muted);padding:12px"><div style="font-size:32px;margin-bottom:8px">📱</div><strong style="color:var(--text);font-size:13px">' + fullName(e) + '</strong><div style="margin-top:4px">' + e.employee_id + '</div></div>';
   }
   document.getElementById('qr-modal').classList.add('open');
 }
+
 function closeQRModal() { document.getElementById('qr-modal').classList.remove('open'); document.getElementById('qr-display').innerHTML = ''; }
 
 // ── EXPORT ──
