@@ -139,6 +139,25 @@ select.fsel:focus{border-color:var(--teal)}
 .act-text{font-size:12px;line-height:1.4}
 .act-time{font-size:10px;color:var(--muted);margin-top:2px}
 
+/* CLIENT DETAIL PANEL */
+#detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200}
+#detail-overlay.on{display:block}
+#client-detail{position:fixed;top:0;right:-520px;width:500px;height:100vh;background:#fff;box-shadow:-6px 0 30px rgba(0,0,0,.15);z-index:201;display:flex;flex-direction:column;transition:right .22s ease;overflow:hidden}
+#client-detail.on{right:0}
+.detail-hdr{padding:16px 20px;border-bottom:1px solid var(--border);background:#f8f9fb;flex-shrink:0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.detail-av-wrap{display:flex;align-items:center;gap:12px}
+.detail-av-big{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0}
+.detail-hdr-actions{display:flex;gap:6px;flex-shrink:0}
+.detail-body{flex:1;overflow-y:auto;padding:18px 20px}
+.detail-section{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.detail-section:first-child{margin-top:0}
+.detail-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f0f3f8;font-size:13px}
+.detail-row:last-child{border-bottom:none}
+.detail-row i{font-size:15px;color:var(--muted);width:18px;flex-shrink:0}
+.detail-lbl{color:var(--muted);font-size:12px;min-width:90px}
+.detail-val-txt{color:var(--text);font-weight:500}
+.detail-history{background:#f8f9fb;border-radius:10px;padding:12px;font-size:12px;color:var(--muted);text-align:center}
+
 /* SPINNER */
 .spin{display:inline-block;width:16px;height:16px;border:2px solid #dde3ec;border-top-color:var(--teal);border-radius:50%;animation:sp .65s linear infinite;vertical-align:middle}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -467,6 +486,42 @@ select.fsel:focus{border-color:var(--teal)}
 
 <div id="toast"></div>
 
+<!-- CLIENT DETAIL PANEL -->
+<div id="detail-overlay"></div>
+<div id="client-detail">
+  <div class="detail-hdr">
+    <div class="detail-av-wrap">
+      <div class="detail-av-big av" id="detail-av"></div>
+      <div>
+        <div style="font-size:17px;font-weight:700;color:var(--text)" id="detail-name"></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="detail-company"></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="detail-addr"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;align-items:flex-start">
+      <button class="btn sm" id="detail-edit-btn"><i class="ti ti-edit"></i> Edit</button>
+      <button class="btn sm danger" id="detail-delete-btn"><i class="ti ti-trash"></i></button>
+      <button id="detail-close-btn" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--muted);line-height:1;padding:2px 4px">×</button>
+    </div>
+  </div>
+  <div class="detail-body">
+    <div class="detail-section">Contact info</div>
+    <div class="detail-row"><i class="ti ti-phone"></i><span class="detail-lbl">Phone</span><span class="detail-val-txt" id="detail-phone"></span></div>
+    <div class="detail-row"><i class="ti ti-mail"></i><span class="detail-lbl">Email</span><span class="detail-val-txt" id="detail-email"></span></div>
+    <div class="detail-section">Service details</div>
+    <div class="detail-row"><i class="ti ti-garden-cart"></i><span class="detail-lbl">Divisions</span><span class="detail-val-txt" id="detail-divs"></span></div>
+    <div class="detail-row"><i class="ti ti-flag"></i><span class="detail-lbl">Status</span><span class="detail-val-txt" id="detail-status"></span></div>
+    <div class="detail-row"><i class="ti ti-users"></i><span class="detail-lbl">Crew</span><span class="detail-val-txt" id="detail-crew"></span></div>
+    <div class="detail-row"><i class="ti ti-currency-dollar"></i><span class="detail-lbl">Lifetime value</span><span class="detail-val-txt" style="color:var(--green);font-weight:700" id="detail-val"></span></div>
+    <div class="detail-row" id="detail-notes-row"><i class="ti ti-notes"></i><span class="detail-lbl">Notes</span><span class="detail-val-txt" id="detail-notes"></span></div>
+    <div class="detail-section">Service history</div>
+    <div class="detail-history">Service history will appear here once jobs are added to this client.</div>
+    <div style="margin-top:14px">
+      <button class="btn primary" style="width:100%;justify-content:center" id="detail-new-job-btn"><i class="ti ti-plus"></i> Add new job</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function() {
   // ── CONFIG ──
@@ -626,6 +681,9 @@ select.fsel:focus{border-color:var(--teal)}
           '<button class="btn sm" data-id="' + c.id + '" data-action="edit"><i class="ti ti-edit"></i></button>' +
           '<button class="btn sm" style="color:var(--red)" data-id="' + c.id + '" data-action="delete"><i class="ti ti-trash"></i></button>' +
         '</div></td>';
+      // Click row to view client detail
+      tr.style.cursor = 'pointer';
+      tr.addEventListener('click', function() { viewClient(c.id); });
       tb.appendChild(tr);
     });
     // Wire row buttons
@@ -639,6 +697,36 @@ select.fsel:focus{border-color:var(--teal)}
       });
     });
   }
+
+  // VIEW CLIENT DETAIL
+  function viewClient(id) {
+    var c = clients.find(function(x) { return x.id === id; });
+    if (!c) return;
+    document.getElementById('detail-name').textContent = name(c);
+    document.getElementById('detail-company').textContent = c.company || '';
+    document.getElementById('detail-company').style.display = c.company ? 'block' : 'none';
+    document.getElementById('detail-av').textContent = ini(c);
+    document.getElementById('detail-av').style.background = color(c);
+    document.getElementById('detail-addr').textContent = (c.address||'') + (c.city ? ', ' + c.city : '') + (c.zip ? ' ' + c.zip : '');
+    document.getElementById('detail-phone').textContent = c.phone || '—';
+    document.getElementById('detail-email').textContent = c.email || '—';
+    document.getElementById('detail-divs').textContent = (c.divisions||'—').split(',').join(', ');
+    document.getElementById('detail-status').textContent = c.status || 'Active';
+    document.getElementById('detail-crew').textContent = c.crew || 'Unassigned';
+    document.getElementById('detail-notes').textContent = c.notes || 'No notes';
+    document.getElementById('detail-notes-row').style.display = c.notes ? 'flex' : 'none';
+    document.getElementById('detail-val').textContent = '$' + (c.lifetime_value||0).toLocaleString();
+    document.getElementById('detail-edit-btn').onclick = function() { closeDetail(); openEdit(c.id); };
+    document.getElementById('detail-delete-btn').onclick = function() { closeDetail(); doDelete(c.id); };
+    document.getElementById('client-detail').classList.add('on');
+    document.getElementById('detail-overlay').classList.add('on');
+  }
+  function closeDetail() {
+    document.getElementById('client-detail').classList.remove('on');
+    document.getElementById('detail-overlay').classList.remove('on');
+  }
+  document.getElementById('detail-close-btn').addEventListener('click', closeDetail);
+  document.getElementById('detail-overlay').addEventListener('click', closeDetail);
 
   // Filters
   document.getElementById('c-q').addEventListener('input', renderClients);
