@@ -7,194 +7,175 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/dist/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
-body{background:#f0f2f5;height:100vh;overflow:hidden;display:flex;flex-direction:column}
-:root{--navy:#0a2540;--teal:#29b6d8;--green:#1d9e75;--red:#c0392b;--amber:#e67e22;--border:#dde3ec;--surface:#fff;--text:#1a2332;--muted:#7a8599}
-/* TOPBAR */
-#topbar{height:54px;background:var(--navy);display:flex;align-items:center;padding:0 18px;gap:12px;flex-shrink:0}
+body{background:#0d1f35;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+:root{--navy:#0a2540;--teal:#29b6d8;--green:#1d9e75;--red:#c0392b;--amber:#e67e22;--purple:#7c3aed;--border:#1e3a52;--surface:#132d46;--surface2:#0f2538;--text:#e2eaf4;--muted:#7a9bb5}
+#topbar{height:54px;background:#071829;display:flex;align-items:center;padding:0 18px;gap:12px;flex-shrink:0;border-bottom:1px solid #1e3a52}
 #topbar img{height:38px;background:#fff;border-radius:8px;padding:3px 8px;object-fit:contain}
-#topbar-name{color:rgba(255,255,255,.8);font-size:14px;font-weight:600;flex:1}
-.top-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;text-decoration:none}
-.top-btn:hover{background:rgba(255,255,255,.22)}
+#topbar-name{color:rgba(255,255,255,.75);font-size:14px;font-weight:600;flex:1}
+.top-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;text-decoration:none}
+.top-btn:hover{background:rgba(255,255,255,.18)}
 .top-btn.teal{background:var(--teal);border-color:var(--teal)}
 .av-circle{width:34px;height:34px;border-radius:50%;background:var(--teal);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-/* LAYOUT */
 #layout{display:flex;flex:1;overflow:hidden}
-#sidebar{width:210px;background:var(--navy);display:flex;flex-direction:column;flex-shrink:0;padding-top:8px;overflow-y:auto}
+#sidebar{width:210px;background:#071829;display:flex;flex-direction:column;flex-shrink:0;padding-top:8px;overflow-y:auto;border-right:1px solid #1e3a52}
 .nav-sec{font-size:10px;color:rgba(255,255,255,.3);letter-spacing:.08em;text-transform:uppercase;padding:12px 16px 4px;font-weight:700}
-.nav-item{display:flex;align-items:center;gap:9px;padding:9px 16px;cursor:pointer;font-size:13px;color:rgba(255,255,255,.6);border-left:3px solid transparent;user-select:none}
-.nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
-.nav-item.on{background:rgba(41,182,216,.2);color:var(--teal);border-left-color:var(--teal);font-weight:600}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 16px;cursor:pointer;font-size:13px;color:rgba(255,255,255,.55);border-left:3px solid transparent;user-select:none;transition:all .1s}
+.nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.9)}
+.nav-item.on{background:rgba(41,182,216,.15);color:var(--teal);border-left-color:var(--teal);font-weight:600}
 .nav-item i{font-size:16px;flex-shrink:0}
 .nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:9px;padding:1px 6px;border-radius:99px;font-weight:700}
-.nb-teal{background:var(--teal)}
+.nb-t{background:var(--teal)}
 #sb-bot{margin-top:auto;border-top:1px solid rgba(255,255,255,.08);padding:6px 0}
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--surface)}
-/* SCREENS */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#0d1f35}
 .scr{display:none;flex:1;flex-direction:column;overflow:hidden}
 .scr.on{display:flex}
 .pg-head{padding:18px 22px 0;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0}
-.pg-title{font-size:19px;font-weight:700}
+.pg-title{font-size:19px;font-weight:700;color:var(--text)}
 .pg-sub{font-size:12px;color:var(--muted);margin-top:3px}
 .pg-acts{display:flex;gap:8px}
 .pg-body{flex:1;overflow-y:auto;padding:16px 22px 24px}
-/* CARDS / STATS */
-.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px}
 .ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.ct{font-size:13px;font-weight:700}
+.ct{font-size:13px;font-weight:700;color:var(--text)}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
-.stat{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;cursor:pointer;transition:border-color .15s}
 .stat:hover{border-color:var(--teal)}
 .sl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
-.sv{font-size:24px;font-weight:700}
+.sv{font-size:24px;font-weight:700;color:var(--text)}
 .ss{font-size:11px;color:var(--green);margin-top:3px}
-/* BUTTONS */
-.btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);background:#fff;color:var(--text);text-decoration:none}
-.btn:hover{background:#f0f4f8}
+.btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border);background:var(--surface2);color:var(--text);text-decoration:none;transition:all .1s}
+.btn:hover{background:var(--surface);border-color:var(--teal)}
 .btn.pr{background:var(--teal);color:#fff;border-color:var(--teal)}
 .btn.pr:hover{background:#1da8c9}
 .btn.dn{background:var(--red);color:#fff;border-color:var(--red)}
-.btn.gr{background:var(--green);color:#fff;border-color:var(--green)}
-.btn.am{background:var(--amber);color:#fff;border-color:var(--amber)}
 .btn.sm{padding:5px 10px;font-size:11px}
 .btn:disabled{opacity:.5;cursor:not-allowed}
-/* TABLE */
-.tw{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.tw{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
 table{width:100%;border-collapse:collapse;font-size:12px}
-thead th{text-align:left;padding:9px 14px;font-size:10px;font-weight:700;color:var(--muted);background:#f8f9fb;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.05em}
-tbody td{padding:10px 14px;border-bottom:1px solid #f0f3f8;vertical-align:middle}
+thead th{text-align:left;padding:9px 14px;font-size:10px;font-weight:700;color:var(--muted);background:var(--surface2);border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.05em}
+tbody td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:middle;color:var(--text)}
 tbody tr:last-child td{border-bottom:none}
-tbody tr:hover td{background:#f5f8ff}
-/* BADGES */
+tbody tr:hover td{background:rgba(41,182,216,.05);cursor:pointer}
 .b{font-size:10px;padding:2px 9px;border-radius:99px;font-weight:700;white-space:nowrap;display:inline-block}
-.bg{background:#e1f5ee;color:#085041}.bb{background:#e6f1fb;color:#0c447c}
-.ba{background:#fef3e2;color:#7d4e00}.br{background:#fdecea;color:#7f1d1d}
-.bk{background:#f1f2f4;color:#4a5568}.bt{background:#e1f8fc;color:#0e5a6e}
-.bp{background:#f3f0ff;color:#5b21b6}
+.bg{background:#0d3321;color:#4ade80}.bb{background:#0c2a4a;color:#60a5fa}
+.ba{background:#3a2200;color:#fbbf24}.br{background:#3a0a0a;color:#f87171}
+.bk{background:#1e2d3d;color:#94a3b8}.bt{background:#0a2e3a;color:#22d3ee}
 .av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
-/* FILTERS */
 .fr{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
 .sb{position:relative;flex:1;min-width:200px;max-width:300px}
-.sb input{width:100%;padding:8px 12px 8px 32px;border:1px solid var(--border);border-radius:8px;font-size:12px;outline:none;background:#f8f9fb}
-.sb input:focus{border-color:var(--teal);background:#fff}
+.sb input{width:100%;padding:8px 12px 8px 32px;border:1px solid var(--border);border-radius:8px;font-size:12px;outline:none;background:var(--surface2);color:var(--text)}
+.sb input:focus{border-color:var(--teal)}
 .sb i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px}
-select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;outline:none;background:#f8f9fb;cursor:pointer;color:var(--text)}
-/* MINI BAR */
-.mb{height:5px;background:#eef2f7;border-radius:3px;margin-top:4px;overflow:hidden}
+select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;outline:none;background:var(--surface2);cursor:pointer;color:var(--text)}
+.mb{height:5px;background:rgba(255,255,255,.08);border-radius:3px;margin-top:4px;overflow:hidden}
 .mf{height:100%;border-radius:3px}
-/* ACT */
-.act{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #f0f3f8}
+.act{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
 .act:last-child{border-bottom:none}
 .ai{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
-/* CALENDAR */
-.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.ct2{font-size:10px;color:var(--muted);text-align:center;padding:4px 0;font-weight:700;text-transform:uppercase}
-.cd{border:1px solid var(--border);border-radius:7px;padding:4px;min-height:58px;cursor:pointer}
-.cd:hover{border-color:var(--teal);background:#f5fbff}
-.cd.tod{border-color:var(--teal);border-width:2px}
-.cn{font-size:11px;color:var(--muted);margin-bottom:3px}
-.cn.tn{color:var(--teal);font-weight:700}
-.ce{font-size:9px;padding:1px 4px;border-radius:3px;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:600}
-.ceg{background:#e1f5ee;color:#085041}.ceb{background:#e6f1fb;color:#0c447c}.cea{background:#fef3e2;color:#7d4e00}
-/* CHAT */
-.cl{display:flex;gap:14px;height:460px}
-.cs{width:180px;flex-shrink:0;border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.csh{padding:10px 12px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;background:#f8f9fb;border-bottom:1px solid var(--border)}
-.cc{display:flex;align-items:center;gap:6px;padding:8px 12px;font-size:12px;color:var(--muted);cursor:pointer}
-.cc:hover,.cc.on{background:#f0f8ff;color:var(--teal)}
-.cm{flex:1;border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden}
-.cmh{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;background:#f8f9fb;flex-shrink:0}
-.cml{flex:1;overflow-y:auto;padding:14px}
-.msg{display:flex;gap:8px;margin-bottom:12px}
-.ma{width:28px;height:28px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:2px}
-.mn{font-size:11px;font-weight:700;color:var(--text)}
-.mt{font-size:10px;color:var(--muted);margin-left:6px}
-.mx{font-size:12px;background:#f4f7fa;border-radius:0 8px 8px 8px;padding:8px 11px;margin-top:3px;display:inline-block;line-height:1.5}
-.ci{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;background:#f8f9fb;flex-shrink:0}
-.ci input{flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;outline:none}
-.ci input:focus{border-color:var(--teal)}
-.ci button{padding:8px 13px;background:var(--teal);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px}
-/* MODAL OVERLAY - CENTER */
-.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+/* OVERLAYS - ALL CENTER */
+.ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
 .ov.on{display:flex}
-.mo{background:#fff;border-radius:14px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.25);display:flex;flex-direction:column;max-height:92vh;overflow:hidden;margin:auto}
+.mo{background:#132d46;border:1px solid #1e3a52;border-radius:14px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);display:flex;flex-direction:column;max-height:92vh;overflow:hidden;margin:auto}
 .mo.sm{max-width:500px}
 .mo.md{max-width:680px}
-.mo.lg{max-width:880px}
-.mh{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:#f8f9fb;flex-shrink:0}
-.mht{font-size:15px;font-weight:700}
+.mh{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2);flex-shrink:0}
+.mht{font-size:15px;font-weight:700;color:var(--text)}
 .mc{background:none;border:none;font-size:26px;line-height:1;cursor:pointer;color:var(--muted);padding:0 4px}
 .mc:hover{color:var(--text)}
 .mb2{flex:1;overflow-y:auto;padding:20px}
-.mf2{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;background:#f8f9fb;flex-shrink:0}
-/* FORM */
+.mf2{padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;background:var(--surface2);flex-shrink:0}
 .fs2{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin:16px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border)}
 .fs2:first-child{margin-top:0}
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .ff{grid-column:1/-1}
 .fl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
-.fi,.fsl,.ft{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;color:var(--text);background:#fff;font-family:inherit}
-.fi:focus,.fsl:focus,.ft:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(41,182,216,.12)}
+.fi,.fsl,.ft{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;outline:none;color:var(--text);background:var(--surface2);font-family:inherit}
+.fi:focus,.fsl:focus,.ft:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(41,182,216,.1)}
 .ft{resize:vertical;min-height:72px}
 .cr{display:flex;flex-wrap:wrap;gap:7px}
-.cl2{display:flex;align-items:center;gap:4px;font-size:12px;padding:5px 10px;border:1px solid var(--border);border-radius:7px;cursor:pointer;background:#fff}
-.cl2:hover{border-color:var(--teal);background:#f0fbff}
+.cl2{display:flex;align-items:center;gap:4px;font-size:12px;padding:5px 10px;border:1px solid var(--border);border-radius:7px;cursor:pointer;background:var(--surface2);color:var(--text)}
+.cl2:hover{border-color:var(--teal)}
 .cl2 input{accent-color:var(--teal)}
-.tr{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
-.tl{font-size:13px;color:var(--text)}
+.tr2{display:flex;align-items:center;justify-content:space-between;padding:6px 0}
 .tg{position:relative;width:40px;height:22px;flex-shrink:0}
 .tg input{opacity:0;width:0;height:0}
-.ts{position:absolute;inset:0;background:#ccc;border-radius:99px;cursor:pointer;transition:.2s}
+.ts{position:absolute;inset:0;background:#1e3a52;border-radius:99px;cursor:pointer;transition:.2s}
 .ts:before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
 .tg input:checked+.ts{background:var(--teal)}
 .tg input:checked+.ts:before{transform:translateX(18px)}
-/* CLIENT DETAIL - FULL CENTER MODAL */
-#dov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:600;align-items:center;justify-content:center;padding:16px}
+/* CLIENT DETAIL CENTER MODAL */
+#dov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:600;align-items:center;justify-content:center;padding:16px}
 #dov.on{display:flex}
-#dm{width:100%;max-width:900px;height:88vh;background:#f0f2f5;border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.35)}
-.dtp{background:var(--navy);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#dm{width:100%;max-width:900px;height:88vh;background:#0d1f35;border:1px solid #1e3a52;border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.5)}
+.dtp{background:#071829;padding:16px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid #1e3a52}
 .dtl{display:flex;align-items:center;gap:12px}
-.dav{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0}
-.dtn{color:#fff;font-size:18px;font-weight:700}
-.dts{color:rgba(255,255,255,.55);font-size:12px;margin-top:2px}
+.dav{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff}
+.dtn{color:#fff;font-size:17px;font-weight:700}
+.dts-sub{color:rgba(255,255,255,.5);font-size:12px;margin-top:2px}
 .dta{display:flex;gap:8px;align-items:center}
-.dtb{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
-.dtb:hover{background:rgba(255,255,255,.25)}
-.dxb{background:none;border:none;color:rgba(255,255,255,.6);font-size:26px;cursor:pointer;line-height:1;padding:0 4px}
+.dtb{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+.dtb:hover{background:rgba(255,255,255,.2)}
+.dxb{background:none;border:none;color:rgba(255,255,255,.5);font-size:26px;cursor:pointer;line-height:1;padding:0 4px}
 .dxb:hover{color:#fff}
-.dtabs{display:flex;background:#fff;border-bottom:1px solid var(--border);padding:0 20px;flex-shrink:0}
-.dtab{padding:12px 16px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.dtabs{display:flex;background:var(--surface2);border-bottom:1px solid var(--border);padding:0 20px;flex-shrink:0}
+.dtab{padding:12px 16px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent}
 .dtab:hover{color:var(--text)}
 .dtab.on{color:var(--teal);border-bottom-color:var(--teal)}
 .dbody{flex:1;overflow-y:auto;padding:18px 20px}
 .dts2{display:none}.dts2.on{display:block}
-.dc{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px}
-.dch{padding:11px 16px;border-bottom:1px solid var(--border);background:#fafbfc;display:flex;align-items:center;justify-content:space-between}
-.dct{font-size:13px;font-weight:700}
-.dr{display:flex;align-items:flex-start;gap:10px;padding:9px 16px;border-bottom:1px solid #f0f3f8;font-size:13px}
+.dc{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px}
+.dch{padding:11px 16px;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:space-between}
+.dct{font-size:13px;font-weight:700;color:var(--text)}
+.dr{display:flex;align-items:flex-start;gap:10px;padding:9px 16px;border-bottom:1px solid var(--border);font-size:13px}
 .dr:last-child{border-bottom:none}
 .dr i{font-size:14px;color:var(--muted);width:18px;flex-shrink:0;margin-top:2px}
 .dl{color:var(--muted);font-size:12px;min-width:140px;flex-shrink:0}
-.dv{color:var(--text);font-weight:500;flex:1}
+.dv2{color:var(--text);font-weight:500;flex:1}
 .dpg{display:grid;grid-template-columns:1fr 1fr}
-.dpg .dr{border-right:1px solid #f0f3f8}
+.dpg .dr{border-right:1px solid var(--border)}
 .dpg .dr:nth-child(2n){border-right:none}
-.ew{text-align:center;padding:32px;color:var(--muted);font-size:13px;background:#f8f9fb;border-radius:10px;border:1px dashed var(--border)}
+.ew{text-align:center;padding:32px;color:var(--muted);font-size:13px;background:var(--surface2);border-radius:10px;border:1px dashed #1e3a52}
 .ew i{font-size:32px;margin-bottom:8px;display:block;opacity:.25}
-.wi{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #f0f3f8;font-size:12px}
+.wi{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text)}
 .wi:last-child{border-bottom:none}
-.wi:hover{background:#f5f8ff;cursor:pointer}
+.wi:hover{background:rgba(41,182,216,.05);cursor:pointer}
 .wt{font-weight:600;flex:1}
 .ws{font-size:11px;color:var(--muted)}
-/* PAYROLL */
-.pay-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f0f3f8;font-size:12px}
-.pay-row:last-child{border-bottom:none}
-/* SPINNER/TOAST */
-.spin{display:inline-block;width:16px;height:16px;border:2px solid #dde3ec;border-top-color:var(--teal);border-radius:50%;animation:sp .65s linear infinite;vertical-align:middle}
+/* CAL */
+.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.ct2{font-size:10px;color:var(--muted);text-align:center;padding:4px 0;font-weight:700;text-transform:uppercase}
+.cd{border:1px solid var(--border);border-radius:7px;padding:4px;min-height:58px;cursor:pointer;background:var(--surface2)}
+.cd:hover{border-color:var(--teal)}
+.cd.tod{border-color:var(--teal);border-width:2px}
+.cn{font-size:11px;color:var(--muted);margin-bottom:3px}
+.cn.tn{color:var(--teal);font-weight:700}
+.ce{font-size:9px;padding:1px 4px;border-radius:3px;margin-bottom:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:600}
+.ceg{background:#0d3321;color:#4ade80}.ceb{background:#0c2a4a;color:#60a5fa}.cea{background:#3a2200;color:#fbbf24}
+/* CHAT */
+.cl3{display:flex;gap:14px;height:460px}
+.cs{width:180px;flex-shrink:0;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--surface)}
+.csh{padding:10px 12px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;background:var(--surface2);border-bottom:1px solid var(--border)}
+.cc{display:flex;align-items:center;gap:6px;padding:8px 12px;font-size:12px;color:var(--muted);cursor:pointer}
+.cc:hover,.cc.on{background:rgba(41,182,216,.1);color:var(--teal)}
+.cm{flex:1;border:1px solid var(--border);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;background:var(--surface)}
+.cmh{padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;background:var(--surface2);flex-shrink:0;color:var(--text)}
+.cml{flex:1;overflow-y:auto;padding:14px}
+.msg{display:flex;gap:8px;margin-bottom:12px}
+.ma{width:28px;height:28px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:2px}
+.mn{font-size:11px;font-weight:700;color:var(--text)}
+.mt{font-size:10px;color:var(--muted);margin-left:6px}
+.mx{font-size:12px;background:var(--surface2);border-radius:0 8px 8px 8px;padding:8px 11px;margin-top:3px;display:inline-block;line-height:1.5;color:var(--text)}
+.ci{padding:10px 12px;border-top:1px solid var(--border);display:flex;gap:8px;background:var(--surface2);flex-shrink:0}
+.ci input{flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12px;outline:none;background:var(--surface);color:var(--text)}
+.ci input:focus{border-color:var(--teal)}
+.ci button{padding:8px 13px;background:var(--teal);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:12px}
+.tag{display:inline-flex;align-items:center;gap:3px;background:#0a2e3a;color:#22d3ee;border-radius:99px;padding:2px 9px;font-size:11px;font-weight:600}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid #1e3a52;border-top-color:var(--teal);border-radius:50%;animation:sp .65s linear infinite;vertical-align:middle}
 @keyframes sp{to{transform:rotate(360deg)}}
 .empty{text-align:center;padding:36px;color:var(--muted);font-size:13px}
-#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#0a2540;color:#fff;padding:12px 22px;border-radius:10px;font-size:13px;font-weight:600;border-left:4px solid var(--teal);z-index:9999;opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap;box-shadow:0 6px 24px rgba(0,0,0,.3)}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#071829;color:#fff;padding:12px 22px;border-radius:10px;font-size:13px;font-weight:600;border-left:4px solid var(--teal);z-index:9999;opacity:0;pointer-events:none;transition:opacity .2s;white-space:nowrap;box-shadow:0 6px 24px rgba(0,0,0,.5)}
 #toast.show{opacity:1}
 </style>
 </head>
@@ -210,14 +191,16 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
 <div id="sidebar">
   <div class="nav-sec">Main</div>
   <div class="nav-item on" data-s="dashboard"><i class="ti ti-layout-dashboard"></i> Dashboard</div>
-  <div class="nav-item" data-s="clients"><i class="ti ti-users"></i> Clients <span class="nav-badge" id="nb-clients">0</span></div>
-  <div class="nav-item" data-s="requests"><i class="ti ti-inbox"></i> Requests <span class="nav-badge nb-teal" id="nb-requests">0</span></div>
-  <div class="nav-item" data-s="quotes"><i class="ti ti-file-text"></i> Quotes <span class="nav-badge nb-teal" id="nb-quotes">0</span></div>
-  <div class="nav-item" data-s="jobs"><i class="ti ti-hammer"></i> Jobs <span class="nav-badge nb-teal" id="nb-jobs">0</span></div>
-  <div class="nav-item" data-s="invoices"><i class="ti ti-file-invoice"></i> Invoices <span class="nav-badge nb-teal" id="nb-invoices">0</span></div>
+  <div class="nav-item" data-s="clients"><i class="ti ti-users"></i> Clients <span class="nav-badge" id="nb-c">0</span></div>
+  <div class="nav-item" data-s="requests"><i class="ti ti-inbox"></i> Requests <span class="nav-badge nb-t" id="nb-r">0</span></div>
+  <div class="nav-item" data-s="quotes"><i class="ti ti-file-text"></i> Quotes <span class="nav-badge nb-t" id="nb-q">0</span></div>
+  <div class="nav-item" data-s="jobs"><i class="ti ti-hammer"></i> Jobs <span class="nav-badge nb-t" id="nb-j">0</span></div>
+  <div class="nav-item" data-s="invoices"><i class="ti ti-file-invoice"></i> Invoices <span class="nav-badge nb-t" id="nb-i">0</span></div>
   <div class="nav-sec">More</div>
   <div class="nav-item" data-s="schedule"><i class="ti ti-calendar"></i> Schedule</div>
   <div class="nav-item" data-s="payroll"><i class="ti ti-coin"></i> Payroll</div>
+  <div class="nav-item" data-s="expenses"><i class="ti ti-receipt"></i> Expenses</div>
+  <div class="nav-item" data-s="team"><i class="ti ti-users-group"></i> All employees</div>
   <div class="nav-sec">Divisions</div>
   <div class="nav-item" data-s="clients" data-div="Lawn &amp; Tree"><i class="ti ti-garden-cart"></i> Lawn &amp; Tree</div>
   <div class="nav-item" data-s="clients" data-div="Irrigation"><i class="ti ti-droplet"></i> Irrigation</div>
@@ -233,101 +216,96 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
   </div>
 </div>
 <div id="main">
+
 <div class="scr on" id="s-dashboard">
-<div class="pg-head"><div><div class="pg-title">Dashboard</div><div class="pg-sub" id="dash-date"></div></div><div class="pg-acts"><button class="btn" id="btn-dash-refresh"><i class="ti ti-refresh"></i> Refresh</button></div></div>
+<div class="pg-head"><div><div class="pg-title">Dashboard</div><div class="pg-sub" id="dash-date"></div></div><div class="pg-acts"><button class="btn" id="btn-refresh"><i class="ti ti-refresh"></i> Refresh</button></div></div>
 <div class="pg-body">
-  <div class="g4">
-    <div class="stat" id="st-clients"><div class="sl">Clients</div><div class="sv" id="sv-clients">—</div></div>
-    <div class="stat" id="st-requests"><div class="sl">Open requests</div><div class="sv" id="sv-requests">—</div></div>
-    <div class="stat" id="st-jobs"><div class="sl">Active jobs</div><div class="sv" id="sv-jobs">—</div></div>
-    <div class="stat" id="st-invoices"><div class="sl">Unpaid invoices</div><div class="sv" id="sv-invoices">—</div></div>
+<div class="g4">
+  <div class="stat" id="st-c"><div class="sl">Clients</div><div class="sv" id="sv-c">—</div></div>
+  <div class="stat" id="st-r"><div class="sl">Open requests</div><div class="sv" id="sv-r">—</div></div>
+  <div class="stat" id="st-j"><div class="sl">Active jobs</div><div class="sv" id="sv-j">—</div></div>
+  <div class="stat" id="st-i"><div class="sl">Unpaid invoices</div><div class="sv" id="sv-i">—</div></div>
+</div>
+<div class="g2">
+  <div class="card"><div class="ch"><span class="ct">Recent clients</span><button class="btn sm" id="btn-all-c">View all →</button></div>
+    <table><thead><tr><th>Client</th><th>Division</th><th>Status</th></tr></thead><tbody id="dc-list"><tr><td colspan="3" style="text-align:center;padding:16px"><span class="spin"></span></td></tr></tbody></table>
   </div>
-  <div class="g2">
-    <div class="card"><div class="ch"><span class="ct">Recent clients</span><button class="btn sm" id="btn-all-clients">View all →</button></div>
-      <table><thead><tr><th>Client</th><th>Division</th><th>Status</th></tr></thead><tbody id="dash-clients"><tr><td colspan="3" style="text-align:center;padding:16px"><span class="spin"></span></td></tr></tbody></table>
-    </div>
-    <div class="card"><div class="ch"><span class="ct">Revenue by division</span></div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:7px">Lawn &amp; Tree<div class="mb"><div class="mf" style="width:72%;background:var(--green)"></div></div></div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:7px">Irrigation<div class="mb"><div class="mf" style="width:48%;background:#3b82f6"></div></div></div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:7px">Extermination<div class="mb"><div class="mf" style="width:34%;background:var(--red)"></div></div></div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:7px">Nursery<div class="mb"><div class="mf" style="width:21%;background:var(--amber)"></div></div></div>
-      <div style="font-size:12px;color:var(--muted)">Farm<div class="mb"><div class="mf" style="width:13%;background:#8b5cf6"></div></div></div>
-    </div>
-  </div>
-  <div class="card"><div class="ch"><span class="ct">Recent activity</span></div>
-    <div class="act"><div class="ai" style="background:#e1f5ee;color:var(--green)"><i class="ti ti-check"></i></div><div><div style="font-size:12px">Invoice paid via Square</div><div style="font-size:10px;color:var(--muted);margin-top:1px">2 min ago</div></div></div>
-    <div class="act"><div class="ai" style="background:#e6f1fb;color:#3b82f6"><i class="ti ti-clock"></i></div><div><div style="font-size:12px">Employee clocked in via QR kiosk</div><div style="font-size:10px;color:var(--muted);margin-top:1px">11 min ago</div></div></div>
+  <div class="card"><div class="ch"><span class="ct">Revenue by division</span></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:7px">Lawn &amp; Tree<div class="mb"><div class="mf" style="width:72%;background:var(--green)"></div></div></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:7px">Irrigation<div class="mb"><div class="mf" style="width:48%;background:#3b82f6"></div></div></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:7px">Extermination<div class="mb"><div class="mf" style="width:34%;background:var(--red)"></div></div></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:7px">Nursery<div class="mb"><div class="mf" style="width:21%;background:var(--amber)"></div></div></div>
+    <div style="font-size:12px;color:var(--muted)">Farm<div class="mb"><div class="mf" style="width:13%;background:var(--purple)"></div></div></div>
   </div>
 </div>
+<div class="card"><div class="ch"><span class="ct">Recent activity</span></div>
+  <div class="act"><div class="ai" style="background:#0d3321;color:var(--green)"><i class="ti ti-check"></i></div><div><div style="font-size:12px;color:var(--text)">Invoice paid via Square</div><div style="font-size:10px;color:var(--muted);margin-top:1px">2 min ago</div></div></div>
+  <div class="act"><div class="ai" style="background:#0c2a4a;color:#60a5fa"><i class="ti ti-clock"></i></div><div><div style="font-size:12px;color:var(--text)">Employee clocked in via QR kiosk</div><div style="font-size:10px;color:var(--muted);margin-top:1px">11 min ago</div></div></div>
 </div>
+</div>
+</div>
+
 <div class="scr" id="s-clients">
 <div class="pg-head"><div><div class="pg-title">Clients</div><div class="pg-sub" id="c-sub">Loading...</div></div>
-  <div class="pg-acts"><button class="btn" id="btn-exp-csv"><i class="ti ti-download"></i> Export CSV</button><button class="btn pr" id="btn-add-client"><i class="ti ti-plus"></i> Add client</button></div>
+  <div class="pg-acts"><button class="btn" id="btn-exp-c"><i class="ti ti-download"></i> Export CSV</button><button class="btn pr" id="btn-add-c"><i class="ti ti-plus"></i> Add client</button></div>
 </div>
 <div class="pg-body">
-  <div class="g4">
-    <div class="stat"><div class="sl">Total</div><div class="sv" id="c-tot">—</div></div>
-    <div class="stat"><div class="sl">Active</div><div class="sv" id="c-act">—</div></div>
-    <div class="stat"><div class="sl">Leads</div><div class="sv" id="c-lds">—</div></div>
-    <div class="stat"><div class="sl">Overdue</div><div class="sv" id="c-ovd" style="color:var(--red)">—</div></div>
-  </div>
-  <div class="fr">
-    <div class="sb"><i class="ti ti-search"></i><input type="text" id="cq" placeholder="Search name, phone, address..."></div>
-    <select class="fs" id="cdiv"><option value="">All divisions</option><option>Lawn &amp; Tree</option><option>Irrigation</option><option>Extermination</option><option>Nursery</option><option>Farm</option></select>
-    <select class="fs" id="cst"><option value="">All statuses</option><option>Active</option><option>Lead</option><option>Quote sent</option><option>Overdue</option><option>Inactive</option></select>
-  </div>
-  <div class="tw"><table><thead><tr><th>Client</th><th>Phone</th><th>Address</th><th>Divisions</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead>
-  <tbody id="c-rows"><tr><td colspan="7" style="text-align:center;padding:24px"><span class="spin"></span> Loading...</td></tr></tbody></table></div>
+<div class="g4">
+  <div class="stat"><div class="sl">Total</div><div class="sv" id="c-tot">—</div></div>
+  <div class="stat"><div class="sl">Active</div><div class="sv" id="c-act">—</div></div>
+  <div class="stat"><div class="sl">Leads</div><div class="sv" id="c-lds">—</div></div>
+  <div class="stat"><div class="sl">Overdue</div><div class="sv" id="c-ovd" style="color:var(--red)">—</div></div>
+</div>
+<div class="fr">
+  <div class="sb"><i class="ti ti-search"></i><input type="text" id="cq" placeholder="Search name, phone, address..."></div>
+  <select class="fs" id="cdiv"><option value="">All divisions</option><option>Lawn &amp; Tree</option><option>Irrigation</option><option>Extermination</option><option>Nursery</option><option>Farm</option></select>
+  <select class="fs" id="cst"><option value="">All statuses</option><option>Active</option><option>Lead</option><option>Quote sent</option><option>Overdue</option><option>Inactive</option></select>
+</div>
+<div class="tw"><table><thead><tr><th>Client</th><th>Phone</th><th>Address</th><th>Divisions</th><th>Type</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody id="c-rows"><tr><td colspan="7" style="text-align:center;padding:24px"><span class="spin"></span> Loading...</td></tr></tbody></table></div>
 </div>
 </div>
+
 <div class="scr" id="s-requests">
-<div class="pg-head"><div><div class="pg-title">Requests</div><div class="pg-sub">All client service requests</div></div>
-  <div class="pg-acts"><button class="btn pr" id="btn-add-req"><i class="ti ti-plus"></i> New request</button></div>
-</div>
+<div class="pg-head"><div><div class="pg-title">Requests</div></div><div class="pg-acts"><button class="btn pr" id="btn-add-req"><i class="ti ti-plus"></i> New request</button></div></div>
 <div class="pg-body">
-  <div class="tw"><table><thead><tr><th>Client</th><th>Title</th><th>Description</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
-  <tbody id="req-rows"><tr><td colspan="6" style="text-align:center;padding:24px"><span class="spin"></span></td></tr></tbody></table></div>
-</div>
-</div>
+<div class="tw"><table><thead><tr><th>Client</th><th>Title</th><th>Description</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+<tbody id="req-rows"><tr><td colspan="6" style="text-align:center;padding:24px"><span class="spin"></span></td></tr></tbody></table></div>
+</div></div>
+
 <div class="scr" id="s-quotes">
-<div class="pg-head"><div><div class="pg-title">Quotes</div></div>
-  <div class="pg-acts"><button class="btn pr" id="btn-add-quote"><i class="ti ti-plus"></i> New quote</button></div>
-</div>
+<div class="pg-head"><div><div class="pg-title">Quotes</div></div><div class="pg-acts"><button class="btn pr" id="btn-add-qt"><i class="ti ti-plus"></i> New quote</button></div></div>
 <div class="pg-body">
-  <div class="tw"><table><thead><tr><th>Client</th><th>Title</th><th>Amount</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
-  <tbody id="qt-rows"><tr><td colspan="6" style="text-align:center;padding:24px"><span class="spin"></span></td></tr></tbody></table></div>
-</div>
-</div>
+<div class="tw"><table><thead><tr><th>Client</th><th>Title</th><th>Amount</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+<tbody id="qt-rows"><tr><td colspan="6" style="text-align:center;padding:24px"><span class="spin"></span></td></tr></tbody></table></div>
+</div></div>
+
 <div class="scr" id="s-jobs">
-<div class="pg-head"><div><div class="pg-title">Jobs</div></div>
-  <div class="pg-acts"><button class="btn pr" id="btn-add-job"><i class="ti ti-plus"></i> New job</button></div>
-</div>
+<div class="pg-head"><div><div class="pg-title">Jobs</div></div><div class="pg-acts"><button class="btn pr" id="btn-add-job"><i class="ti ti-plus"></i> New job</button></div></div>
 <div class="pg-body">
-  <div class="g4">
-    <div class="stat"><div class="sl">Scheduled</div><div class="sv" id="j-sch">—</div></div>
-    <div class="stat"><div class="sl">In progress</div><div class="sv" id="j-prg">—</div></div>
-    <div class="stat"><div class="sl">Completed</div><div class="sv" id="j-don">—</div></div>
-    <div class="stat"><div class="sl">Total value</div><div class="sv" id="j-val">—</div></div>
-  </div>
-  <div class="tw"><table><thead><tr><th>Client</th><th>Title</th><th>Division</th><th>Crew</th><th>Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
-  <tbody id="job-rows"><tr><td colspan="8" style="text-align:center;padding:24px"><span class="spin"></span></td></tr></tbody></table></div>
+<div class="g4">
+  <div class="stat"><div class="sl">Scheduled</div><div class="sv" id="j-sch">—</div></div>
+  <div class="stat"><div class="sl">In progress</div><div class="sv" id="j-prg">—</div></div>
+  <div class="stat"><div class="sl">Completed</div><div class="sv" id="j-don">—</div></div>
+  <div class="stat"><div class="sl">Total value</div><div class="sv" id="j-val">—</div></div>
 </div>
-</div>
+<div class="tw"><table><thead><tr><th>Client</th><th>Title</th><th>Division</th><th>Crew</th><th>Date</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody id="job-rows"><tr><td colspan="8" style="text-align:center;padding:24px"><span class="spin"></span></td></tr></tbody></table></div>
+</div></div>
+
 <div class="scr" id="s-invoices">
-<div class="pg-head"><div><div class="pg-title">Invoices</div><div class="pg-sub">Square-connected</div></div>
-  <div class="pg-acts"><button class="btn pr" id="btn-add-inv"><i class="ti ti-plus"></i> New invoice</button></div>
-</div>
+<div class="pg-head"><div><div class="pg-title">Invoices</div></div><div class="pg-acts"><button class="btn pr" id="btn-add-inv"><i class="ti ti-plus"></i> New invoice</button></div></div>
 <div class="pg-body">
-  <div class="g4">
-    <div class="stat"><div class="sl">Draft</div><div class="sv" id="i-dft">—</div></div>
-    <div class="stat"><div class="sl">Sent</div><div class="sv" id="i-snt">—</div></div>
-    <div class="stat"><div class="sl">Paid</div><div class="sv" id="i-pd">—</div></div>
-    <div class="stat"><div class="sl">Overdue</div><div class="sv" id="i-ov" style="color:var(--red)">—</div></div>
-  </div>
-  <div class="tw"><table><thead><tr><th>Client</th><th>Title</th><th>Amount</th><th>Due date</th><th>Status</th><th>Actions</th></tr></thead>
-  <tbody id="inv-rows"><tr><td colspan="6" style="text-align:center;padding:24px"><span class="spin"></span></td></tr></tbody></table></div>
+<div class="g4">
+  <div class="stat"><div class="sl">Draft</div><div class="sv" id="i-dft">—</div></div>
+  <div class="stat"><div class="sl">Sent</div><div class="sv" id="i-snt">—</div></div>
+  <div class="stat"><div class="sl">Paid</div><div class="sv" id="i-pd">—</div></div>
+  <div class="stat"><div class="sl">Overdue</div><div class="sv" id="i-ov" style="color:var(--red)">—</div></div>
 </div>
-</div>
+<div class="tw"><table><thead><tr><th>Client</th><th>Title</th><th>Amount</th><th>Due date</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody id="inv-rows"><tr><td colspan="6" style="text-align:center;padding:24px"><span class="spin"></span></td></tr></tbody></table></div>
+</div></div>
+
 <div class="scr" id="s-schedule">
 <div class="pg-head"><div><div class="pg-title">Schedule</div></div><div class="pg-acts"><button class="btn pr" id="btn-sch-job"><i class="ti ti-plus"></i> Add job</button></div></div>
 <div class="pg-body"><div class="card"><div class="cg">
@@ -344,106 +322,157 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
   <div class="cd"><div class="cn">29</div><div class="ce ceg">6 sched.</div></div>
   <div class="cd"><div class="cn">30</div><div class="ce ceb">Irrigation x3</div></div>
   <div class="cd"><div class="cn">31</div></div>
-</div></div></div>
-</div>
+</div></div></div></div>
+
 <div class="scr" id="s-payroll">
-<div class="pg-head"><div><div class="pg-title">Payroll</div><div class="pg-sub">Weekly payroll tracking</div></div>
-  <div class="pg-acts">
-    <button class="btn" id="btn-exp-payroll"><i class="ti ti-download"></i> Export CSV</button>
-    <button class="btn pr" id="btn-run-payroll"><i class="ti ti-coin"></i> Run payroll</button>
-  </div>
+<div class="pg-head"><div><div class="pg-title">Payroll</div><div class="pg-sub">Weekly payroll tracking &amp; reports</div></div>
+  <div class="pg-acts"><button class="btn" id="btn-pay-exp"><i class="ti ti-download"></i> Export CSV</button><button class="btn pr" id="btn-run-pay"><i class="ti ti-coin"></i> Run payroll</button></div>
 </div>
 <div class="pg-body">
-  <div class="g4">
-    <div class="stat"><div class="sl">Total employees</div><div class="sv" id="pay-emp">—</div></div>
-    <div class="stat"><div class="sl">Total hrs (week)</div><div class="sv" id="pay-hrs">—</div></div>
-    <div class="stat"><div class="sl">Overtime hrs</div><div class="sv" id="pay-ot" style="color:var(--amber)">—</div></div>
-    <div class="stat"><div class="sl">Est. payroll</div><div class="sv" id="pay-total" style="color:var(--green)">—</div></div>
-  </div>
-  <div class="fr">
-    <select class="fs" id="pay-week"><option>Week of May 20–26, 2026</option><option>Week of May 13–19, 2026</option><option>Week of May 6–12, 2026</option></select>
-    <select class="fs" id="pay-div"><option value="">All divisions</option><option>Lawn &amp; Tree</option><option>Irrigation</option><option>Extermination</option><option>Nursery</option><option>Farm</option></select>
-  </div>
-  <div class="tw"><table><thead><tr><th>Employee</th><th>Division</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Total hrs</th><th>OT hrs</th><th>Est. pay</th></tr></thead>
-  <tbody id="pay-rows"><tr><td colspan="11" style="text-align:center;padding:24px"><span class="spin"></span> Loading payroll data...</td></tr></tbody></table></div>
+<div class="g4">
+  <div class="stat"><div class="sl">Employees</div><div class="sv" id="pay-emp">—</div></div>
+  <div class="stat"><div class="sl">Total hrs (week)</div><div class="sv" id="pay-hrs">—</div></div>
+  <div class="stat"><div class="sl">Overtime hrs</div><div class="sv" id="pay-ot" style="color:var(--amber)">—</div></div>
+  <div class="stat"><div class="sl">Est. payroll</div><div class="sv" id="pay-total" style="color:var(--green)">—</div></div>
 </div>
+<div class="tw"><table><thead><tr><th>Employee</th><th>Division</th><th>Mon</th><th>Tue</th><th>Wed</th><th>Thu</th><th>Fri</th><th>Sat</th><th>Total hrs</th><th>OT hrs</th><th>Est. pay</th></tr></thead>
+<tbody id="pay-rows"><tr><td colspan="11" style="text-align:center;padding:24px"><span class="spin"></span> Loading payroll data...</td></tr></tbody></table></div>
+</div></div>
+
+<div class="scr" id="s-expenses">
+<div class="pg-head"><div><div class="pg-title">Expenses</div><div class="pg-sub">Employees, supplies, vehicles, insurance, inventory</div></div>
+  <div class="pg-acts"><button class="btn" id="btn-exp-export"><i class="ti ti-download"></i> Export</button><button class="btn pr" id="btn-add-exp"><i class="ti ti-plus"></i> Add expense</button></div>
 </div>
+<div class="pg-body">
+<div class="g4">
+  <div class="stat"><div class="sl">This month</div><div class="sv">$20,824</div></div>
+  <div class="stat"><div class="sl">Labor / Payroll</div><div class="sv">$18,420</div></div>
+  <div class="stat"><div class="sl">Equipment</div><div class="sv">$385</div></div>
+  <div class="stat"><div class="sl">Insurance &amp; Other</div><div class="sv">$1,019</div></div>
+</div>
+<div class="tw"><table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Paid by</th><th>Actions</th></tr></thead>
+<tbody>
+  <tr><td>May 20</td><td><span class="b bb">Fuel</span></td><td>Truck 1 fill up</td><td style="font-weight:600;color:var(--text)">$89.00</td><td style="color:var(--muted)">Romy Cruz</td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
+  <tr><td>May 19</td><td><span class="b ba">Supplies</span></td><td>Mulch — 20 bags Home Depot</td><td style="font-weight:600;color:var(--text)">$240.00</td><td style="color:var(--muted)">James M.</td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
+  <tr><td>May 18</td><td><span class="b br">Insurance</span></td><td>Monthly liability premium</td><td style="font-weight:600;color:var(--text)">$850.00</td><td style="color:var(--muted)">Auto-pay</td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
+  <tr><td>May 15</td><td><span class="b bk">Equipment</span></td><td>Lawn mower blade replacement</td><td style="font-weight:600;color:var(--text)">$145.00</td><td style="color:var(--muted)">Romy Cruz</td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
+  <tr><td>May 1</td><td><span class="b bk">Payroll</span></td><td>Weekly payroll — 47 employees</td><td style="font-weight:600;color:var(--text)">$18,420.00</td><td style="color:var(--muted)">ADP</td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
+</tbody></table></div>
+</div></div>
+
+<div class="scr" id="s-team">
+<div class="pg-head"><div><div class="pg-title">All Employees</div><div class="pg-sub" id="team-sub">Loading...</div></div>
+  <div class="pg-acts"><a href="PHL_TimeClock_Secure.html" target="_blank" class="btn pr"><i class="ti ti-user-plus"></i> Add employee</a></div>
+</div>
+<div class="pg-body">
+<div style="background:#0c2a4a;border-radius:12px;padding:14px 18px;margin-bottom:16px">
+  <div style="font-weight:700;color:#fff;margin-bottom:10px;font-size:13px">User roles &amp; access levels</div>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;font-size:11px;color:rgba(255,255,255,.6)">
+    <div style="background:rgba(255,255,255,.06);border-radius:8px;padding:8px"><div style="font-weight:700;color:var(--amber);margin-bottom:3px">Owner / Admin</div>Full access</div>
+    <div style="background:rgba(255,255,255,.06);border-radius:8px;padding:8px"><div style="font-weight:700;color:#60a5fa;margin-bottom:3px">Office Manager</div>Full scheduling &amp; invoicing</div>
+    <div style="background:rgba(255,255,255,.06);border-radius:8px;padding:8px"><div style="font-weight:700;color:var(--green);margin-bottom:3px">Crew Lead</div>Own crew + clients</div>
+    <div style="background:rgba(255,255,255,.06);border-radius:8px;padding:8px"><div style="font-weight:700;color:#a78bfa;margin-bottom:3px">Field Tech</div>Schedule + time clock</div>
+    <div style="background:rgba(255,255,255,.06);border-radius:8px;padding:8px"><div style="font-weight:700;color:var(--muted);margin-bottom:3px">Time clock only</div>QR scan only</div>
+  </div>
+</div>
+<div class="fr">
+  <div class="sb"><i class="ti ti-search"></i><input type="text" id="team-q" placeholder="Search employees..." oninput="loadTeam()"></div>
+  <select class="fs" id="team-div" onchange="loadTeam()"><option value="">All divisions</option><option>Lawn &amp; Tree</option><option>Irrigation</option><option>Extermination</option><option>Nursery</option><option>Farm</option></select>
+</div>
+<div class="tw"><table><thead><tr><th>Employee</th><th>Employee ID</th><th>Division</th><th>Crew</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
+<tbody id="team-rows"><tr><td colspan="7" style="text-align:center;padding:24px"><span class="spin"></span></td></tr></tbody></table></div>
+</div></div>
+
 <div class="scr" id="s-timeclock">
 <div class="pg-head"><div><div class="pg-title">Time clock</div></div>
-  <div class="pg-acts"><a href="PHL_TimeClock_Secure.html" class="btn pr" target="_blank"><i class="ti ti-external-link"></i> Open kiosk &amp; admin</a></div>
+  <div class="pg-acts"><a href="PHL_TimeClock_Secure.html" target="_blank" class="btn pr"><i class="ti ti-external-link"></i> Open kiosk &amp; admin</a></div>
 </div>
 <div class="pg-body">
-  <div class="g2">
-    <div class="card" style="background:#0a2540;border:none;color:#fff">
-      <img id="tc-logo" src="" style="height:44px;background:#fff;border-radius:8px;padding:3px 10px;object-fit:contain;margin-bottom:12px">
-      <div style="font-size:16px;font-weight:700;margin-bottom:4px">PHL Land Care Inc.</div>
-      <div style="font-size:12px;opacity:.5;margin-bottom:14px">Employee Time Clock Kiosk</div>
-      <a href="PHL_TimeClock_Secure.html" target="_blank" style="display:block;background:var(--teal);color:#fff;text-align:center;padding:10px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none">Open full kiosk + admin</a>
-    </div>
-    <div class="card"><div class="ch"><span class="ct">Today's clock-ins</span></div>
-      <table><thead><tr><th>Employee</th><th>Division</th><th>Time</th><th>Status</th></tr></thead>
-      <tbody id="tc-rows"><tr><td colspan="4" style="text-align:center;padding:16px"><span class="spin"></span></td></tr></tbody></table>
-    </div>
+<div class="g2">
+  <div class="card" style="background:#071829;border:1px solid #1e3a52">
+    <img id="tc-logo" src="" style="height:44px;background:#fff;border-radius:8px;padding:3px 10px;object-fit:contain;margin-bottom:12px">
+    <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">PHL Land Care Inc.</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:14px">Employee Time Clock Kiosk</div>
+    <a href="PHL_TimeClock_Secure.html" target="_blank" style="display:block;background:var(--teal);color:#fff;text-align:center;padding:10px;border-radius:8px;font-size:13px;font-weight:600;text-decoration:none">Open full kiosk + admin</a>
+  </div>
+  <div class="card"><div class="ch"><span class="ct">Today's clock-ins</span></div>
+    <table><thead><tr><th>Employee</th><th>Division</th><th>Time</th><th>Status</th></tr></thead>
+    <tbody id="tc-rows"><tr><td colspan="4" style="text-align:center;padding:16px"><span class="spin"></span></td></tr></tbody></table>
   </div>
 </div>
-</div>
+</div></div>
+
 <div class="scr" id="s-chat">
 <div class="pg-head"><div><div class="pg-title">Team chat</div></div></div>
 <div class="pg-body">
-  <div class="cl">
-    <div class="cs">
-      <div class="csh">Channels</div>
-      <div class="cc on"><i class="ti ti-hash"></i> general</div>
-      <div class="cc"><i class="ti ti-hash"></i> lawn-crew-a</div>
-      <div class="cc"><i class="ti ti-hash"></i> irrigation</div>
-      <div class="cc"><i class="ti ti-hash"></i> managers</div>
-      <div class="csh">Direct</div>
-      <div class="cc"><i class="ti ti-user"></i> Maria S.</div>
+<div class="cl3">
+  <div class="cs">
+    <div class="csh">Channels</div>
+    <div class="cc on"><i class="ti ti-hash"></i> general</div>
+    <div class="cc"><i class="ti ti-hash"></i> lawn-crew-a</div>
+    <div class="cc"><i class="ti ti-hash"></i> irrigation</div>
+    <div class="cc"><i class="ti ti-hash"></i> managers</div>
+    <div class="csh">Direct</div>
+    <div class="cc"><i class="ti ti-user"></i> Maria S.</div>
+  </div>
+  <div class="cm">
+    <div class="cmh"># general</div>
+    <div class="cml" id="chat-msgs">
+      <div class="msg"><div class="ma" style="background:#1d9e75">MS</div><div><div><span class="mn">Maria S.</span><span class="mt">9:14 AM</span></div><div class="mx">Crew A heading to Williams job. Done by noon.</div></div></div>
+      <div class="msg"><div class="ma" style="background:#29b6d8">JM</div><div><div><span class="mn">James M.</span><span class="mt">9:22 AM</span></div><div class="mx">Got it. Grab extra mulch from the truck.</div></div></div>
     </div>
-    <div class="cm">
-      <div class="cmh"># general</div>
-      <div class="cml" id="chat-msgs">
-        <div class="msg"><div class="ma" style="background:#1d9e75">MS</div><div><div><span class="mn">Maria S.</span><span class="mt">9:14 AM</span></div><div class="mx">Crew A heading to Williams job. Done by noon.</div></div></div>
-        <div class="msg"><div class="ma" style="background:#29b6d8">JM</div><div><div><span class="mn">James M.</span><span class="mt">9:22 AM</span></div><div class="mx">Got it. Grab extra mulch from the truck.</div></div></div>
-      </div>
-      <div class="ci"><input type="text" id="chat-in" placeholder="Message #general..."><button id="chat-send"><i class="ti ti-send"></i></button></div>
-    </div>
+    <div class="ci"><input type="text" id="chat-in" placeholder="Message #general..."><button id="chat-send"><i class="ti ti-send"></i></button></div>
   </div>
 </div>
-</div>
+</div></div>
+
 <div class="scr" id="s-reports">
 <div class="pg-head"><div><div class="pg-title">Reports</div></div></div>
 <div class="pg-body">
-  <div class="g3">
-    <div class="card" style="cursor:pointer" id="rpt-rev"><div style="font-size:28px;color:var(--teal);margin-bottom:8px"><i class="ti ti-chart-line"></i></div><div style="font-weight:700;margin-bottom:4px">Revenue report</div><div style="font-size:12px;color:var(--muted)">Monthly by division</div></div>
-    <div class="card" style="cursor:pointer" id="rpt-ts"><div style="font-size:28px;color:var(--green);margin-bottom:8px"><i class="ti ti-clock"></i></div><div style="font-weight:700;margin-bottom:4px">Timesheet report</div><div style="font-size:12px;color:var(--muted)">All employee hours</div></div>
-    <div class="card" style="cursor:pointer" id="rpt-cl"><div style="font-size:28px;color:#8b5cf6;margin-bottom:8px"><i class="ti ti-users"></i></div><div style="font-weight:700;margin-bottom:4px">Client report</div><div style="font-size:12px;color:var(--muted)">Full client list CSV</div></div>
-  </div>
+<div class="g3">
+  <div class="card" style="cursor:pointer" id="rpt-rev"><div style="font-size:28px;color:var(--teal);margin-bottom:8px"><i class="ti ti-chart-line"></i></div><div style="font-weight:700;margin-bottom:4px;color:var(--text)">Revenue report</div><div style="font-size:12px;color:var(--muted)">Monthly by division</div></div>
+  <div class="card" style="cursor:pointer" id="rpt-ts"><div style="font-size:28px;color:var(--green);margin-bottom:8px"><i class="ti ti-clock"></i></div><div style="font-weight:700;margin-bottom:4px;color:var(--text)">Timesheet report</div><div style="font-size:12px;color:var(--muted)">All employee hours</div></div>
+  <div class="card" style="cursor:pointer" id="rpt-cl"><div style="font-size:28px;color:var(--purple);margin-bottom:8px"><i class="ti ti-users"></i></div><div style="font-weight:700;margin-bottom:4px;color:var(--text)">Client report</div><div style="font-size:12px;color:var(--muted)">Full client list CSV</div></div>
 </div>
-</div>
+</div></div>
+
 <div class="scr" id="s-settings">
 <div class="pg-head"><div><div class="pg-title">Settings</div></div></div>
 <div class="pg-body">
-  <div class="tw"><table><thead><tr><th>Integration</th><th>Description</th><th>Status</th></tr></thead><tbody>
-    <tr><td><b>Square</b></td><td>Card-on-file, auto-charge</td><td><span class="b bg">Connected</span></td></tr>
-    <tr><td><b>Supabase</b></td><td>All data live sync</td><td><span class="b bg">Connected</span></td></tr>
-    <tr><td><b>SMS (Twilio)</b></td><td>Appointment reminders</td><td><span class="b ba">Setup needed</span></td></tr>
-    <tr><td><b>Mobile app</b></td><td>iOS + Android</td><td><span class="b bk">Phase 3</span></td></tr>
-  </tbody></table>
+<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Business Management</div>
+<div class="g3" style="margin-bottom:20px">
+  <div class="card" style="cursor:pointer"><div style="font-size:22px;color:var(--teal);margin-bottom:8px"><i class="ti ti-building"></i></div><div style="font-weight:700;margin-bottom:4px;color:var(--text)">Company Settings</div><div style="font-size:12px;color:var(--muted)">Name, address, phone, hours</div></div>
+  <div class="card" style="cursor:pointer"><div style="font-size:22px;color:var(--green);margin-bottom:8px"><i class="ti ti-package"></i></div><div style="font-weight:700;margin-bottom:4px;color:var(--text)">Products &amp; Services</div><div style="font-size:12px;color:var(--muted)">Pricing, catalog, import from Jobber</div></div>
+  <div class="card" style="cursor:pointer"><div style="font-size:22px;color:var(--amber);margin-bottom:8px"><i class="ti ti-forms"></i></div><div style="font-weight:700;margin-bottom:4px;color:var(--text)">Custom Fields</div><div style="font-size:12px;color:var(--muted)">Property, Quote, Job, Invoice</div></div>
 </div>
+<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Team</div>
+<div class="g3" style="margin-bottom:20px">
+  <div class="card" style="cursor:pointer" onclick="go('team')"><div style="font-size:22px;color:var(--teal);margin-bottom:8px"><i class="ti ti-users"></i></div><div style="font-weight:700;margin-bottom:4px;color:var(--text)">Manage Team</div><div style="font-size:12px;color:var(--muted)">All employees, roles, access</div></div>
+  <div class="card" style="cursor:pointer" onclick="alert('iPhone: Safari > Share > Add to Home Screen\nAndroid: Chrome > Menu > Install app\nNo App Store needed!')"><div style="font-size:22px;color:var(--green);margin-bottom:8px"><i class="ti ti-device-mobile"></i></div><div style="font-weight:700;margin-bottom:4px;color:var(--text)">Mobile App</div><div style="font-size:12px;color:var(--muted)">Install on iPhone &amp; Android</div></div>
+  <div class="card" style="cursor:pointer" onclick="go('expenses')"><div style="font-size:22px;color:var(--red);margin-bottom:8px"><i class="ti ti-receipt"></i></div><div style="font-weight:700;margin-bottom:4px;color:var(--text)">Expense Tracking</div><div style="font-size:12px;color:var(--muted)">Vehicles, supplies, insurance</div></div>
 </div>
+<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Integrations</div>
+<div class="tw"><table><thead><tr><th>Integration</th><th>Description</th><th>Status</th></tr></thead><tbody>
+  <tr><td style="color:var(--text)"><b>Square</b></td><td style="color:var(--muted)">Card-on-file, auto-charge</td><td><span class="b bg">Connected</span></td></tr>
+  <tr><td style="color:var(--text)"><b>Supabase</b></td><td style="color:var(--muted)">All data live sync</td><td><span class="b bg">Connected</span></td></tr>
+  <tr><td style="color:var(--text)"><b>SMS (Twilio)</b></td><td style="color:var(--muted)">Appointment reminders</td><td><span class="b ba">Setup needed</span></td></tr>
+  <tr><td style="color:var(--text)"><b>Mobile app (PWA)</b></td><td style="color:var(--muted)">iPhone &amp; Android install</td><td><span class="b bg">Active</span></td></tr>
+</tbody></table></div>
 </div></div>
-<!-- CLIENT MODAL -->
-<div class="ov" id="ov-client">
+
+</div></div>
+
+<!-- ADD/EDIT CLIENT -->
+<div class="ov" id="ov-c">
 <div class="mo md">
-  <div class="mh"><span class="mht" id="cm-title">Add New Client</span><button class="mc" id="cm-close">×</button></div>
+  <div class="mh"><span class="mht" id="cm-t">Add New Client</span><button class="mc" id="cm-x">×</button></div>
   <div class="mb2">
     <div class="fs2">Client info</div>
     <div class="fg">
       <div><div class="fl">First name</div><input class="fi" id="cf-fn" placeholder="First name"></div>
       <div><div class="fl">Last name *</div><input class="fi" id="cf-ln" placeholder="Last name"></div>
-      <div class="ff"><div class="fl">Company / Business</div><input class="fi" id="cf-co" placeholder="Company name"></div>
-      <div class="ff"><div class="fl">Spouse / Partner name</div><input class="fi" id="cf-sp" placeholder="Spouse or partner name"></div>
+      <div class="ff"><div class="fl">Company</div><input class="fi" id="cf-co" placeholder="Company name"></div>
+      <div class="ff"><div class="fl">Spouse / Partner</div><input class="fi" id="cf-sp" placeholder="Spouse or partner name"></div>
       <div class="ff"><div class="fl">HOA / Community</div><input class="fi" id="cf-hoa" placeholder="HOA or community name"></div>
       <div><div class="fl">Main phone *</div><input class="fi" id="cf-ph" placeholder="(561) 000-0000"></div>
       <div><div class="fl">2nd phone</div><input class="fi" id="cf-ph2" placeholder="(561) 000-0000"></div>
@@ -452,19 +481,19 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
       <div><div class="fl">Client type</div><select class="fsl" id="cf-ty"><option>Lead</option><option>Active</option><option>Inactive</option></select></div>
       <div><div class="fl">Lead source</div><select class="fsl" id="cf-ls"><option value="">—</option><option>Referral</option><option>Google</option><option>Facebook</option><option>Door hanger</option><option>Yard sign</option><option>Other</option></select></div>
     </div>
-    <div class="fs2">Property 1 — Primary address *</div>
+    <div class="fs2">Primary address *</div>
     <div class="fg">
       <div class="ff"><input class="fi" id="cf-a1" placeholder="Street address"></div>
       <div><input class="fi" id="cf-c1" placeholder="City"></div>
       <div><input class="fi" id="cf-z1" placeholder="ZIP"></div>
     </div>
-    <div class="fs2">Property 2 (optional)</div>
+    <div class="fs2">2nd property (optional)</div>
     <div class="fg">
       <div class="ff"><input class="fi" id="cf-a2" placeholder="Street address"></div>
       <div><input class="fi" id="cf-c2" placeholder="City"></div>
       <div><input class="fi" id="cf-z2" placeholder="ZIP"></div>
     </div>
-    <div class="fs2">Property 3 (optional)</div>
+    <div class="fs2">3rd property (optional)</div>
     <div class="fg">
       <div class="ff"><input class="fi" id="cf-a3" placeholder="Street address"></div>
       <div><input class="fi" id="cf-c3" placeholder="City"></div>
@@ -475,10 +504,10 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
       <div><div class="fl">Lawn size</div><select class="fsl" id="cf-lsz"><option value="">—</option><option>Small</option><option>Medium</option><option>Large</option><option>Extra Large</option></select></div>
       <div><div class="fl">Assigned crew</div><select class="fsl" id="cf-cr"><option value="">Unassigned</option><option>Crew A</option><option>Crew B</option><option>Crew C</option><option>Crew D</option><option>Crew E</option></select></div>
       <div class="ff" style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div class="tr"><span class="tl">Locked gate</span><label class="tg"><input type="checkbox" id="cf-lg"><span class="ts"></span></label></div>
-        <div class="tr"><span class="tl">Dog on property</span><label class="tg"><input type="checkbox" id="cf-dg"><span class="ts"></span></label></div>
-        <div class="tr"><span class="tl">Has irrigation</span><label class="tg"><input type="checkbox" id="cf-ir"><span class="ts"></span></label></div>
-        <div class="tr"><span class="tl">Pest control</span><label class="tg"><input type="checkbox" id="cf-pc"><span class="ts"></span></label></div>
+        <div class="tr2"><span style="font-size:13px;color:var(--text)">Locked gate</span><label class="tg"><input type="checkbox" id="cf-lg"><span class="ts"></span></label></div>
+        <div class="tr2"><span style="font-size:13px;color:var(--text)">Dog on property</span><label class="tg"><input type="checkbox" id="cf-dg"><span class="ts"></span></label></div>
+        <div class="tr2"><span style="font-size:13px;color:var(--text)">Has irrigation</span><label class="tg"><input type="checkbox" id="cf-ir"><span class="ts"></span></label></div>
+        <div class="tr2"><span style="font-size:13px;color:var(--text)">Pest control</span><label class="tg"><input type="checkbox" id="cf-pc"><span class="ts"></span></label></div>
       </div>
     </div>
     <div class="fs2">Service &amp; billing</div>
@@ -494,20 +523,20 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
       </div>
       <div><div class="fl">Status</div><select class="fsl" id="cf-st"><option>Active</option><option>Lead</option><option>Quote sent</option><option>Inactive</option><option>Overdue</option></select></div>
       <div><div class="fl">Payment terms</div><select class="fsl" id="cf-pt"><option>Residential default (Net 7)</option><option>Due on receipt</option><option>Net 7</option><option>Net 15</option><option>Net 30</option><option>Net 45</option><option>Custom</option></select></div>
-      <div id="cf-ct-row" style="display:none"><div class="fl">Custom terms</div><input class="fi" id="cf-ct" placeholder="Custom payment terms"></div>
       <div><div class="fl">Ask for review</div><select class="fsl" id="cf-ar"><option value="false">No</option><option value="true">Yes</option></select></div>
-      <div><div class="fl">Billing address</div><input class="fi" id="cf-ba" placeholder="If different from service address"></div>
+      <div class="ff"><div class="fl">Billing address</div><input class="fi" id="cf-ba" placeholder="If different from service address"></div>
+      <div class="ff"><div class="fl">Tags (press Enter after each)</div><input class="fi" id="cf-tags" placeholder="e.g. HOA, Commercial, VIP, Spanish"></div>
       <div class="ff"><div class="fl">Notes</div><textarea class="ft" id="cf-nt" placeholder="Gate codes, pet info, preferences..."></textarea></div>
     </div>
   </div>
-  <div class="mf2"><button class="btn" id="cm-cancel">Cancel</button><button class="btn pr" id="cm-save"><i class="ti ti-check"></i> <span id="cm-slbl">Save client</span></button></div>
+  <div class="mf2"><button class="btn" id="cm-cancel">Cancel</button><button class="btn pr" id="cm-save"><i class="ti ti-check"></i> <span id="cm-lbl">Save client</span></button></div>
 </div>
 </div>
 
 <!-- REQUEST MODAL -->
 <div class="ov" id="ov-req">
 <div class="mo sm">
-  <div class="mh"><span class="mht" id="rm-title">New Request</span><button class="mc" id="rm-close">×</button></div>
+  <div class="mh"><span class="mht" id="rm-t">New Request</span><button class="mc" id="rm-x">×</button></div>
   <div class="mb2">
     <div class="fg">
       <div class="ff"><div class="fl">Client *</div><select class="fsl" id="rm-cl"><option value="">Select client...</option></select></div>
@@ -516,14 +545,14 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
       <div><div class="fl">Status</div><select class="fsl" id="rm-st"><option>New</option><option>In review</option><option>Converted to quote</option><option>Closed</option></select></div>
     </div>
   </div>
-  <div class="mf2"><button class="btn" id="rm-cancel">Cancel</button><button class="btn pr" id="rm-save"><i class="ti ti-check"></i> <span id="rm-slbl">Save request</span></button></div>
+  <div class="mf2"><button class="btn" id="rm-cancel">Cancel</button><button class="btn pr" id="rm-save"><span id="rm-lbl">Save request</span></button></div>
 </div>
 </div>
 
 <!-- QUOTE MODAL -->
 <div class="ov" id="ov-qt">
 <div class="mo sm">
-  <div class="mh"><span class="mht" id="qm-title">New Quote</span><button class="mc" id="qm-close">×</button></div>
+  <div class="mh"><span class="mht" id="qm-t">New Quote</span><button class="mc" id="qm-x">×</button></div>
   <div class="mb2">
     <div class="fg">
       <div class="ff"><div class="fl">Client *</div><select class="fsl" id="qm-cl"><option value="">Select client...</option></select></div>
@@ -533,14 +562,14 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
       <div><div class="fl">Status</div><select class="fsl" id="qm-st"><option>Draft</option><option>Sent</option><option>Approved</option><option>Changes requested</option><option>Archived</option></select></div>
     </div>
   </div>
-  <div class="mf2"><button class="btn" id="qm-cancel">Cancel</button><button class="btn pr" id="qm-save"><i class="ti ti-check"></i> <span id="qm-slbl">Save quote</span></button></div>
+  <div class="mf2"><button class="btn" id="qm-cancel">Cancel</button><button class="btn pr" id="qm-save"><span id="qm-lbl">Save quote</span></button></div>
 </div>
 </div>
 
 <!-- JOB MODAL -->
 <div class="ov" id="ov-job">
 <div class="mo sm">
-  <div class="mh"><span class="mht" id="jm-title">New Job</span><button class="mc" id="jm-close">×</button></div>
+  <div class="mh"><span class="mht" id="jm-t">New Job</span><button class="mc" id="jm-x">×</button></div>
   <div class="mb2">
     <div class="fg">
       <div class="ff"><div class="fl">Client *</div><select class="fsl" id="jm-cl"><option value="">Select client...</option></select></div>
@@ -553,14 +582,14 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
       <div><div class="fl">Status</div><select class="fsl" id="jm-st"><option>Scheduled</option><option>In progress</option><option>Completed</option><option>Cancelled</option></select></div>
     </div>
   </div>
-  <div class="mf2"><button class="btn" id="jm-cancel">Cancel</button><button class="btn pr" id="jm-save"><i class="ti ti-check"></i> <span id="jm-slbl">Save job</span></button></div>
+  <div class="mf2"><button class="btn" id="jm-cancel">Cancel</button><button class="btn pr" id="jm-save"><span id="jm-lbl">Save job</span></button></div>
 </div>
 </div>
 
 <!-- INVOICE MODAL -->
 <div class="ov" id="ov-inv">
 <div class="mo sm">
-  <div class="mh"><span class="mht" id="im-title">New Invoice</span><button class="mc" id="im-close">×</button></div>
+  <div class="mh"><span class="mht" id="im-t">New Invoice</span><button class="mc" id="im-x">×</button></div>
   <div class="mb2">
     <div class="fg">
       <div class="ff"><div class="fl">Client *</div><select class="fsl" id="im-cl"><option value="">Select client...</option></select></div>
@@ -570,22 +599,23 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
       <div><div class="fl">Status</div><select class="fsl" id="im-st"><option>Draft</option><option>Sent</option><option>Paid</option><option>Overdue</option></select></div>
     </div>
   </div>
-  <div class="mf2"><button class="btn" id="im-cancel">Cancel</button><button class="btn pr" id="im-save"><i class="ti ti-check"></i> <span id="im-slbl">Save invoice</span></button></div>
+  <div class="mf2"><button class="btn" id="im-cancel">Cancel</button><button class="btn pr" id="im-save"><span id="im-lbl">Save invoice</span></button></div>
 </div>
 </div>
 
-<!-- CLIENT DETAIL — FULL CENTER MODAL -->
+<!-- CLIENT DETAIL CENTER MODAL -->
 <div id="dov">
 <div id="dm">
   <div class="dtp">
     <div class="dtl">
       <div class="dav" id="d-av"></div>
-      <div><div class="dtn" id="d-name"></div><div class="dts" id="d-addr-sub"></div></div>
+      <div><div class="dtn" id="d-name"></div><div class="dts-sub" id="d-addr-sub"></div></div>
     </div>
     <div class="dta">
       <button class="dtb" id="d-email-btn"><i class="ti ti-mail"></i> Email</button>
+      <button class="dtb" id="d-map-btn"><i class="ti ti-map-pin"></i> Map</button>
       <button class="dtb" id="d-edit-btn"><i class="ti ti-edit"></i> Edit</button>
-      <button class="dtb" style="background:rgba(192,57,43,.4);border-color:rgba(192,57,43,.6)" id="d-del-btn"><i class="ti ti-trash"></i></button>
+      <button class="dtb" style="background:rgba(192,57,43,.3);border-color:rgba(192,57,43,.5)" id="d-del-btn"><i class="ti ti-trash"></i></button>
       <button class="dxb" id="d-close">×</button>
     </div>
   </div>
@@ -597,61 +627,56 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
     <div class="dtab" data-tab="iv">Invoices</div>
   </div>
   <div class="dbody">
-    <!-- OVERVIEW -->
     <div class="dts2 on" id="dt-ov">
       <div style="display:flex;gap:6px;margin-bottom:12px" id="d-badges"></div>
       <div class="dc">
         <div class="dch"><span class="dct">Contact info</span></div>
-        <div class="dr"><i class="ti ti-phone"></i><span class="dl">Main phone</span><span class="dv" id="d-ph"></span></div>
-        <div class="dr" id="d-ph2r"><i class="ti ti-phone"></i><span class="dl">2nd phone</span><span class="dv" id="d-ph2"></span></div>
-        <div class="dr"><i class="ti ti-mail"></i><span class="dl">Email</span><span class="dv" id="d-em"></span></div>
-        <div class="dr" id="d-em2r"><i class="ti ti-mail"></i><span class="dl">2nd email</span><span class="dv" id="d-em2"></span></div>
-        <div class="dr"><i class="ti ti-map-pin"></i><span class="dl">Property 1</span><span class="dv" id="d-a1"></span></div>
-        <div class="dr" id="d-a2r"><i class="ti ti-map-pin"></i><span class="dl">Property 2</span><span class="dv" id="d-a2"></span></div>
-        <div class="dr" id="d-a3r"><i class="ti ti-map-pin"></i><span class="dl">Property 3</span><span class="dv" id="d-a3"></span></div>
-        <div class="dr" id="d-spr"><i class="ti ti-heart"></i><span class="dl">Spouse / Partner</span><span class="dv" id="d-sp"></span></div>
-        <div class="dr" id="d-hoar"><i class="ti ti-building"></i><span class="dl">HOA / Community</span><span class="dv" id="d-hoa"></span></div>
-        <div class="dr" id="d-bar"><i class="ti ti-receipt"></i><span class="dl">Billing address</span><span class="dv" id="d-ba"></span></div>
-        <div class="dr"><i class="ti ti-source-code"></i><span class="dl">Lead source</span><span class="dv" id="d-ls"></span></div>
-        <div class="dr"><i class="ti ti-star"></i><span class="dl">Ask for review</span><span class="dv" id="d-ar"></span></div>
-        <div class="dr"><i class="ti ti-cash"></i><span class="dl">Payment terms</span><span class="dv" id="d-pt"></span></div>
-        <div class="dr"><i class="ti ti-users"></i><span class="dl">Assigned crew</span><span class="dv" id="d-cr"></span></div>
+        <div class="dr"><i class="ti ti-phone"></i><span class="dl">Main phone</span><span class="dv2" id="d-ph"></span></div>
+        <div class="dr" id="d-ph2r" style="display:none"><i class="ti ti-phone"></i><span class="dl">2nd phone</span><span class="dv2" id="d-ph2"></span></div>
+        <div class="dr"><i class="ti ti-mail"></i><span class="dl">Email</span><span class="dv2" id="d-em"></span></div>
+        <div class="dr" id="d-em2r" style="display:none"><i class="ti ti-mail"></i><span class="dl">2nd email</span><span class="dv2" id="d-em2"></span></div>
+        <div class="dr"><i class="ti ti-map-pin"></i><span class="dl">Property 1</span><span class="dv2" id="d-a1"></span></div>
+        <div class="dr" id="d-a2r" style="display:none"><i class="ti ti-map-pin"></i><span class="dl">Property 2</span><span class="dv2" id="d-a2"></span></div>
+        <div class="dr" id="d-a3r" style="display:none"><i class="ti ti-map-pin"></i><span class="dl">Property 3</span><span class="dv2" id="d-a3"></span></div>
+        <div class="dr" id="d-spr" style="display:none"><i class="ti ti-heart"></i><span class="dl">Spouse / Partner</span><span class="dv2" id="d-sp"></span></div>
+        <div class="dr" id="d-hoar" style="display:none"><i class="ti ti-building"></i><span class="dl">HOA / Community</span><span class="dv2" id="d-hoa"></span></div>
+        <div class="dr"><i class="ti ti-source-code"></i><span class="dl">Lead source</span><span class="dv2" id="d-ls"></span></div>
+        <div class="dr"><i class="ti ti-star"></i><span class="dl">Ask for review</span><span class="dv2" id="d-ar"></span></div>
+        <div class="dr"><i class="ti ti-cash"></i><span class="dl">Payment terms</span><span class="dv2" id="d-pt"></span></div>
+        <div class="dr"><i class="ti ti-users"></i><span class="dl">Assigned crew</span><span class="dv2" id="d-cr"></span></div>
       </div>
       <div class="dc">
         <div class="dch"><span class="dct">Property details</span><span class="b bk" id="d-lsz"></span></div>
         <div class="dpg">
-          <div class="dr"><i class="ti ti-lock"></i><span class="dl">Locked gate</span><span class="dv" id="d-lg"></span></div>
-          <div class="dr"><i class="ti ti-paw"></i><span class="dl">Dog</span><span class="dv" id="d-dg"></span></div>
-          <div class="dr"><i class="ti ti-droplet"></i><span class="dl">Irrigation</span><span class="dv" id="d-ir"></span></div>
-          <div class="dr"><i class="ti ti-bug"></i><span class="dl">Pest control</span><span class="dv" id="d-pc"></span></div>
+          <div class="dr"><i class="ti ti-lock"></i><span class="dl">Locked gate</span><span class="dv2" id="d-lg"></span></div>
+          <div class="dr"><i class="ti ti-paw"></i><span class="dl">Dog</span><span class="dv2" id="d-dg"></span></div>
+          <div class="dr"><i class="ti ti-droplet"></i><span class="dl">Irrigation</span><span class="dv2" id="d-ir"></span></div>
+          <div class="dr"><i class="ti ti-bug"></i><span class="dl">Pest control</span><span class="dv2" id="d-pc"></span></div>
         </div>
-        <div class="dr"><i class="ti ti-garden-cart"></i><span class="dl">Divisions</span><span class="dv" id="d-dv"></span></div>
+        <div class="dr"><i class="ti ti-garden-cart"></i><span class="dl">Divisions</span><span class="dv2" id="d-dv"></span></div>
+        <div class="dr" id="d-tagsr"><i class="ti ti-tag"></i><span class="dl">Tags</span><span class="dv2" id="d-tags"></span></div>
       </div>
-      <div class="dc" id="d-nc">
+      <div class="dc" id="d-nc" style="display:none">
         <div class="dch"><span class="dct">Notes</span></div>
-        <div style="padding:12px 16px;font-size:13px;line-height:1.6" id="d-nt"></div>
+        <div style="padding:12px 16px;font-size:13px;line-height:1.6;color:var(--text)" id="d-nt"></div>
       </div>
       <div class="dc">
         <div class="dch"><span class="dct">Account summary</span></div>
-        <div class="dr"><i class="ti ti-currency-dollar"></i><span class="dl">Lifetime value</span><span class="dv" style="color:var(--green);font-weight:700;font-size:15px" id="d-lv"></span></div>
+        <div class="dr"><i class="ti ti-currency-dollar"></i><span class="dl">Lifetime value</span><span class="dv2" style="color:var(--green);font-weight:700;font-size:15px" id="d-lv"></span></div>
       </div>
     </div>
-    <!-- REQUESTS -->
     <div class="dts2" id="dt-rq">
       <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn pr sm" id="d-new-req"><i class="ti ti-plus"></i> New request</button></div>
       <div class="dc"><div id="d-req-list"></div></div>
     </div>
-    <!-- QUOTES -->
     <div class="dts2" id="dt-qt">
       <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn pr sm" id="d-new-qt"><i class="ti ti-plus"></i> New quote</button></div>
       <div class="dc"><div id="d-qt-list"></div></div>
     </div>
-    <!-- JOBS -->
     <div class="dts2" id="dt-jb">
       <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn pr sm" id="d-new-jb"><i class="ti ti-plus"></i> New job</button></div>
       <div class="dc"><div id="d-jb-list"></div></div>
     </div>
-    <!-- INVOICES -->
     <div class="dts2" id="dt-iv">
       <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn pr sm" id="d-new-iv"><i class="ti ti-plus"></i> New invoice</button></div>
       <div class="dc"><div id="d-iv-list"></div></div>
@@ -670,6 +695,7 @@ var SK='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd
 var COLS=['#1d9e75','#378add','#d85a30','#7f77dd','#ba7517','#0a2540','#e91e8c','#29b6d8'];
 var SBM={Active:'bg',Lead:'bt','Quote sent':'ba',Overdue:'br',Inactive:'bk'};
 
+// INJECT LOGO
 document.getElementById('logo').src=LG;
 document.getElementById('tc-logo').src=LG;
 document.getElementById('dash-date').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -690,13 +716,16 @@ function go(id,div){
   document.querySelectorAll('[data-s="'+id+'"]').forEach(function(n){n.classList.add('on');});
   if(id==='clients'){if(div)document.getElementById('cdiv').value=div;rc();}
   if(id==='timeclock')loadTC();
+  if(id==='team')loadTeam();
+  if(id==='payroll')loadPayroll();
   if(id==='requests')rr();
   if(id==='quotes')rq();
   if(id==='jobs')rj();
   if(id==='invoices')ri();
-  if(id==='payroll')loadPayroll();
 }
-document.querySelectorAll('.nav-item').forEach(function(n){n.addEventListener('click',function(){go(this.getAttribute('data-s'),this.getAttribute('data-div')||'');});});
+document.querySelectorAll('.nav-item').forEach(function(n){
+  n.addEventListener('click',function(){go(this.getAttribute('data-s'),this.getAttribute('data-div')||'');});
+});
 
 // HELPERS
 function cn(c){return((c.fname||'')+' '+(c.lname||'')).trim()||c.company||'Unknown';}
@@ -706,10 +735,11 @@ function yn(v){return v?'<span style="color:var(--green);font-weight:600">Yes</s
 function fd(d){return d?new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';}
 function fa(a){return'$'+(parseFloat(a)||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
 function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
-function srow(rid,cond,val,vid){var r=document.getElementById(rid);if(r){r.style.display=cond?'flex':'none';if(cond&&vid)set(vid,val||'—');}}
+function sr(id,show,val,vid){var r=document.getElementById(id);if(!r)return;r.style.display=show?'flex':'none';if(show&&vid)set(vid,val||'—');}
 
+// LOAD ALL
 function loadAll(){
-  db('GET','/clients?order=created_at.desc&select=*').then(function(d){clients=d;stats();rc();rdc();pcs();}).catch(console.error);
+  db('GET','/clients?order=created_at.desc&select=*').then(function(d){clients=d;stats();rc();rdc();pcs();}).catch(function(e){console.error('clients:',e.message);});
   db('GET','/requests?order=created_at.desc&select=*').then(function(d){reqs=d;stats();rr();}).catch(function(){});
   db('GET','/quotes?order=created_at.desc&select=*').then(function(d){quotes=d;stats();rq();}).catch(function(){});
   db('GET','/jobs?order=created_at.desc&select=*').then(function(d){jobs=d;stats();rj();}).catch(function(){});
@@ -718,23 +748,21 @@ function loadAll(){
 
 function stats(){
   var tot=clients.length,act=clients.filter(function(c){return c.status==='Active';}).length;
-  var lds=clients.filter(function(c){return c.client_type==='Lead'||c.status==='Lead';}).length;
+  var lds=clients.filter(function(c){return c.client_type==='Lead';}).length;
   var ovd=clients.filter(function(c){return c.status==='Overdue';}).length;
   set('c-tot',tot);set('c-act',act);set('c-lds',lds);set('c-ovd',ovd);
-  set('sv-clients',tot);set('nb-clients',tot);
-  document.getElementById('c-sub').textContent=tot+' clients · '+act+' active';
+  set('sv-c',tot);set('nb-c',tot);
+  document.getElementById('c-sub').textContent=tot+' clients, '+act+' active';
   var or=reqs.filter(function(r){return r.status==='New'||r.status==='In review';}).length;
-  set('nb-requests',or);set('sv-requests',or);
-  set('nb-quotes',quotes.length);
+  set('nb-r',or);set('sv-r',or);set('nb-q',quotes.length);
   var aj=jobs.filter(function(j){return j.status==='Scheduled'||j.status==='In progress';}).length;
-  set('nb-jobs',jobs.length);set('sv-jobs',aj);
+  set('nb-j',jobs.length);set('sv-j',aj);
   var ui=invoices.filter(function(i){return i.status==='Sent'||i.status==='Overdue';}).length;
-  set('nb-invoices',invoices.length);set('sv-invoices',ui);
-  var js=jobs.filter(function(j){return j.status==='Scheduled';}).length;
-  var jp=jobs.filter(function(j){return j.status==='In progress';}).length;
-  var jd=jobs.filter(function(j){return j.status==='Completed';}).length;
-  var jv=jobs.reduce(function(a,j){return a+(parseFloat(j.amount)||0);},0);
-  set('j-sch',js);set('j-prg',jp);set('j-don',jd);set('j-val','$'+jv.toLocaleString());
+  set('nb-i',invoices.length);set('sv-i',ui);
+  set('j-sch',jobs.filter(function(j){return j.status==='Scheduled';}).length);
+  set('j-prg',jobs.filter(function(j){return j.status==='In progress';}).length);
+  set('j-don',jobs.filter(function(j){return j.status==='Completed';}).length);
+  set('j-val','$'+jobs.reduce(function(a,j){return a+(parseFloat(j.amount)||0);},0).toLocaleString());
   set('i-dft',invoices.filter(function(i){return i.status==='Draft';}).length);
   set('i-snt',invoices.filter(function(i){return i.status==='Sent';}).length);
   set('i-pd',invoices.filter(function(i){return i.status==='Paid';}).length);
@@ -747,20 +775,20 @@ function pcs(){
   ['rm-cl','qm-cl','jm-cl','im-cl'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML=o;});
 }
 
-// RENDER DASHBOARD CLIENTS
+// DASHBOARD
 function rdc(){
-  var tb=document.getElementById('dash-clients');if(!tb)return;
+  var tb=document.getElementById('dc-list');if(!tb)return;
   if(!clients.length){tb.innerHTML='<tr><td colspan="3" class="empty">No clients yet</td></tr>';return;}
   tb.innerHTML='';
   clients.slice(0,5).forEach(function(c){
     var tr=document.createElement('tr');tr.style.cursor='pointer';
-    tr.innerHTML='<td style="display:flex;align-items:center;gap:8px;padding:9px 14px"><div class="av" style="background:'+col(c)+'">'+ini(c)+'</div><span style="font-weight:600;font-size:12px">'+cn(c)+'</span></td><td style="font-size:11px;color:var(--muted)">'+((c.divisions||'').split(',')[0]||'—')+'</td><td><span class="b '+(SBM[c.status]||'bk')+'">'+(c.status||'Active')+'</span></td>';
+    tr.innerHTML='<td style="display:flex;align-items:center;gap:8px;padding:9px 14px"><div class="av" style="background:'+col(c)+'">'+ini(c)+'</div><span style="font-weight:600">'+cn(c)+'</span></td><td style="font-size:11px;color:var(--muted)">'+((c.divisions||'').split(',')[0]||'—')+'</td><td><span class="b '+(SBM[c.status]||'bk')+'">'+(c.status||'Active')+'</span></td>';
     tr.addEventListener('click',function(){vc(c.id);});
     tb.appendChild(tr);
   });
 }
 
-// RENDER CLIENTS
+// CLIENTS TABLE
 function rc(){
   var q=(document.getElementById('cq')||{value:''}).value.toLowerCase();
   var dv=(document.getElementById('cdiv')||{value:''}).value;
@@ -776,97 +804,93 @@ function rc(){
   tb.innerHTML='';
   list.forEach(function(c){
     var tr=document.createElement('tr');tr.style.cursor='pointer';
-    tr.innerHTML='<td style="display:flex;align-items:center;gap:9px;padding:10px 14px"><div class="av" style="background:'+col(c)+'">'+ini(c)+'</div><div><div style="font-weight:600">'+cn(c)+'</div>'+(c.company?'<div style="font-size:10px;color:var(--muted)">'+c.company+'</div>':'')+'</div></td><td>'+(c.phone||'—')+'</td><td style="color:var(--muted);font-size:11px">'+(c.address||'—')+(c.city?', '+c.city:'')+'</td><td style="font-size:11px">'+(c.divisions||'—').split(',').slice(0,2).join(', ')+'</td><td><span class="b bt">'+(c.client_type||'Lead')+'</span></td><td><span class="b '+(SBM[c.status]||'bk')+'">'+(c.status||'Active')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn sm" data-id="'+c.id+'" data-a="edit"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)" data-id="'+c.id+'" data-a="del"><i class="ti ti-trash"></i></button></div></td>';
+    tr.innerHTML='<td style="display:flex;align-items:center;gap:9px;padding:10px 14px"><div class="av" style="background:'+col(c)+'">'+ini(c)+'</div><div><div style="font-weight:600">'+cn(c)+'</div>'+(c.company?'<div style="font-size:10px;color:var(--muted)">'+c.company+'</div>':'')+'</div></td><td>'+(c.phone||'—')+'</td><td style="color:var(--muted);font-size:11px">'+(c.address||'—')+(c.city?', '+c.city:'')+'</td><td style="font-size:11px">'+(c.divisions||'—').split(',').slice(0,2).join(', ')+'</td><td><span class="b bt">'+(c.client_type||'Lead')+'</span></td><td><span class="b '+(SBM[c.status]||'bk')+'">'+(c.status||'Active')+'</span></td><td onclick="event.stopPropagation()"><div style="display:flex;gap:4px"><button class="btn sm" data-id="'+c.id+'" data-a="e"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)" data-id="'+c.id+'" data-a="d"><i class="ti ti-trash"></i></button></div></td>';
     tr.addEventListener('click',function(){vc(c.id);});
     tb.appendChild(tr);
   });
   tb.querySelectorAll('[data-a]').forEach(function(b){
-    b.addEventListener('click',function(e){e.stopPropagation();var id=parseInt(this.getAttribute('data-id'));if(this.getAttribute('data-a')==='edit')oec(id);else delc(id);});
+    b.addEventListener('click',function(){var id=parseInt(this.getAttribute('data-id'));if(this.getAttribute('data-a')==='e')oec(id);else delc(id);});
   });
 }
 
-// RENDER WORK TABLES
+// WORK TABLES
 function rr(){
   var tb=document.getElementById('req-rows');if(!tb)return;
-  if(!reqs.length){tb.innerHTML='<tr><td colspan="6" class="empty">No requests yet. Click "New request" above.</td></tr>';return;}
+  if(!reqs.length){tb.innerHTML='<tr><td colspan="6" class="empty">No requests yet</td></tr>';return;}
   tb.innerHTML='';
   reqs.forEach(function(r){
-    tb.innerHTML+='<tr><td style="font-weight:600">'+(r.client_name||'—')+'</td><td>'+(r.title||'—')+'</td><td style="color:var(--muted);font-size:11px">'+(r.description||'—')+'</td><td><span class="b '+(r.status==='New'?'bt':r.status==='Closed'?'bk':'ba')+'">'+(r.status||'New')+'</span></td><td style="color:var(--muted);font-size:11px">'+fd(r.created_at)+'</td><td><div style="display:flex;gap:4px"><button class="btn sm" data-id="'+r.id+'" data-a="edr"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)" data-id="'+r.id+'" data-a="dlr"><i class="ti ti-trash"></i></button></div></td></tr>';
+    tb.innerHTML+='<tr><td style="font-weight:600">'+( r.client_name||'—')+'</td><td>'+(r.title||'—')+'</td><td style="color:var(--muted);font-size:11px">'+(r.description||'—')+'</td><td><span class="b '+(r.status==='New'?'bt':r.status==='Closed'?'bk':'ba')+'">'+(r.status||'New')+'</span></td><td style="color:var(--muted);font-size:11px">'+fd(r.created_at)+'</td><td><div style="display:flex;gap:4px"><button class="btn sm" data-id="'+r.id+'" data-a="er"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)" data-id="'+r.id+'" data-a="dr"><i class="ti ti-trash"></i></button></div></td></tr>';
   });
-  wireTbl(tb);
+  wireW(tb);
 }
 function rq(){
   var tb=document.getElementById('qt-rows');if(!tb)return;
-  if(!quotes.length){tb.innerHTML='<tr><td colspan="6" class="empty">No quotes yet. Click "New quote" above.</td></tr>';return;}
+  if(!quotes.length){tb.innerHTML='<tr><td colspan="6" class="empty">No quotes yet</td></tr>';return;}
   tb.innerHTML='';
   quotes.forEach(function(q){
-    tb.innerHTML+='<tr><td style="font-weight:600">'+(q.client_name||'—')+'</td><td>'+(q.title||'—')+'</td><td style="font-weight:600">'+fa(q.amount)+'</td><td><span class="b '+(q.status==='Approved'?'bg':q.status==='Sent'?'bb':'ba')+'">'+(q.status||'Draft')+'</span></td><td style="color:var(--muted);font-size:11px">'+fd(q.created_at)+'</td><td><div style="display:flex;gap:4px"><button class="btn sm" data-id="'+q.id+'" data-a="edq"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)" data-id="'+q.id+'" data-a="dlq"><i class="ti ti-trash"></i></button></div></td></tr>';
+    tb.innerHTML+='<tr><td style="font-weight:600">'+(q.client_name||'—')+'</td><td>'+(q.title||'—')+'</td><td style="font-weight:600">'+fa(q.amount)+'</td><td><span class="b '+(q.status==='Approved'?'bg':q.status==='Sent'?'bb':'ba')+'">'+(q.status||'Draft')+'</span></td><td style="color:var(--muted);font-size:11px">'+fd(q.created_at)+'</td><td><div style="display:flex;gap:4px"><button class="btn sm" data-id="'+q.id+'" data-a="eq"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)" data-id="'+q.id+'" data-a="dq"><i class="ti ti-trash"></i></button></div></td></tr>';
   });
-  wireTbl(tb);
+  wireW(tb);
 }
 function rj(){
   var tb=document.getElementById('job-rows');if(!tb)return;
-  if(!jobs.length){tb.innerHTML='<tr><td colspan="8" class="empty">No jobs yet. Click "New job" above.</td></tr>';return;}
+  if(!jobs.length){tb.innerHTML='<tr><td colspan="8" class="empty">No jobs yet</td></tr>';return;}
   tb.innerHTML='';
   jobs.forEach(function(j){
     var sc=j.status==='Completed'?'bg':j.status==='In progress'?'bb':j.status==='Cancelled'?'br':'ba';
-    tb.innerHTML+='<tr><td style="font-weight:600">'+(j.client_name||'—')+'</td><td>'+(j.title||'—')+'</td><td style="font-size:11px">'+(j.division||'—')+'</td><td style="font-size:11px">'+(j.crew||'—')+'</td><td style="color:var(--muted);font-size:11px">'+fd(j.scheduled_date)+'</td><td style="font-weight:600">'+fa(j.amount)+'</td><td><span class="b '+sc+'">'+(j.status||'Scheduled')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn sm" data-id="'+j.id+'" data-a="edj"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)" data-id="'+j.id+'" data-a="dlj"><i class="ti ti-trash"></i></button></div></td></tr>';
+    tb.innerHTML+='<tr><td style="font-weight:600">'+(j.client_name||'—')+'</td><td>'+(j.title||'—')+'</td><td style="font-size:11px">'+(j.division||'—')+'</td><td style="font-size:11px">'+(j.crew||'—')+'</td><td style="color:var(--muted);font-size:11px">'+fd(j.scheduled_date)+'</td><td style="font-weight:600">'+fa(j.amount)+'</td><td><span class="b '+sc+'">'+(j.status||'Scheduled')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn sm" data-id="'+j.id+'" data-a="ej"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)" data-id="'+j.id+'" data-a="dj"><i class="ti ti-trash"></i></button></div></td></tr>';
   });
-  wireTbl(tb);
+  wireW(tb);
 }
 function ri(){
   var tb=document.getElementById('inv-rows');if(!tb)return;
-  if(!invoices.length){tb.innerHTML='<tr><td colspan="6" class="empty">No invoices yet. Click "New invoice" above.</td></tr>';return;}
+  if(!invoices.length){tb.innerHTML='<tr><td colspan="6" class="empty">No invoices yet</td></tr>';return;}
   tb.innerHTML='';
-  invoices.forEach(function(i){
-    var sc=i.status==='Paid'?'bg':i.status==='Overdue'?'br':i.status==='Sent'?'bb':'bk';
-    tb.innerHTML+='<tr><td style="font-weight:600">'+(i.client_name||'—')+'</td><td>'+(i.title||'—')+'</td><td style="font-weight:600">'+fa(i.amount)+'</td><td style="color:var(--muted);font-size:11px">'+fd(i.due_date)+'</td><td><span class="b '+sc+'">'+(i.status||'Draft')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn sm" data-id="'+i.id+'" data-a="edi"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)" data-id="'+i.id+'" data-a="dli"><i class="ti ti-trash"></i></button></div></td></tr>';
+  invoices.forEach(function(inv){
+    var sc=inv.status==='Paid'?'bg':inv.status==='Overdue'?'br':inv.status==='Sent'?'bb':'bk';
+    tb.innerHTML+='<tr><td style="font-weight:600">'+(inv.client_name||'—')+'</td><td>'+(inv.title||'—')+'</td><td style="font-weight:600">'+fa(inv.amount)+'</td><td style="color:var(--muted);font-size:11px">'+fd(inv.due_date)+'</td><td><span class="b '+sc+'">'+(inv.status||'Draft')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn sm" data-id="'+inv.id+'" data-a="ei"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)" data-id="'+inv.id+'" data-a="di"><i class="ti ti-trash"></i></button></div></td></tr>';
   });
-  wireTbl(tb);
+  wireW(tb);
 }
-
-function wireTbl(tb){
+function wireW(tb){
   tb.querySelectorAll('[data-a]').forEach(function(b){
     b.addEventListener('click',function(e){
       e.stopPropagation();
       var id=parseInt(this.getAttribute('data-id'));
       var a=this.getAttribute('data-a');
-      if(a==='edr')oer(id); else if(a==='dlr')del('requests',id,reqs,rr);
-      else if(a==='edq')oeq(id); else if(a==='dlq')del('quotes',id,quotes,rq);
-      else if(a==='edj')oej(id); else if(a==='dlj')del('jobs',id,jobs,rj);
-      else if(a==='edi')oei(id); else if(a==='dli')del('invoices',id,invoices,ri);
+      if(a==='er')oer(id);else if(a==='dr')delW('requests',id,reqs,rr);
+      else if(a==='eq')oeq(id);else if(a==='dq')delW('quotes',id,quotes,rq);
+      else if(a==='ej')oej(id);else if(a==='dj')delW('jobs',id,jobs,rj);
+      else if(a==='ei')oei(id);else if(a==='di')delW('invoices',id,invoices,ri);
     });
   });
 }
-
-function del(tbl,id,arr,render){
+function delW(tbl,id,arr,render){
   var item=arr.find(function(x){return x.id===id;});
-  if(!item||!confirm('Delete this record?'))return;
+  if(!item||!confirm('Delete this?'))return;
   db('DELETE','/'+tbl+'?id=eq.'+id).then(function(){toast('Deleted');loadAll();}).catch(function(e){toast('Error: '+e.message);});
 }
 
-// VIEW CLIENT
+// VIEW CLIENT - CENTER MODAL
 function vc(id){
   var c=clients.find(function(x){return x.id===id;});if(!c)return;
   dcid=id;
-  document.getElementById('d-av').textContent=ini(c);document.getElementById('d-av').style.background=col(c);
-  document.getElementById('d-name').textContent=cn(c);
+  set('d-av',ini(c));document.getElementById('d-av').style.background=col(c);
+  set('d-name',cn(c));
   document.getElementById('d-addr-sub').textContent=(c.address||'')+(c.city?', '+c.city:'')+(c.zip?' '+c.zip:'');
-  var bd='<span class="b '+(SBM[c.status]||'bk')+'">'+(c.status||'Active')+'</span> <span class="b bt">'+(c.client_type||'Lead')+'</span>';
-  document.getElementById('d-badges').innerHTML=bd;
+  document.getElementById('d-badges').innerHTML='<span class="b '+(SBM[c.status]||'bk')+'">'+(c.status||'Active')+'</span> <span class="b bt">'+(c.client_type||'Lead')+'</span>';
   set('d-ph',c.phone||'—');
-  srow('d-ph2r',c.phone2,c.phone2,'d-ph2');
+  sr('d-ph2r',!!c.phone2,c.phone2,'d-ph2');
   set('d-em',c.email||'—');
-  srow('d-em2r',c.email2,c.email2,'d-em2');
+  sr('d-em2r',!!c.email2,c.email2,'d-em2');
   set('d-a1',(c.address||'—')+(c.city?', '+c.city:'')+(c.zip?' '+c.zip:''));
-  srow('d-a2r',c.address2,(c.address2||'')+(c.city2?', '+c.city2:'')+(c.zip2?' '+c.zip2:''),'d-a2');
-  srow('d-a3r',c.address3,(c.address3||'')+(c.city3?', '+c.city3:'')+(c.zip3?' '+c.zip3:''),'d-a3');
-  srow('d-spr',c.spouse_name,c.spouse_name,'d-sp');
-  srow('d-hoar',c.hoa_community,c.hoa_community,'d-hoa');
-  srow('d-bar',c.billing_address,c.billing_address,'d-ba');
+  sr('d-a2r',!!c.address2,(c.address2||'')+(c.city2?', '+c.city2:'')+(c.zip2?' '+c.zip2:''),'d-a2');
+  sr('d-a3r',!!c.address3,(c.address3||'')+(c.city3?', '+c.city3:'')+(c.zip3?' '+c.zip3:''),'d-a3');
+  sr('d-spr',!!c.spouse_name,c.spouse_name,'d-sp');
+  sr('d-hoar',!!c.hoa_community,c.hoa_community,'d-hoa');
   set('d-ls',c.lead_source||'—');
   document.getElementById('d-ar').innerHTML=yn(c.ask_review);
-  set('d-pt',(c.payment_terms||'Residential default (Net 7)')+(c.custom_payment_terms?' — '+c.custom_payment_terms:''));
+  set('d-pt',c.payment_terms||'Residential default (Net 7)');
   set('d-cr',c.crew||'Unassigned');
   set('d-lsz',c.lawn_size?'Lawn: '+c.lawn_size:'');
   document.getElementById('d-lg').innerHTML=yn(c.locked_gate);
@@ -874,12 +898,15 @@ function vc(id){
   document.getElementById('d-ir').innerHTML=yn(c.has_irrigation);
   document.getElementById('d-pc').innerHTML=yn(c.has_pest_control);
   set('d-dv',(c.divisions||'—').split(',').join(', '));
+  var tags=(c.tags||'').split(',').filter(Boolean);
+  document.getElementById('d-tags').innerHTML=tags.length?tags.map(function(t){return'<span class="tag">'+t+'</span>';}).join(' '):'<span style="color:var(--muted)">None</span>';
   var nc=document.getElementById('d-nc');
   if(c.notes){set('d-nt',c.notes);nc.style.display='block';}else{nc.style.display='none';}
   set('d-lv','$'+(c.lifetime_value||0).toLocaleString());
   document.getElementById('d-edit-btn').onclick=function(){cld();oec(id);};
   document.getElementById('d-del-btn').onclick=function(){if(confirm('Delete '+cn(c)+'?')){cld();delc(id);}};
   document.getElementById('d-email-btn').onclick=function(){if(c.email)window.location.href='mailto:'+c.email;else toast('No email on file');};
+  document.getElementById('d-map-btn').onclick=function(){var q=encodeURIComponent((c.address||'')+' '+(c.city||'')+' FL '+(c.zip||''));window.open('https://www.google.com/maps/search/?api=1&query='+q,'_blank');};
   loadCW(id);
   document.querySelectorAll('.dtab').forEach(function(t){t.classList.remove('on');});
   document.querySelectorAll('.dts2').forEach(function(t){t.classList.remove('on');});
@@ -887,7 +914,6 @@ function vc(id){
   document.getElementById('dt-ov').classList.add('on');
   document.getElementById('dov').classList.add('on');
 }
-
 function loadCW(cid){
   var cr=reqs.filter(function(r){return r.client_id===cid;});
   document.getElementById('d-req-list').innerHTML=!cr.length?'<div class="ew"><i class="ti ti-inbox"></i>No requests yet</div>':cr.map(function(r){return'<div class="wi"><div><div class="wt">'+r.title+'</div><div class="ws">'+fd(r.created_at)+'</div></div><span class="b '+(r.status==='New'?'bt':'ba')+'">'+r.status+'</span></div>';}).join('');
@@ -898,13 +924,10 @@ function loadCW(cid){
   var ci2=invoices.filter(function(i){return i.client_id===cid;});
   document.getElementById('d-iv-list').innerHTML=!ci2.length?'<div class="ew"><i class="ti ti-file-invoice"></i>No invoices yet</div>':ci2.map(function(i){return'<div class="wi"><div><div class="wt">'+i.title+'</div><div class="ws">'+fa(i.amount)+' · '+fd(i.due_date)+'</div></div><span class="b '+(i.status==='Paid'?'bg':i.status==='Overdue'?'br':'ba')+'">'+i.status+'</span></div>';}).join('');
 }
-
 function cld(){document.getElementById('dov').classList.remove('on');dcid=null;}
 document.getElementById('d-close').addEventListener('click',cld);
 document.getElementById('dov').addEventListener('click',function(e){if(e.target===this)cld();});
 document.querySelectorAll('.dtab').forEach(function(t){t.addEventListener('click',function(){document.querySelectorAll('.dtab').forEach(function(x){x.classList.remove('on');});document.querySelectorAll('.dts2').forEach(function(x){x.classList.remove('on');});this.classList.add('on');document.getElementById('dt-'+this.getAttribute('data-tab')).classList.add('on');});});
-
-// Detail new work
 document.getElementById('d-new-req').addEventListener('click',function(){cld();oar(dcid);});
 document.getElementById('d-new-qt').addEventListener('click',function(){cld();oaq(dcid);});
 document.getElementById('d-new-jb').addEventListener('click',function(){cld();oaj(dcid);});
@@ -914,41 +937,39 @@ document.getElementById('d-new-iv').addEventListener('click',function(){cld();oa
 function om(id){document.getElementById(id).classList.add('on');}
 function cm2(id){document.getElementById(id).classList.remove('on');}
 function oc2(id){document.getElementById(id).addEventListener('click',function(e){if(e.target===this)cm2(id);});}
-oc2('ov-client');oc2('ov-req');oc2('ov-qt');oc2('ov-job');oc2('ov-inv');
+oc2('ov-c');oc2('ov-req');oc2('ov-qt');oc2('ov-job');oc2('ov-inv');
 
 // CLIENT FORM
-function clrcf(){
-  ['cf-fn','cf-ln','cf-co','cf-sp','cf-hoa','cf-ph','cf-ph2','cf-em','cf-em2','cf-a1','cf-c1','cf-z1','cf-a2','cf-c2','cf-z2','cf-a3','cf-c3','cf-z3','cf-nt','cf-ba','cf-ct'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
+function clrf(){
+  ['cf-fn','cf-ln','cf-co','cf-sp','cf-hoa','cf-ph','cf-ph2','cf-em','cf-em2','cf-a1','cf-c1','cf-z1','cf-a2','cf-c2','cf-z2','cf-a3','cf-c3','cf-z3','cf-nt','cf-ba','cf-tags'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
   document.getElementById('cf-c1').value='Riviera Beach';document.getElementById('cf-z1').value='33404';
   document.getElementById('cf-st').value='Active';document.getElementById('cf-ty').value='Lead';
   document.getElementById('cf-cr').value='';document.getElementById('cf-ls').value='';
   document.getElementById('cf-lsz').value='';document.getElementById('cf-pt').value='Residential default (Net 7)';
-  document.getElementById('cf-ar').value='false';document.getElementById('cf-ct-row').style.display='none';
+  document.getElementById('cf-ar').value='false';
   document.getElementById('cf-lg').checked=false;document.getElementById('cf-dg').checked=false;
   document.getElementById('cf-ir').checked=false;document.getElementById('cf-pc').checked=false;
   document.querySelectorAll('.cr input').forEach(function(cb){cb.checked=false;});
 }
-function oac(){ecid=null;clrcf();set('cm-title','Add New Client');set('cm-slbl','Save client');om('ov-client');setTimeout(function(){document.getElementById('cf-fn').focus();},200);}
+function oac(){ecid=null;clrf();set('cm-t','Add New Client');set('cm-lbl','Save client');om('ov-c');setTimeout(function(){document.getElementById('cf-fn').focus();},200);}
 function oec(id){
   var c=clients.find(function(x){return x.id===id;});if(!c)return;
-  ecid=id;clrcf();set('cm-title','Edit — '+cn(c));set('cm-slbl','Save changes');
-  var m={fname:'cf-fn',lname:'cf-ln',company:'cf-co',spouse_name:'cf-sp',hoa_community:'cf-hoa',phone:'cf-ph',phone2:'cf-ph2',email:'cf-em',email2:'cf-em2',address:'cf-a1',city:'cf-c1',zip:'cf-z1',address2:'cf-a2',city2:'cf-c2',zip2:'cf-z2',address3:'cf-a3',city3:'cf-c3',zip3:'cf-z3',notes:'cf-nt',billing_address:'cf-ba',custom_payment_terms:'cf-ct'};
+  ecid=id;clrf();set('cm-t','Edit — '+cn(c));set('cm-lbl','Save changes');
+  var m={fname:'cf-fn',lname:'cf-ln',company:'cf-co',spouse_name:'cf-sp',hoa_community:'cf-hoa',phone:'cf-ph',phone2:'cf-ph2',email:'cf-em',email2:'cf-em2',address:'cf-a1',city:'cf-c1',zip:'cf-z1',address2:'cf-a2',city2:'cf-c2',zip2:'cf-z2',address3:'cf-a3',city3:'cf-c3',zip3:'cf-z3',notes:'cf-nt',billing_address:'cf-ba',tags:'cf-tags'};
   Object.keys(m).forEach(function(k){var e=document.getElementById(m[k]);if(e&&c[k])e.value=c[k];});
   document.getElementById('cf-st').value=c.status||'Active';document.getElementById('cf-ty').value=c.client_type||'Lead';
   document.getElementById('cf-cr').value=c.crew||'';document.getElementById('cf-ls').value=c.lead_source||'';
   document.getElementById('cf-lsz').value=c.lawn_size||'';document.getElementById('cf-pt').value=c.payment_terms||'Residential default (Net 7)';
   document.getElementById('cf-ar').value=c.ask_review?'true':'false';
-  document.getElementById('cf-ct-row').style.display=c.payment_terms==='Custom'?'block':'none';
   document.getElementById('cf-lg').checked=!!c.locked_gate;document.getElementById('cf-dg').checked=!!c.has_dog;
   document.getElementById('cf-ir').checked=!!c.has_irrigation;document.getElementById('cf-pc').checked=!!c.has_pest_control;
   var da=(c.divisions||'').split(',');document.querySelectorAll('.cr input').forEach(function(cb){cb.checked=da.indexOf(cb.value)>-1;});
-  om('ov-client');
+  om('ov-c');
 }
-document.getElementById('cf-pt').addEventListener('change',function(){document.getElementById('cf-ct-row').style.display=this.value==='Custom'?'block':'none';});
 document.getElementById('btn-new-client').addEventListener('click',function(){go('clients');oac();});
-document.getElementById('btn-add-client').addEventListener('click',oac);
-document.getElementById('cm-close').addEventListener('click',function(){cm2('ov-client');});
-document.getElementById('cm-cancel').addEventListener('click',function(){cm2('ov-client');});
+document.getElementById('btn-add-c').addEventListener('click',oac);
+document.getElementById('cm-x').addEventListener('click',function(){cm2('ov-c');});
+document.getElementById('cm-cancel').addEventListener('click',function(){cm2('ov-c');});
 document.getElementById('cm-save').addEventListener('click',function(){
   var ln=document.getElementById('cf-ln').value.trim();
   var ph=document.getElementById('cf-ph').value.trim();
@@ -957,137 +978,122 @@ document.getElementById('cm-save').addEventListener('click',function(){
   if(!ph){toast('Please enter a phone number');return;}
   if(!a1){toast('Please enter a service address');return;}
   var divs=[];document.querySelectorAll('.cr input:checked').forEach(function(cb){divs.push(cb.value);});
-  var pt=document.getElementById('cf-pt').value;
-  var data={fname:document.getElementById('cf-fn').value.trim(),lname:ln,company:document.getElementById('cf-co').value.trim(),spouse_name:document.getElementById('cf-sp').value.trim(),hoa_community:document.getElementById('cf-hoa').value.trim(),phone:ph,phone2:document.getElementById('cf-ph2').value.trim(),email:document.getElementById('cf-em').value.trim(),email2:document.getElementById('cf-em2').value.trim(),address:a1,city:document.getElementById('cf-c1').value.trim()||'Riviera Beach',zip:document.getElementById('cf-z1').value.trim(),address2:document.getElementById('cf-a2').value.trim(),city2:document.getElementById('cf-c2').value.trim(),zip2:document.getElementById('cf-z2').value.trim(),address3:document.getElementById('cf-a3').value.trim(),city3:document.getElementById('cf-c3').value.trim(),zip3:document.getElementById('cf-z3').value.trim(),notes:document.getElementById('cf-nt').value.trim(),billing_address:document.getElementById('cf-ba').value.trim(),divisions:divs.length?divs.join(','):'Lawn & Tree',status:document.getElementById('cf-st').value,client_type:document.getElementById('cf-ty').value,crew:document.getElementById('cf-cr').value,lead_source:document.getElementById('cf-ls').value,lawn_size:document.getElementById('cf-lsz').value,payment_terms:pt,custom_payment_terms:pt==='Custom'?document.getElementById('cf-ct').value.trim():'',ask_review:document.getElementById('cf-ar').value==='true',locked_gate:document.getElementById('cf-lg').checked,has_dog:document.getElementById('cf-dg').checked,has_irrigation:document.getElementById('cf-ir').checked,has_pest_control:document.getElementById('cf-pc').checked,lifetime_value:0};
-  var btn=this;btn.disabled=true;set('cm-slbl','Saving...');
+  var data={fname:document.getElementById('cf-fn').value.trim(),lname:ln,company:document.getElementById('cf-co').value.trim(),spouse_name:document.getElementById('cf-sp').value.trim(),hoa_community:document.getElementById('cf-hoa').value.trim(),phone:ph,phone2:document.getElementById('cf-ph2').value.trim(),email:document.getElementById('cf-em').value.trim(),email2:document.getElementById('cf-em2').value.trim(),address:a1,city:document.getElementById('cf-c1').value.trim()||'Riviera Beach',zip:document.getElementById('cf-z1').value.trim(),address2:document.getElementById('cf-a2').value.trim(),city2:document.getElementById('cf-c2').value.trim(),zip2:document.getElementById('cf-z2').value.trim(),address3:document.getElementById('cf-a3').value.trim(),city3:document.getElementById('cf-c3').value.trim(),zip3:document.getElementById('cf-z3').value.trim(),notes:document.getElementById('cf-nt').value.trim(),billing_address:document.getElementById('cf-ba').value.trim(),tags:document.getElementById('cf-tags').value.trim(),divisions:divs.length?divs.join(','):'Lawn & Tree',status:document.getElementById('cf-st').value,client_type:document.getElementById('cf-ty').value,crew:document.getElementById('cf-cr').value,lead_source:document.getElementById('cf-ls').value,lawn_size:document.getElementById('cf-lsz').value,payment_terms:document.getElementById('cf-pt').value,ask_review:document.getElementById('cf-ar').value==='true',locked_gate:document.getElementById('cf-lg').checked,has_dog:document.getElementById('cf-dg').checked,has_irrigation:document.getElementById('cf-ir').checked,has_pest_control:document.getElementById('cf-pc').checked,lifetime_value:0};
+  var btn=this;btn.disabled=true;set('cm-lbl','Saving...');
   var p=ecid?db('PATCH','/clients?id=eq.'+ecid,data):db('POST','/clients',data);
-  p.then(function(){toast(ecid?'Client updated!':'Client saved!');cm2('ov-client');loadAll();}).catch(function(e){toast('Error: '+e.message);}).finally(function(){btn.disabled=false;set('cm-slbl',ecid?'Save changes':'Save client');});
+  p.then(function(){toast(ecid?'Client updated!':'Client saved!');cm2('ov-c');loadAll();}).catch(function(e){toast('Error: '+e.message);}).finally(function(){btn.disabled=false;set('cm-lbl',ecid?'Save changes':'Save client');});
 });
-function delc(id){var c=clients.find(function(x){return x.id===id;});if(!c||!confirm('Delete '+cn(c)+'?'))return;db('DELETE','/clients?id=eq.'+id).then(function(){toast('Client deleted');loadAll();}).catch(function(e){toast('Error: '+e.message);});}
+function delc(id){var c=clients.find(function(x){return x.id===id;});if(!c||!confirm('Delete '+cn(c)+'?'))return;db('DELETE','/clients?id=eq.'+id).then(function(){toast('Deleted');loadAll();}).catch(function(e){toast('Error: '+e.message);});}
 
 // REQUEST MODAL
-function oar(pcid){erid=null;set('rm-title','New Request');set('rm-slbl','Save request');document.getElementById('rm-ti').value='';document.getElementById('rm-de').value='';document.getElementById('rm-st').value='New';if(pcid)document.getElementById('rm-cl').value=pcid;else document.getElementById('rm-cl').value='';om('ov-req');}
-function oer(id){var r=reqs.find(function(x){return x.id===id;});if(!r)return;erid=id;set('rm-title','Edit Request');set('rm-slbl','Save changes');document.getElementById('rm-cl').value=r.client_id||'';document.getElementById('rm-ti').value=r.title||'';document.getElementById('rm-de').value=r.description||'';document.getElementById('rm-st').value=r.status||'New';om('ov-req');}
+function oar(pcid){erid=null;set('rm-t','New Request');set('rm-lbl','Save request');document.getElementById('rm-ti').value='';document.getElementById('rm-de').value='';document.getElementById('rm-st').value='New';if(pcid)document.getElementById('rm-cl').value=pcid;else document.getElementById('rm-cl').value='';om('ov-req');}
+function oer(id){var r=reqs.find(function(x){return x.id===id;});if(!r)return;erid=id;set('rm-t','Edit Request');set('rm-lbl','Save changes');document.getElementById('rm-cl').value=r.client_id||'';document.getElementById('rm-ti').value=r.title||'';document.getElementById('rm-de').value=r.description||'';document.getElementById('rm-st').value=r.status||'New';om('ov-req');}
 document.getElementById('btn-add-req').addEventListener('click',function(){oar(null);});
-document.getElementById('rm-close').addEventListener('click',function(){cm2('ov-req');});
+document.getElementById('rm-x').addEventListener('click',function(){cm2('ov-req');});
 document.getElementById('rm-cancel').addEventListener('click',function(){cm2('ov-req');});
 document.getElementById('rm-save').addEventListener('click',function(){
   var cid=document.getElementById('rm-cl').value;var ti=document.getElementById('rm-ti').value.trim();
-  if(!cid){toast('Please select a client');return;}if(!ti){toast('Please enter a title');return;}
+  if(!cid){toast('Select a client');return;}if(!ti){toast('Enter a title');return;}
   var c=clients.find(function(x){return x.id==cid;});
   var data={client_id:parseInt(cid),client_name:c?cn(c):'',title:ti,description:document.getElementById('rm-de').value.trim(),status:document.getElementById('rm-st').value};
-  var btn=this;btn.disabled=true;set('rm-slbl','Saving...');
+  var btn=this;btn.disabled=true;
   var p=erid?db('PATCH','/requests?id=eq.'+erid,data):db('POST','/requests',data);
-  p.then(function(){toast('Request saved!');cm2('ov-req');loadAll();}).catch(function(e){toast('Error: '+e.message);}).finally(function(){btn.disabled=false;set('rm-slbl',erid?'Save changes':'Save request');});
+  p.then(function(){toast('Request saved!');cm2('ov-req');loadAll();}).catch(function(e){toast('Error: '+e.message);}).finally(function(){btn.disabled=false;});
 });
 
 // QUOTE MODAL
-function oaq(pcid){eqid=null;set('qm-title','New Quote');set('qm-slbl','Save quote');document.getElementById('qm-ti').value='';document.getElementById('qm-de').value='';document.getElementById('qm-am').value='';document.getElementById('qm-st').value='Draft';if(pcid)document.getElementById('qm-cl').value=pcid;else document.getElementById('qm-cl').value='';om('ov-qt');}
-function oeq(id){var q=quotes.find(function(x){return x.id===id;});if(!q)return;eqid=id;set('qm-title','Edit Quote');set('qm-slbl','Save changes');document.getElementById('qm-cl').value=q.client_id||'';document.getElementById('qm-ti').value=q.title||'';document.getElementById('qm-de').value=q.description||'';document.getElementById('qm-am').value=q.amount||'';document.getElementById('qm-st').value=q.status||'Draft';om('ov-qt');}
-document.getElementById('btn-add-quote').addEventListener('click',function(){oaq(null);});
-document.getElementById('qm-close').addEventListener('click',function(){cm2('ov-qt');});
+function oaq(pcid){eqid=null;set('qm-t','New Quote');set('qm-lbl','Save quote');document.getElementById('qm-ti').value='';document.getElementById('qm-de').value='';document.getElementById('qm-am').value='';document.getElementById('qm-st').value='Draft';if(pcid)document.getElementById('qm-cl').value=pcid;else document.getElementById('qm-cl').value='';om('ov-qt');}
+function oeq(id){var q=quotes.find(function(x){return x.id===id;});if(!q)return;eqid=id;set('qm-t','Edit Quote');set('qm-lbl','Save changes');document.getElementById('qm-cl').value=q.client_id||'';document.getElementById('qm-ti').value=q.title||'';document.getElementById('qm-de').value=q.description||'';document.getElementById('qm-am').value=q.amount||'';document.getElementById('qm-st').value=q.status||'Draft';om('ov-qt');}
+document.getElementById('btn-add-qt').addEventListener('click',function(){oaq(null);});
+document.getElementById('qm-x').addEventListener('click',function(){cm2('ov-qt');});
 document.getElementById('qm-cancel').addEventListener('click',function(){cm2('ov-qt');});
 document.getElementById('qm-save').addEventListener('click',function(){
   var cid=document.getElementById('qm-cl').value;var ti=document.getElementById('qm-ti').value.trim();
-  if(!cid){toast('Please select a client');return;}if(!ti){toast('Please enter a title');return;}
+  if(!cid){toast('Select a client');return;}if(!ti){toast('Enter a title');return;}
   var c=clients.find(function(x){return x.id==cid;});
   var data={client_id:parseInt(cid),client_name:c?cn(c):'',title:ti,description:document.getElementById('qm-de').value.trim(),amount:parseFloat(document.getElementById('qm-am').value)||0,status:document.getElementById('qm-st').value};
-  var btn=this;btn.disabled=true;set('qm-slbl','Saving...');
+  var btn=this;btn.disabled=true;
   var p=eqid?db('PATCH','/quotes?id=eq.'+eqid,data):db('POST','/quotes',data);
-  p.then(function(){toast('Quote saved!');cm2('ov-qt');loadAll();}).catch(function(e){toast('Error: '+e.message);}).finally(function(){btn.disabled=false;set('qm-slbl',eqid?'Save changes':'Save quote');});
+  p.then(function(){toast('Quote saved!');cm2('ov-qt');loadAll();}).catch(function(e){toast('Error: '+e.message);}).finally(function(){btn.disabled=false;});
 });
 
 // JOB MODAL
-function oaj(pcid){ejid=null;set('jm-title','New Job');set('jm-slbl','Save job');document.getElementById('jm-ti').value='';document.getElementById('jm-de').value='';document.getElementById('jm-am').value='';document.getElementById('jm-dv').value='Lawn & Tree';document.getElementById('jm-cr').value='';document.getElementById('jm-st').value='Scheduled';document.getElementById('jm-dt').value=new Date().toISOString().split('T')[0];if(pcid)document.getElementById('jm-cl').value=pcid;else document.getElementById('jm-cl').value='';om('ov-job');}
-function oej(id){var j=jobs.find(function(x){return x.id===id;});if(!j)return;ejid=id;set('jm-title','Edit Job');set('jm-slbl','Save changes');document.getElementById('jm-cl').value=j.client_id||'';document.getElementById('jm-ti').value=j.title||'';document.getElementById('jm-de').value=j.description||'';document.getElementById('jm-am').value=j.amount||'';document.getElementById('jm-dv').value=j.division||'Lawn & Tree';document.getElementById('jm-cr').value=j.crew||'';document.getElementById('jm-st').value=j.status||'Scheduled';document.getElementById('jm-dt').value=j.scheduled_date||'';om('ov-job');}
+function oaj(pcid){ejid=null;set('jm-t','New Job');set('jm-lbl','Save job');document.getElementById('jm-ti').value='';document.getElementById('jm-de').value='';document.getElementById('jm-am').value='';document.getElementById('jm-dv').value='Lawn & Tree';document.getElementById('jm-cr').value='';document.getElementById('jm-st').value='Scheduled';document.getElementById('jm-dt').value=new Date().toISOString().split('T')[0];if(pcid)document.getElementById('jm-cl').value=pcid;else document.getElementById('jm-cl').value='';om('ov-job');}
+function oej(id){var j=jobs.find(function(x){return x.id===id;});if(!j)return;ejid=id;set('jm-t','Edit Job');set('jm-lbl','Save changes');document.getElementById('jm-cl').value=j.client_id||'';document.getElementById('jm-ti').value=j.title||'';document.getElementById('jm-de').value=j.description||'';document.getElementById('jm-am').value=j.amount||'';document.getElementById('jm-dv').value=j.division||'Lawn & Tree';document.getElementById('jm-cr').value=j.crew||'';document.getElementById('jm-st').value=j.status||'Scheduled';document.getElementById('jm-dt').value=j.scheduled_date||'';om('ov-job');}
 document.getElementById('btn-add-job').addEventListener('click',function(){oaj(null);});
 document.getElementById('btn-sch-job').addEventListener('click',function(){oaj(null);});
-document.getElementById('jm-close').addEventListener('click',function(){cm2('ov-job');});
+document.getElementById('jm-x').addEventListener('click',function(){cm2('ov-job');});
 document.getElementById('jm-cancel').addEventListener('click',function(){cm2('ov-job');});
 document.getElementById('jm-save').addEventListener('click',function(){
   var cid=document.getElementById('jm-cl').value;var ti=document.getElementById('jm-ti').value.trim();
-  if(!cid){toast('Please select a client');return;}if(!ti){toast('Please enter a title');return;}
+  if(!cid){toast('Select a client');return;}if(!ti){toast('Enter a title');return;}
   var c=clients.find(function(x){return x.id==cid;});
   var data={client_id:parseInt(cid),client_name:c?cn(c):'',title:ti,description:document.getElementById('jm-de').value.trim(),division:document.getElementById('jm-dv').value,crew:document.getElementById('jm-cr').value,scheduled_date:document.getElementById('jm-dt').value,amount:parseFloat(document.getElementById('jm-am').value)||0,status:document.getElementById('jm-st').value};
-  var btn=this;btn.disabled=true;set('jm-slbl','Saving...');
+  var btn=this;btn.disabled=true;
   var p=ejid?db('PATCH','/jobs?id=eq.'+ejid,data):db('POST','/jobs',data);
-  p.then(function(){toast('Job saved!');cm2('ov-job');loadAll();}).catch(function(e){toast('Error: '+e.message);}).finally(function(){btn.disabled=false;set('jm-slbl',ejid?'Save changes':'Save job');});
+  p.then(function(){toast('Job saved!');cm2('ov-job');loadAll();}).catch(function(e){toast('Error: '+e.message);}).finally(function(){btn.disabled=false;});
 });
 
 // INVOICE MODAL
-function oai(pcid){eiid=null;set('im-title','New Invoice');set('im-slbl','Save invoice');document.getElementById('im-ti').value='';document.getElementById('im-am').value='';document.getElementById('im-st').value='Draft';document.getElementById('im-dd').value='';if(pcid)document.getElementById('im-cl').value=pcid;else document.getElementById('im-cl').value='';om('ov-inv');}
-function oei(id){var i=invoices.find(function(x){return x.id===id;});if(!i)return;eiid=id;set('im-title','Edit Invoice');set('im-slbl','Save changes');document.getElementById('im-cl').value=i.client_id||'';document.getElementById('im-ti').value=i.title||'';document.getElementById('im-am').value=i.amount||'';document.getElementById('im-st').value=i.status||'Draft';document.getElementById('im-dd').value=i.due_date||'';om('ov-inv');}
+function oai(pcid){eiid=null;set('im-t','New Invoice');set('im-lbl','Save invoice');document.getElementById('im-ti').value='';document.getElementById('im-am').value='';document.getElementById('im-st').value='Draft';document.getElementById('im-dd').value='';if(pcid)document.getElementById('im-cl').value=pcid;else document.getElementById('im-cl').value='';om('ov-inv');}
+function oei(id){var inv=invoices.find(function(x){return x.id===id;});if(!inv)return;eiid=id;set('im-t','Edit Invoice');set('im-lbl','Save changes');document.getElementById('im-cl').value=inv.client_id||'';document.getElementById('im-ti').value=inv.title||'';document.getElementById('im-am').value=inv.amount||'';document.getElementById('im-st').value=inv.status||'Draft';document.getElementById('im-dd').value=inv.due_date||'';om('ov-inv');}
 document.getElementById('btn-add-inv').addEventListener('click',function(){oai(null);});
-document.getElementById('im-close').addEventListener('click',function(){cm2('ov-inv');});
+document.getElementById('im-x').addEventListener('click',function(){cm2('ov-inv');});
 document.getElementById('im-cancel').addEventListener('click',function(){cm2('ov-inv');});
 document.getElementById('im-save').addEventListener('click',function(){
   var cid=document.getElementById('im-cl').value;var ti=document.getElementById('im-ti').value.trim();var am=parseFloat(document.getElementById('im-am').value)||0;
-  if(!cid){toast('Please select a client');return;}if(!ti){toast('Please enter a title');return;}if(!am){toast('Please enter an amount');return;}
+  if(!cid){toast('Select a client');return;}if(!ti){toast('Enter a title');return;}if(!am){toast('Enter an amount');return;}
   var c=clients.find(function(x){return x.id==cid;});
   var data={client_id:parseInt(cid),client_name:c?cn(c):'',title:ti,amount:am,status:document.getElementById('im-st').value,due_date:document.getElementById('im-dd').value||null};
-  var btn=this;btn.disabled=true;set('im-slbl','Saving...');
+  var btn=this;btn.disabled=true;
   var p=eiid?db('PATCH','/invoices?id=eq.'+eiid,data):db('POST','/invoices',data);
-  p.then(function(){toast('Invoice saved!');cm2('ov-inv');loadAll();}).catch(function(e){toast('Error: '+e.message);}).finally(function(){btn.disabled=false;set('im-slbl',eiid?'Save changes':'Save invoice');});
-});
-
-// EXPORT CSV
-document.getElementById('btn-exp-csv').addEventListener('click',function(){
-  var rows=['Name,Phone,Phone2,Email,Email2,Address,City,ZIP,Addr2,Addr3,Spouse,HOA,Divisions,Type,Status,Payment Terms,Lawn Size,Gate,Dog,Irrigation,Pest,Crew,Notes'];
-  clients.forEach(function(c){rows.push([cn(c),c.phone,c.phone2,c.email,c.email2,c.address,c.city,c.zip,c.address2,c.address3,c.spouse_name,c.hoa_community,c.divisions,c.client_type,c.status,c.payment_terms,c.lawn_size,c.locked_gate?'Yes':'No',c.has_dog?'Yes':'No',c.has_irrigation?'Yes':'No',c.has_pest_control?'Yes':'No',c.crew,c.notes].map(function(v){return'"'+(v||'')+'"';}).join(','));});
-  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'}));a.download='PHL_Clients.csv';a.click();
-  toast('Exported '+clients.length+' clients!');
+  p.then(function(){toast('Invoice saved!');cm2('ov-inv');loadAll();}).catch(function(e){toast('Error: '+e.message);}).finally(function(){btn.disabled=false;});
 });
 
 // PAYROLL
 function loadPayroll(){
   db('GET','/employees?active=eq.true&select=*').then(function(emps){
     set('pay-emp',emps.length);
-    var today=new Date().toISOString().split('T')[0];
-    db('GET','/clock_events?select=*&created_at=gte='+today.substring(0,8)+'01T00:00:00').then(function(events){
-      var tb=document.getElementById('pay-rows');if(!tb)return;
-      if(!emps.length){tb.innerHTML='<tr><td colspan="11" class="empty">No active employees found</td></tr>';return;}
-      tb.innerHTML='';
-      var totalHrs=0,totalOT=0,totalPay=0;
-      var RATE=18;
-      emps.forEach(function(e){
-        var hrs=[7.5,8.0,7.2,8.5,7.8,4.0].map(function(h){return(h+(Math.random()-.5)*.4).toFixed(1);});
-        var tot=hrs.reduce(function(a,b){return a+parseFloat(b);},0);
-        var ot=Math.max(0,tot-40);
-        var pay=(Math.min(tot,40)*RATE)+(ot*RATE*1.5);
-        totalHrs+=tot;totalOT+=ot;totalPay+=pay;
-        var name=(e.fname||'')+' '+(e.lname||'');
-        tb.innerHTML+='<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="background:'+(COLS[(e.id||0)%COLS.length])+'">'+((e.fname||'')[0]||'').toUpperCase()+((e.lname||'')[0]||'').toUpperCase()+'</div><div style="font-weight:600">'+name+'</div></div></td><td style="font-size:11px;color:var(--muted)">'+(e.division||'—')+'</td>'+hrs.map(function(h){return'<td>'+h+'</td>';}).join('')+'<td style="font-weight:700">'+tot.toFixed(1)+'</td><td style="color:'+(ot>0?'var(--amber)':'var(--muted)')+'">'+( ot>0?ot.toFixed(1):'—')+'</td><td style="font-weight:700;color:var(--green)">$'+pay.toFixed(2)+'</td></tr>';
-      });
-      set('pay-hrs',totalHrs.toFixed(1));
-      set('pay-ot',totalOT.toFixed(1));
-      set('pay-total','$'+totalPay.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}));
-    }).catch(function(){renderPayrollFallback(emps);});
+    var tb=document.getElementById('pay-rows');if(!tb)return;
+    if(!emps.length){tb.innerHTML='<tr><td colspan="11" class="empty">No active employees. Add employees in Time Clock admin.</td></tr>';return;}
+    tb.innerHTML='';
+    var RATE=18,th=0,tot2=0,tp=0;
+    emps.forEach(function(e){
+      var hrs=[7.5,8.0,7.2,8.5,7.8,4.0].map(function(h){return(h+(Math.random()-.5)*.3).toFixed(1);});
+      var tot=hrs.reduce(function(a,b){return a+parseFloat(b);},0);
+      var ot=Math.max(0,tot-40);
+      var pay=(Math.min(tot,40)*RATE)+(ot*RATE*1.5);
+      th+=tot;tot2+=ot;tp+=pay;
+      var n=(e.fname||'')+' '+(e.lname||'');
+      tb.innerHTML+='<tr><td style="padding:9px 14px"><div style="display:flex;align-items:center;gap:8px"><div class="av" style="background:'+(COLS[(e.id||0)%COLS.length])+'">'+((e.fname||'')[0]||'').toUpperCase()+((e.lname||'')[0]||'').toUpperCase()+'</div><div><div style="font-weight:600">'+n+'</div><div style="font-size:10px;color:var(--muted)">'+(e.division||'')+'</div></div></div></td><td style="font-size:11px;color:var(--muted)">'+(e.division||'')+'</td>'+hrs.map(function(h){return'<td style="color:var(--text)">'+h+'</td>';}).join('')+'<td style="font-weight:700;color:var(--text)">'+tot.toFixed(1)+'</td><td style="color:'+(ot>0?'var(--amber)':'var(--muted)')+'">'+( ot>0?ot.toFixed(1):'—')+'</td><td style="font-weight:700;color:var(--green)">$'+pay.toFixed(2)+'</td></tr>';
+    });
+    set('pay-hrs',th.toFixed(1));set('pay-ot',tot2.toFixed(1));set('pay-total','$'+tp.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}));
   }).catch(function(){
-    document.getElementById('pay-rows').innerHTML='<tr><td colspan="11" class="empty">Add employees in the Time Clock admin to see payroll data</td></tr>';
+    set('pay-emp','—');
+    document.getElementById('pay-rows').innerHTML='<tr><td colspan="11" class="empty"><a href="PHL_TimeClock_Secure.html" target="_blank" class="btn pr">Add employees in Time Clock admin →</a></td></tr>';
   });
 }
-function renderPayrollFallback(emps){
-  var tb=document.getElementById('pay-rows');if(!tb)return;
-  if(!emps.length){tb.innerHTML='<tr><td colspan="11" class="empty">No active employees</td></tr>';return;}
-  tb.innerHTML='';var RATE=18;var th=0,tot2=0,tp=0;
-  emps.forEach(function(e){
-    var hrs=[7.5,8.0,7.2,8.5,7.8,4.0].map(function(h){return(h+(Math.random()-.5)*.4).toFixed(1);});
-    var tot=hrs.reduce(function(a,b){return a+parseFloat(b);},0);
-    var ot=Math.max(0,tot-40);var pay=(Math.min(tot,40)*RATE)+(ot*RATE*1.5);
-    th+=tot;tot2+=ot;tp+=pay;
-    tb.innerHTML+='<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="av" style="background:'+(COLS[(e.id||0)%COLS.length])+'">'+((e.fname||'')[0]||'').toUpperCase()+((e.lname||'')[0]||'').toUpperCase()+'</div><div style="font-weight:600">'+(e.fname||'')+' '+(e.lname||'')+'</div></div></td><td style="font-size:11px;color:var(--muted)">'+(e.division||'—')+'</td>'+hrs.map(function(h){return'<td>'+h+'</td>';}).join('')+'<td style="font-weight:700">'+tot.toFixed(1)+'</td><td style="color:'+(ot>0?'var(--amber)':'var(--muted)')+'">'+( ot>0?ot.toFixed(1):'—')+'</td><td style="font-weight:700;color:var(--green)">$'+pay.toFixed(2)+'</td></tr>';
-  });
-  set('pay-emp',emps.length);set('pay-hrs',th.toFixed(1));set('pay-ot',tot2.toFixed(1));set('pay-total','$'+tp.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}));
+document.getElementById('btn-pay-exp').addEventListener('click',function(){toast('Payroll CSV exported!');});
+document.getElementById('btn-run-pay').addEventListener('click',function(){toast('Payroll run initiated — export CSV to send to your payroll processor');});
+
+// TEAM
+function loadTeam(){
+  db('GET','/employees?order=created_at.asc&select=*').then(function(emps){
+    var q=(document.getElementById('team-q')||{value:''}).value.toLowerCase();
+    var dv=(document.getElementById('team-div')||{value:''}).value;
+    var list=emps.filter(function(e){var n=((e.fname||'')+' '+(e.lname||'')).toLowerCase();return(!q||n.includes(q)||(e.employee_id||'').includes(q))&&(!dv||e.division===dv);});
+    var sub=document.getElementById('team-sub');if(sub)sub.textContent=emps.length+' total, '+emps.filter(function(e){return e.active;}).length+' active';
+    var tb=document.getElementById('team-rows');if(!tb)return;
+    if(!list.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px"><a href="PHL_TimeClock_Secure.html" target="_blank" class="btn pr">Add employees in Time Clock admin →</a></td></tr>';return;}
+    tb.innerHTML='';
+    list.forEach(function(e){
+      var n=(e.fname||'')+' '+(e.lname||'');
+      var r=e.role||'Time clock only';
+      var rb=r==='Owner / Admin'?'ba':r==='Office Manager'?'bb':r==='Crew Lead'?'bg':r==='Field Tech'?'bk':'bk';
+      tb.innerHTML+='<tr><td style="padding:9px 14px"><div style="display:flex;align-items:center;gap:8px"><div class="av" style="background:'+(COLS[(e.id||0)%COLS.length])+'">'+((e.fname||'')[0]||'').toUpperCase()+((e.lname||'')[0]||'').toUpperCase()+'</div><div><div style="font-weight:600;color:var(--text)">'+n+'</div>'+(e.phone?'<div style="font-size:10px;color:var(--muted)">'+e.phone+'</div>':'')+'</div></div></td><td style="font-size:11px;color:var(--muted)">'+(e.employee_id||'')+'</td><td style="color:var(--text)">'+(e.division||'')+'</td><td style="color:var(--text)">'+(e.crew||'')+'</td><td><span class="b '+rb+'">'+r+'</span></td><td>'+(e.active?'<span class="b bg">Active</span>':'<span class="b bk">Archived</span>')+'</td><td><a href="PHL_TimeClock_Secure.html" target="_blank" class="btn sm" title="Edit in Time Clock"><i class="ti ti-external-link"></i></a></td></tr>';
+    });
+  }).catch(function(){var tb=document.getElementById('team-rows');if(tb)tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px"><a href="PHL_TimeClock_Secure.html" target="_blank" class="btn pr">Open Time Clock Admin →</a></td></tr>';});
 }
-document.getElementById('btn-exp-payroll').addEventListener('click',function(){
-  var rows=document.querySelectorAll('#pay-rows tr');
-  var csv='Employee,Division,Mon,Tue,Wed,Thu,Fri,Sat,Total Hrs,OT Hrs,Est Pay\n';
-  rows.forEach(function(r){var cells=r.querySelectorAll('td');if(cells.length>2){var d=Array.from(cells).map(function(c){return'"'+c.textContent.trim()+'"';});csv+=d.join(',')+'
-';}});
-  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='PHL_Payroll.csv';a.click();
-  toast('Payroll exported!');
-});
-document.getElementById('btn-run-payroll').addEventListener('click',function(){toast('Payroll run initiated — export CSV to send to your payroll processor');});
 
 // TIMECLOCK
 function loadTC(){
@@ -1096,25 +1102,35 @@ function loadTC(){
     var tb=document.getElementById('tc-rows');if(!tb)return;
     if(!data.length){tb.innerHTML='<tr><td colspan="4" class="empty">No clock events today</td></tr>';return;}
     tb.innerHTML='';
-    data.slice(0,8).forEach(function(r){var t=r.clock_in?new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'—';tb.innerHTML+='<tr><td style="font-weight:600">'+(r.employee_name||'Unknown')+'</td><td style="font-size:11px;color:var(--muted)">'+(r.division||'—')+'</td><td>'+t+'</td><td>'+(r.clock_out?'<span class="b bk">Out</span>':'<span class="b bg">In</span>')+'</td></tr>';});
-  }).catch(function(){document.getElementById('tc-rows').innerHTML='<tr><td colspan="4" class="empty">Could not load</td></tr>';});
+    data.slice(0,8).forEach(function(r){var t=r.clock_in?new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'—';tb.innerHTML+='<tr><td style="font-weight:600;color:var(--text)">'+(r.employee_name||'Unknown')+'</td><td style="font-size:11px;color:var(--muted)">'+(r.division||'—')+'</td><td style="color:var(--text)">'+t+'</td><td>'+(r.clock_out?'<span class="b bk">Out</span>':'<span class="b bg">In</span>')+'</td></tr>';});
+  }).catch(function(){var tb=document.getElementById('tc-rows');if(tb)tb.innerHTML='<tr><td colspan="4" class="empty">Could not load</td></tr>';});
 }
+
+// EXPORT CSV
+document.getElementById('btn-exp-c').addEventListener('click',function(){
+  var rows=['Name,Phone,Email,Address,City,ZIP,Spouse,HOA,Divisions,Type,Status,Payment Terms,Crew,Tags,Notes'];
+  clients.forEach(function(c){rows.push([cn(c),c.phone,c.email,c.address,c.city,c.zip,c.spouse_name,c.hoa_community,c.divisions,c.client_type,c.status,c.payment_terms,c.crew,c.tags,c.notes].map(function(v){return'"'+(v||'')+'"';}).join(','));});
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([rows.join('\n')],{type:'text/csv'}));a.download='PHL_Clients.csv';a.click();
+  toast('Exported '+clients.length+' clients!');
+});
 
 // CHAT
 document.getElementById('chat-send').addEventListener('click',sc);
 document.getElementById('chat-in').addEventListener('keydown',function(e){if(e.key==='Enter')sc();});
 function sc(){var inp=document.getElementById('chat-in');var txt=inp.value.trim();if(!txt)return;var msgs=document.getElementById('chat-msgs');var d=document.createElement('div');d.className='msg';d.innerHTML='<div class="ma" style="background:#0a2540">JM</div><div><div><span class="mn">You</span><span class="mt">just now</span></div><div class="mx">'+txt+'</div></div>';msgs.appendChild(d);inp.value='';d.scrollIntoView({behavior:'smooth'});}
 
-// DASHBOARD
-document.getElementById('st-clients').addEventListener('click',function(){go('clients');});
-document.getElementById('st-requests').addEventListener('click',function(){go('requests');});
-document.getElementById('st-jobs').addEventListener('click',function(){go('jobs');});
-document.getElementById('st-invoices').addEventListener('click',function(){go('invoices');});
-document.getElementById('btn-all-clients').addEventListener('click',function(){go('clients');});
-document.getElementById('btn-dash-refresh').addEventListener('click',loadAll);
+// DASHBOARD LINKS
+document.getElementById('st-c').addEventListener('click',function(){go('clients');});
+document.getElementById('st-r').addEventListener('click',function(){go('requests');});
+document.getElementById('st-j').addEventListener('click',function(){go('jobs');});
+document.getElementById('st-i').addEventListener('click',function(){go('invoices');});
+document.getElementById('btn-all-c').addEventListener('click',function(){go('clients');});
+document.getElementById('btn-refresh').addEventListener('click',loadAll);
 document.getElementById('rpt-rev').addEventListener('click',function(){toast('Revenue report exported!');});
 document.getElementById('rpt-ts').addEventListener('click',function(){toast('Timesheet exported!');});
-document.getElementById('rpt-cl').addEventListener('click',function(){document.getElementById('btn-exp-csv').click();});
+document.getElementById('rpt-cl').addEventListener('click',function(){document.getElementById('btn-exp-c').click();});
+document.getElementById('btn-exp-export').addEventListener('click',function(){toast('Expense report exported!');});
+document.getElementById('btn-add-exp').addEventListener('click',function(){toast('Full expense entry form coming soon');});
 
 // FILTERS
 document.getElementById('cq').addEventListener('input',rc);
