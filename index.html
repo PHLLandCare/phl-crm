@@ -198,9 +198,7 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
   <div class="nav-item" data-s="invoices"><i class="ti ti-file-invoice"></i> Invoices <span class="nav-badge nb-t" id="nb-i">0</span></div>
   <div class="nav-sec">More</div>
   <div class="nav-item" data-s="schedule"><i class="ti ti-calendar"></i> Schedule</div>
-  <div class="nav-item" data-s="payroll"><i class="ti ti-coin"></i> Payroll</div>
-  <div class="nav-item" data-s="expenses"><i class="ti ti-receipt"></i> Expenses</div>
-  <div class="nav-item" data-s="team"><i class="ti ti-users-group"></i> All employees</div>
+  <div class="nav-item" data-s="chat"><i class="ti ti-message"></i> Team chat <span class="nav-badge">5</span></div>
   <div class="nav-sec">Divisions</div>
   <div class="nav-item" data-s="clients" data-div="Lawn &amp; Tree"><i class="ti ti-garden-cart"></i> Lawn &amp; Tree</div>
   <div class="nav-item" data-s="clients" data-div="Irrigation"><i class="ti ti-droplet"></i> Irrigation</div>
@@ -209,7 +207,10 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
   <div class="nav-item" data-s="clients" data-div="Farm"><i class="ti ti-tractor"></i> Farm</div>
   <div class="nav-sec">Tools</div>
   <div class="nav-item" data-s="timeclock"><i class="ti ti-clock"></i> Time clock</div>
-  <div class="nav-item" data-s="chat"><i class="ti ti-message"></i> Team chat <span class="nav-badge">5</span></div>
+  <div class="nav-item" data-s="payroll"><i class="ti ti-coin"></i> Payroll</div>
+  <div class="nav-item" data-s="team"><i class="ti ti-users-group"></i> All employees</div>
+  <div class="nav-item" data-s="expenses"><i class="ti ti-receipt"></i> Expenses</div>
+  <div class="nav-item" data-s="inventory"><i class="ti ti-box"></i> Inventory</div>
   <div class="nav-item" data-s="reports"><i class="ti ti-chart-bar"></i> Reports</div>
   <div id="sb-bot">
     <div class="nav-item" data-s="settings"><i class="ti ti-settings"></i> Settings</div>
@@ -436,6 +437,59 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
 </div>
 </div></div>
 
+
+<div class="scr" id="s-inventory">
+<div class="pg-head"><div><div class="pg-title">Inventory</div><div class="pg-sub">Track all supplies, equipment, products and materials</div></div>
+  <div class="pg-acts">
+    <button class="btn" id="btn-inv-exp"><i class="ti ti-download"></i> Export</button>
+    <button class="btn pr" id="btn-add-inv-item"><i class="ti ti-plus"></i> Add item</button>
+  </div>
+</div>
+<div class="pg-body">
+<div class="g4">
+  <div class="stat"><div class="sl">Total items</div><div class="sv" id="inv-total">—</div></div>
+  <div class="stat"><div class="sl">Low stock alerts</div><div class="sv" id="inv-low" style="color:var(--red)">—</div></div>
+  <div class="stat"><div class="sl">Total value</div><div class="sv" id="inv-val">—</div></div>
+  <div class="stat"><div class="sl">Categories</div><div class="sv" id="inv-cats">—</div></div>
+</div>
+<div class="fr">
+  <div class="sb"><i class="ti ti-search"></i><input type="text" id="inv-q" placeholder="Search inventory..." oninput="filterInventory()"></div>
+  <select class="fs" id="inv-cat-filter" onchange="filterInventory()">
+    <option value="">All categories</option>
+    <option>Lawn & Tree Supplies</option>
+    <option>Irrigation Parts</option>
+    <option>Pest Control</option>
+    <option>Nursery Plants</option>
+    <option>Farm Supplies</option>
+    <option>Equipment</option>
+    <option>Vehicles</option>
+    <option>Safety Gear</option>
+    <option>Office Supplies</option>
+  </select>
+  <select class="fs" id="inv-status-filter" onchange="filterInventory()">
+    <option value="">All stock levels</option>
+    <option>In stock</option>
+    <option>Low stock</option>
+    <option>Out of stock</option>
+  </select>
+</div>
+<div class="tw"><table>
+  <thead><tr><th>Item name</th><th>Category</th><th>SKU / Part #</th><th>In stock</th><th>Min level</th><th>Unit cost</th><th>Total value</th><th>Status</th><th>Actions</th></tr></thead>
+  <tbody id="inv-rows">
+    <tr><td style="font-weight:600;color:var(--text)">Lawn mower blades (21")</td><td style="font-size:11px;color:var(--muted)">Equipment</td><td style="font-size:11px;color:var(--muted)">EQ-001</td><td style="font-weight:600;color:var(--text)">8</td><td style="color:var(--muted)">5</td><td style="color:var(--text)">$24.00</td><td style="font-weight:600;color:var(--green)">$192.00</td><td><span class="b bg">In stock</span></td><td><div style="display:flex;gap:4px"><button class="btn sm"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)"><i class="ti ti-trash"></i></button></div></td></tr>
+    <tr><td style="font-weight:600;color:var(--text)">Trimmer line (0.095")</td><td style="font-size:11px;color:var(--muted)">Lawn & Tree Supplies</td><td style="font-size:11px;color:var(--muted)">LT-012</td><td style="font-weight:600;color:var(--amber)">3</td><td style="color:var(--muted)">5</td><td style="color:var(--text)">$18.00</td><td style="font-weight:600;color:var(--amber)">$54.00</td><td><span class="b ba">Low stock</span></td><td><div style="display:flex;gap:4px"><button class="btn sm"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)"><i class="ti ti-trash"></i></button></div></td></tr>
+    <tr><td style="font-weight:600;color:var(--text)">Irrigation spray heads (1/2")</td><td style="font-size:11px;color:var(--muted)">Irrigation Parts</td><td style="font-size:11px;color:var(--muted)">IR-045</td><td style="font-weight:600;color:var(--text)">42</td><td style="color:var(--muted)">10</td><td style="color:var(--text)">$4.50</td><td style="font-weight:600;color:var(--green)">$189.00</td><td><span class="b bg">In stock</span></td><td><div style="display:flex;gap:4px"><button class="btn sm"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)"><i class="ti ti-trash"></i></button></div></td></tr>
+    <tr><td style="font-weight:600;color:var(--text)">Pest control spray (1 gal)</td><td style="font-size:11px;color:var(--muted)">Pest Control</td><td style="font-size:11px;color:var(--muted)">PC-007</td><td style="font-weight:600;color:var(--red)">0</td><td style="color:var(--muted)">6</td><td style="color:var(--text)">$32.00</td><td style="font-weight:600;color:var(--red)">$0.00</td><td><span class="b br">Out of stock</span></td><td><div style="display:flex;gap:4px"><button class="btn sm"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)"><i class="ti ti-trash"></i></button></div></td></tr>
+    <tr><td style="font-weight:600;color:var(--text)">Mulch bags (2 cu ft)</td><td style="font-size:11px;color:var(--muted)">Lawn & Tree Supplies</td><td style="font-size:11px;color:var(--muted)">LT-089</td><td style="font-weight:600;color:var(--text)">65</td><td style="color:var(--muted)">20</td><td style="color:var(--text)">$6.50</td><td style="font-weight:600;color:var(--green)">$422.50</td><td><span class="b bg">In stock</span></td><td><div style="display:flex;gap:4px"><button class="btn sm"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)"><i class="ti ti-trash"></i></button></div></td></tr>
+    <tr><td style="font-weight:600;color:var(--text)">Fertilizer 50lb (16-4-8)</td><td style="font-size:11px;color:var(--muted)">Lawn & Tree Supplies</td><td style="font-size:11px;color:var(--muted)">LT-102</td><td style="font-weight:600;color:var(--amber)">4</td><td style="color:var(--muted)">8</td><td style="color:var(--text)">$28.00</td><td style="font-weight:600;color:var(--amber)">$112.00</td><td><span class="b ba">Low stock</span></td><td><div style="display:flex;gap:4px"><button class="btn sm"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)"><i class="ti ti-trash"></i></button></div></td></tr>
+    <tr><td style="font-weight:600;color:var(--text)">Drip irrigation tubing (100ft)</td><td style="font-size:11px;color:var(--muted)">Irrigation Parts</td><td style="font-size:11px;color:var(--muted)">IR-091</td><td style="font-weight:600;color:var(--text)">12</td><td style="color:var(--muted)">5</td><td style="color:var(--text)">$45.00</td><td style="font-weight:600;color:var(--green)">$540.00</td><td><span class="b bg">In stock</span></td><td><div style="display:flex;gap:4px"><button class="btn sm"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)"><i class="ti ti-trash"></i></button></div></td></tr>
+    <tr><td style="font-weight:600;color:var(--text)">Safety gloves (box/12)</td><td style="font-size:11px;color:var(--muted)">Safety Gear</td><td style="font-size:11px;color:var(--muted)">SG-003</td><td style="font-weight:600;color:var(--text)">6</td><td style="color:var(--muted)">3</td><td style="color:var(--text)">$14.00</td><td style="font-weight:600;color:var(--green)">$84.00</td><td><span class="b bg">In stock</span></td><td><div style="display:flex;gap:4px"><button class="btn sm"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)"><i class="ti ti-trash"></i></button></div></td></tr>
+    <tr><td style="font-weight:600;color:var(--text)">Nursery pots (5 gal)</td><td style="font-size:11px;color:var(--muted)">Nursery Plants</td><td style="font-size:11px;color:var(--muted)">NR-015</td><td style="font-weight:600;color:var(--text)">150</td><td style="color:var(--muted)">50</td><td style="color:var(--text)">$2.25</td><td style="font-weight:600;color:var(--green)">$337.50</td><td><span class="b bg">In stock</span></td><td><div style="display:flex;gap:4px"><button class="btn sm"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)"><i class="ti ti-trash"></i></button></div></td></tr>
+    <tr><td style="font-weight:600;color:var(--text)">Chain saw oil (1 qt)</td><td style="font-size:11px;color:var(--muted)">Equipment</td><td style="font-size:11px;color:var(--muted)">EQ-034</td><td style="font-weight:600;color:var(--amber)">2</td><td style="color:var(--muted)">4</td><td style="color:var(--text)">$9.00</td><td style="font-weight:600;color:var(--amber)">$18.00</td><td><span class="b ba">Low stock</span></td><td><div style="display:flex;gap:4px"><button class="btn sm"><i class="ti ti-edit"></i></button><button class="btn sm" style="color:var(--red)"><i class="ti ti-trash"></i></button></div></td></tr>
+  </tbody>
+</table></div>
+</div>
+</div>
 <div class="scr" id="s-settings">
 <div class="pg-head"><div><div class="pg-title">Settings</div></div></div>
 <div class="pg-body">
@@ -716,6 +770,7 @@ function go(id,div){
   document.querySelectorAll('[data-s="'+id+'"]').forEach(function(n){n.classList.add('on');});
   if(id==='clients'){if(div)document.getElementById('cdiv').value=div;rc();}
   if(id==='timeclock')loadTC();
+  if(id==='inventory'){initInventory();}
   if(id==='team')loadTeam();
   if(id==='payroll')loadPayroll();
   if(id==='requests')rr();
@@ -1139,6 +1194,54 @@ document.getElementById('cst').addEventListener('change',rc);
 
 // TOAST
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},3000);}
+
+// INVENTORY
+var invData = [];
+function initInventory(){
+  var rows = document.querySelectorAll('#inv-rows tr');
+  var total=0, low=0, outof=0, val=0, cats=new Set();
+  rows.forEach(function(r){
+    var cells=r.querySelectorAll('td');
+    if(cells.length<8)return;
+    total++;
+    var stock=parseInt(cells[3].textContent)||0;
+    var min=parseInt(cells[4].textContent)||0;
+    var cost=parseFloat((cells[5].textContent||'').replace('$',''))||0;
+    var status=cells[7].textContent.trim();
+    if(status==='Low stock')low++;
+    if(status==='Out of stock'){low++;outof++;}
+    val+=stock*cost;
+    var cat=cells[1].textContent.trim();
+    cats.add(cat);
+  });
+  set('inv-total',total);
+  set('inv-low',low);
+  set('inv-val','$'+val.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}));
+  set('inv-cats',cats.size);
+}
+function filterInventory(){
+  var q=(document.getElementById('inv-q')||{value:''}).value.toLowerCase();
+  var cat=(document.getElementById('inv-cat-filter')||{value:''}).value;
+  var st=(document.getElementById('inv-status-filter')||{value:''}).value;
+  document.querySelectorAll('#inv-rows tr').forEach(function(r){
+    var cells=r.querySelectorAll('td');if(cells.length<8)return;
+    var name=cells[0].textContent.toLowerCase();
+    var rcat=cells[1].textContent.trim();
+    var rstatus=cells[7].textContent.trim();
+    var mq=!q||name.includes(q);
+    var mc=!cat||rcat===cat;
+    var ms=!st||rstatus===st;
+    r.style.display=(mq&&mc&&ms)?'':'none';
+  });
+}
+document.getElementById('btn-add-inv-item')&&document.getElementById('btn-add-inv-item').addEventListener('click',function(){toast('Inventory add form — coming in next update');});
+document.getElementById('btn-inv-exp')&&document.getElementById('btn-inv-exp').addEventListener('click',function(){
+  var rows=document.querySelectorAll('#inv-rows tr');
+  var csv='Item,Category,SKU,In Stock,Min Level,Unit Cost,Total Value,Status\n';
+  rows.forEach(function(r){if(r.style.display==='none')return;var cells=r.querySelectorAll('td');if(cells.length<8)return;csv+=Array.from(cells).slice(0,8).map(function(c){return'"'+c.textContent.trim()+'"';}).join(',')+'\n';});
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='PHL_Inventory.csv';a.click();
+  toast('Inventory exported!');
+});
 
 loadAll();
 })();
