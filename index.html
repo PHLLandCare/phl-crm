@@ -2,17 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<!-- PHL CRM v1779413172 -->
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PHL Land Care CRM</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0a2540">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="PHL CRM">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/dist/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
@@ -200,19 +191,6 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
 .pay-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid #f0f3f8;font-size:12px}
 .pay-row:last-child{border-bottom:none}
 /* SPINNER/TOAST */
-
-.tag{display:inline-flex;align-items:center;gap:3px;background:#e6f1fb;color:#0c447c;border-radius:99px;padding:2px 9px;font-size:11px;font-weight:600}
-.tag.rm:hover{opacity:.7;cursor:pointer}
-.tag-g{background:#e1f5ee;color:#085041}
-.tag-a{background:#fef3e2;color:#7d4e00}
-.tag-p{background:#f3f0ff;color:#5b21b6}
-.tag-r{background:#fdecea;color:#7f1d1d}
-.tag-wrap{display:flex;flex-wrap:wrap;gap:5px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;min-height:38px;cursor:text;background:#fff}
-.tag-wrap input{border:none;outline:none;font-size:13px;flex:1;min-width:80px;font-family:inherit}
-.map-link{display:inline-flex;align-items:center;gap:4px;color:var(--teal);font-size:11px;font-weight:600;text-decoration:none;margin-left:8px}
-.map-link:hover{text-decoration:underline}
-#pwa-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--navy);color:#fff;padding:10px 18px;z-index:9999;border-top:1px solid rgba(255,255,255,.15);align-items:center;gap:10px}
-#pwa-banner.show{display:flex}
 .spin{display:inline-block;width:16px;height:16px;border:2px solid #dde3ec;border-top-color:var(--teal);border-radius:50%;animation:sp .65s linear infinite;vertical-align:middle}
 @keyframes sp{to{transform:rotate(360deg)}}
 .empty{text-align:center;padding:36px;color:var(--muted);font-size:13px}
@@ -246,10 +224,6 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
   <div class="nav-item" data-s="clients" data-div="Extermination"><i class="ti ti-bug"></i> Extermination</div>
   <div class="nav-item" data-s="clients" data-div="Nursery"><i class="ti ti-plant"></i> Nursery</div>
   <div class="nav-item" data-s="clients" data-div="Farm"><i class="ti ti-tractor"></i> Farm</div>
-  <div class="nav-sec">Team &amp; Expenses</div>
-  <div class="nav-item" data-s="team"><i class="ti ti-users-group"></i> All employees</div>
-  <div class="nav-item" data-s="expenses"><i class="ti ti-receipt"></i> Expenses</div>
-  <div class="nav-item" data-s="products"><i class="ti ti-package"></i> Products &amp; Services</div>
   <div class="nav-sec">Tools</div>
   <div class="nav-item" data-s="timeclock"><i class="ti ti-clock"></i> Time clock</div>
   <div class="nav-item" data-s="chat"><i class="ti ti-message"></i> Team chat <span class="nav-badge">5</span></div>
@@ -448,102 +422,17 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
 </div>
 </div>
 <div class="scr" id="s-settings">
-<div class="pg-head"><div><div class="pg-title">Settings</div><div class="pg-sub">Business management &amp; configuration</div></div></div>
+<div class="pg-head"><div><div class="pg-title">Settings</div></div></div>
 <div class="pg-body">
-  <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Business Management</div>
-  <div class="g3" style="margin-bottom:20px">
-    <div class="card" style="cursor:pointer" onclick="openSettingsSection('company')"><div style="font-size:22px;color:var(--teal);margin-bottom:8px"><i class="ti ti-building"></i></div><div style="font-weight:700;margin-bottom:4px">Company Settings</div><div style="font-size:12px;color:var(--muted)">Name, address, phone, hours</div></div>
-    <div class="card" style="cursor:pointer" onclick="go('products')"><div style="font-size:22px;color:var(--green);margin-bottom:8px"><i class="ti ti-package"></i></div><div style="font-weight:700;margin-bottom:4px">Products &amp; Services</div><div style="font-size:12px;color:var(--muted)">Pricing, catalog, import from Jobber</div></div>
-    <div class="card" style="cursor:pointer" onclick="openSettingsSection('customfields')"><div style="font-size:22px;color:var(--amber);margin-bottom:8px"><i class="ti ti-forms"></i></div><div style="font-weight:700;margin-bottom:4px">Custom Fields</div><div style="font-size:12px;color:var(--muted)">Property, Quote, Job, Invoice fields</div></div>
-    <div class="card" style="cursor:pointer" onclick="go('expenses')"><div style="font-size:22px;color:var(--red);margin-bottom:8px"><i class="ti ti-receipt"></i></div><div style="font-weight:700;margin-bottom:4px">Expense Tracking</div><div style="font-size:12px;color:var(--muted)">Vehicles, supplies, insurance, inventory</div></div>
-    <div class="card" style="cursor:pointer" onclick="openSettingsSection('integrations')"><div style="font-size:22px;color:#8b5cf6;margin-bottom:8px"><i class="ti ti-plug"></i></div><div style="font-weight:700;margin-bottom:4px">Integrations</div><div style="font-size:12px;color:var(--muted)">Square, Twilio, GPS, Mobile</div></div>
-  </div>
-  <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Team Organization</div>
-  <div class="g3" style="margin-bottom:20px">
-    <div class="card" style="cursor:pointer" onclick="go('team')"><div style="font-size:22px;color:var(--teal);margin-bottom:8px"><i class="ti ti-users"></i></div><div style="font-weight:700;margin-bottom:4px">Manage Team</div><div style="font-size:12px;color:var(--muted)">All employees, roles, access levels</div></div>
-    <div class="card" style="cursor:pointer" onclick="openSettingsSection('roles')"><div style="font-size:22px;color:var(--amber);margin-bottom:8px"><i class="ti ti-shield"></i></div><div style="font-weight:700;margin-bottom:4px">Roles &amp; Access</div><div style="font-size:12px;color:var(--muted)">Owner, Manager, Crew Lead, Field Tech</div></div>
-    <div class="card" style="cursor:pointer" onclick="openSettingsSection('pwa')"><div style="font-size:22px;color:var(--green);margin-bottom:8px"><i class="ti ti-device-mobile"></i></div><div style="font-weight:700;margin-bottom:4px">Mobile App (PWA)</div><div style="font-size:12px;color:var(--muted)">Install on iPhone &amp; Android — free</div></div>
-  </div>
-  <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Integrations</div>
   <div class="tw"><table><thead><tr><th>Integration</th><th>Description</th><th>Status</th></tr></thead><tbody>
-    <tr><td><b>Square</b></td><td>Card-on-file, auto-charge, invoicing</td><td><span class="b bg">Connected</span></td></tr>
-    <tr><td><b>Supabase database</b></td><td>All data live sync</td><td><span class="b bg">Connected</span></td></tr>
-    <tr><td><b>SMS (Twilio)</b></td><td>Appointment reminders &amp; notifications</td><td><span class="b ba">Setup needed</span></td></tr>
-    <tr><td><b>GPS fleet tracking</b></td><td>Live truck locations</td><td><span class="b bk">Phase 4</span></td></tr>
-    <tr><td><b>Mobile app (PWA)</b></td><td>Install on iPhone &amp; Android from browser</td><td><span class="b bg">Active</span></td></tr>
-  </tbody></table></div>
+    <tr><td><b>Square</b></td><td>Card-on-file, auto-charge</td><td><span class="b bg">Connected</span></td></tr>
+    <tr><td><b>Supabase</b></td><td>All data live sync</td><td><span class="b bg">Connected</span></td></tr>
+    <tr><td><b>SMS (Twilio)</b></td><td>Appointment reminders</td><td><span class="b ba">Setup needed</span></td></tr>
+    <tr><td><b>Mobile app</b></td><td>iOS + Android</td><td><span class="b bk">Phase 3</span></td></tr>
+  </tbody></table>
 </div>
 </div>
-<div class="scr" id="s-team">
-<div class="pg-head"><div><div class="pg-title">Team</div><div class="pg-sub" id="team-sub">All employees — CRM users and time clock staff</div></div>
-  <div class="pg-acts"><a href="PHL_TimeClock_Secure.html" target="_blank" class="btn pr"><i class="ti ti-user-plus"></i> Add employee</a></div>
-</div>
-<div class="pg-body">
-  <div style="background:#1a3a5c;border-radius:12px;padding:14px 18px;margin-bottom:16px">
-    <div style="font-weight:700;color:#fff;margin-bottom:10px;font-size:13px">User roles &amp; access levels</div>
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;font-size:11px;color:rgba(255,255,255,.7)">
-      <div style="background:rgba(255,255,255,.08);border-radius:8px;padding:8px"><div style="font-weight:700;color:var(--amber);margin-bottom:4px">Owner / Admin</div>Full access — all modules</div>
-      <div style="background:rgba(255,255,255,.08);border-radius:8px;padding:8px"><div style="font-weight:700;color:#3b82f6;margin-bottom:4px">Office Manager</div>Full scheduling, invoicing, clients</div>
-      <div style="background:rgba(255,255,255,.08);border-radius:8px;padding:8px"><div style="font-weight:700;color:var(--green);margin-bottom:4px">Crew Lead</div>Own crew + assigned clients</div>
-      <div style="background:rgba(255,255,255,.08);border-radius:8px;padding:8px"><div style="font-weight:700;color:#8b5cf6;margin-bottom:4px">Field Tech</div>View schedule + time clock</div>
-      <div style="background:rgba(255,255,255,.08);border-radius:8px;padding:8px"><div style="font-weight:700;color:var(--muted);margin-bottom:4px">Time clock only</div>QR scan only — 300+ employees</div>
-    </div>
-  </div>
-  <div class="fr">
-    <div class="sb"><i class="ti ti-search"></i><input type="text" id="team-q" placeholder="Search employees..." oninput="loadTeam()"></div>
-    <select class="fs" id="team-div" onchange="loadTeam()"><option value="">All divisions</option><option>Lawn &amp; Tree</option><option>Irrigation</option><option>Extermination</option><option>Nursery</option><option>Farm</option></select>
-    <select class="fs" id="team-role" onchange="loadTeam()"><option value="">All roles</option><option>Owner / Admin</option><option>Office Manager</option><option>Crew Lead</option><option>Field Tech</option><option>Time clock only</option></select>
-  </div>
-  <div class="tw"><table><thead><tr><th>Employee</th><th>Employee ID</th><th>Division</th><th>Crew</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
-  <tbody id="team-rows"><tr><td colspan="7" style="text-align:center;padding:24px"><span class="spin"></span> Loading...</td></tr></tbody></table></div>
-</div>
-</div>
-<div class="scr" id="s-expenses">
-<div class="pg-head"><div><div class="pg-title">Expense Tracking</div><div class="pg-sub">Employees, supplies, vehicles, insurance, inventory</div></div>
-  <div class="pg-acts"><button class="btn" id="btn-exp-export"><i class="ti ti-download"></i> Export CSV</button><button class="btn pr" id="btn-add-expense"><i class="ti ti-plus"></i> Add expense</button></div>
-</div>
-<div class="pg-body">
-  <div class="g4">
-    <div class="stat"><div class="sl">This month total</div><div class="sv" id="exp-month">$20,824</div></div>
-    <div class="stat"><div class="sl">Labor / Payroll</div><div class="sv" id="exp-labor">$18,420</div></div>
-    <div class="stat"><div class="sl">Equipment &amp; Supplies</div><div class="sv" id="exp-equip">$385</div></div>
-    <div class="stat"><div class="sl">Insurance &amp; Other</div><div class="sv" id="exp-other">$1,019</div></div>
-  </div>
-  <div class="tw"><table><thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Amount</th><th>Paid by</th><th>Actions</th></tr></thead>
-  <tbody id="exp-rows">
-    <tr><td>May 20</td><td><span class="b bb">Fuel</span></td><td>Truck 1 — Fill up</td><td style="font-weight:600">$89.00</td><td>Romy Cruz</td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
-    <tr><td>May 19</td><td><span class="b ba">Supplies</span></td><td>Mulch — 20 bags Home Depot</td><td style="font-weight:600">$240.00</td><td>James M.</td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
-    <tr><td>May 18</td><td><span class="b br">Insurance</span></td><td>Monthly liability premium</td><td style="font-weight:600">$850.00</td><td>Auto-pay</td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
-    <tr><td>May 15</td><td><span class="b bp">Equipment</span></td><td>Lawn mower blade replacement</td><td style="font-weight:600">$145.00</td><td>Romy Cruz</td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
-    <tr><td>May 1</td><td><span class="b bk">Payroll</span></td><td>Weekly payroll — 47 employees</td><td style="font-weight:600">$18,420.00</td><td>ADP</td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
-    <tr><td>Apr 28</td><td><span class="b bb">Vehicle</span></td><td>Truck 2 oil change &amp; tires</td><td style="font-weight:600">$480.00</td><td>James M.</td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
-    <tr><td>Apr 25</td><td><span class="b bg">Inventory</span></td><td>Fertilizer — 50lb bags x10</td><td style="font-weight:600">$320.00</td><td>Romy Cruz</td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
-  </tbody></table></div>
-</div>
-</div>
-<div class="scr" id="s-products">
-<div class="pg-head"><div><div class="pg-title">Products &amp; Services</div><div class="pg-sub">Pricing catalog — import from Jobber CSV</div></div>
-  <div class="pg-acts">
-    <label class="btn" style="cursor:pointer"><i class="ti ti-upload"></i> Import from Jobber <input type="file" id="jobber-csv-input" accept=".csv" style="display:none"></label>
-    <button class="btn pr" id="btn-add-product"><i class="ti ti-plus"></i> Add item</button>
-  </div>
-</div>
-<div class="pg-body">
-  <div style="background:#e6f1fb;border-radius:10px;padding:12px 16px;font-size:12px;color:#0c447c;margin-bottom:16px">
-    <strong>Import from Jobber:</strong> In Jobber go to Settings → Products &amp; Services → Export. Upload that CSV file here and all your services will be imported automatically.
-  </div>
-  <div class="tw"><table><thead><tr><th>Name</th><th>Description</th><th>Type</th><th>Unit price</th><th>Taxable</th><th>Actions</th></tr></thead>
-  <tbody id="products-rows">
-    <tr><td style="font-weight:600">Lawn mow &amp; edge</td><td>Standard residential mow, edge, blow</td><td><span class="b bg">Service</span></td><td>$65.00</td><td><span class="b bg">Yes</span></td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
-    <tr><td style="font-weight:600">Tree trimming</td><td>Per tree, up to 15ft</td><td><span class="b bg">Service</span></td><td>$85.00</td><td><span class="b bg">Yes</span></td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
-    <tr><td style="font-weight:600">Irrigation inspection</td><td>Full system check, 6 zones</td><td><span class="b bg">Service</span></td><td>$120.00</td><td><span class="b bg">Yes</span></td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
-    <tr><td style="font-weight:600">Pest treatment</td><td>Monthly spray, residential</td><td><span class="b bg">Service</span></td><td>$95.00</td><td><span class="b bg">Yes</span></td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
-    <tr><td style="font-weight:600">Mulch (per yard)</td><td>Delivered and installed</td><td><span class="b bb">Product</span></td><td>$75.00</td><td><span class="b bg">Yes</span></td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
-    <tr><td style="font-weight:600">Fertilization</td><td>Granular, per application</td><td><span class="b bg">Service</span></td><td>$55.00</td><td><span class="b bg">Yes</span></td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>
-  </tbody></table></div>
-  <div id="products-import-preview" style="display:none;margin-top:12px;background:#e1f5ee;border-radius:10px;padding:12px 16px;font-size:12px;color:#085041"></div>
-</div>
-</div>
+</div></div>
 <!-- CLIENT MODAL -->
 <div class="ov" id="ov-client">
 <div class="mo md">
@@ -608,16 +497,7 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
       <div id="cf-ct-row" style="display:none"><div class="fl">Custom terms</div><input class="fi" id="cf-ct" placeholder="Custom payment terms"></div>
       <div><div class="fl">Ask for review</div><select class="fsl" id="cf-ar"><option value="false">No</option><option value="true">Yes</option></select></div>
       <div><div class="fl">Billing address</div><input class="fi" id="cf-ba" placeholder="If different from service address"></div>
-      <div class="ff">
-  <div class="fl">Tags</div>
-  <div class="tag-wrap" id="cf-tag-wrap">
-    <input type="text" id="cf-tags-input" placeholder="Type tag and press Enter (e.g. HOA, Commercial, VIP, Spanish)">
-  </div>
-  <div id="cf-tags-display" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:6px"></div>
-  <div style="font-size:11px;color:var(--muted);margin-top:4px">Quick add: <span style="cursor:pointer;color:var(--teal)" onclick="addClientTag('Residential')">Residential</span> · <span style="cursor:pointer;color:var(--teal)" onclick="addClientTag('Commercial')">Commercial</span> · <span style="cursor:pointer;color:var(--teal)" onclick="addClientTag('HOA')">HOA</span> · <span style="cursor:pointer;color:var(--teal)" onclick="addClientTag('VIP')">VIP</span> · <span style="cursor:pointer;color:var(--teal)" onclick="addClientTag('Spanish')">Spanish</span></div>
-  <input type="hidden" id="cf-tags">
-</div>
-<div class="ff"><div class="fl">Notes</div><textarea class="ft" id="cf-nt" placeholder="Gate codes, pet info, preferences..."></textarea></div>
+      <div class="ff"><div class="fl">Notes</div><textarea class="ft" id="cf-nt" placeholder="Gate codes, pet info, preferences..."></textarea></div>
     </div>
   </div>
   <div class="mf2"><button class="btn" id="cm-cancel">Cancel</button><button class="btn pr" id="cm-save"><i class="ti ti-check"></i> <span id="cm-slbl">Save client</span></button></div>
@@ -726,7 +606,7 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
         <div class="dr" id="d-ph2r"><i class="ti ti-phone"></i><span class="dl">2nd phone</span><span class="dv" id="d-ph2"></span></div>
         <div class="dr"><i class="ti ti-mail"></i><span class="dl">Email</span><span class="dv" id="d-em"></span></div>
         <div class="dr" id="d-em2r"><i class="ti ti-mail"></i><span class="dl">2nd email</span><span class="dv" id="d-em2"></span></div>
-        <div class="dr"><i class="ti ti-map-pin"></i><span class="dl">Property 1</span><span class="dv"><span id="d-a1"></span><a id="d-a1-map" href="#" target="_blank" class="map-link"><i class="ti ti-map" style="font-size:11px"></i> Open map</a></span></div>
+        <div class="dr"><i class="ti ti-map-pin"></i><span class="dl">Property 1</span><span class="dv" id="d-a1"></span></div>
         <div class="dr" id="d-a2r"><i class="ti ti-map-pin"></i><span class="dl">Property 2</span><span class="dv" id="d-a2"></span></div>
         <div class="dr" id="d-a3r"><i class="ti ti-map-pin"></i><span class="dl">Property 3</span><span class="dv" id="d-a3"></span></div>
         <div class="dr" id="d-spr"><i class="ti ti-heart"></i><span class="dl">Spouse / Partner</span><span class="dv" id="d-sp"></span></div>
@@ -746,7 +626,6 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
           <div class="dr"><i class="ti ti-bug"></i><span class="dl">Pest control</span><span class="dv" id="d-pc"></span></div>
         </div>
         <div class="dr"><i class="ti ti-garden-cart"></i><span class="dl">Divisions</span><span class="dv" id="d-dv"></span></div>
-        <div class="dr"><i class="ti ti-tag"></i><span class="dl">Tags</span><span class="dv" id="d-tags"></span></div>
       </div>
       <div class="dc" id="d-nc">
         <div class="dch"><span class="dct">Notes</span></div>
@@ -781,11 +660,6 @@ select.fs{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font
 </div>
 </div>
 
-<div id="pwa-banner">
-  <span style="flex:1;font-size:13px;font-weight:500">📱 Install PHL CRM on your phone — works on iPhone &amp; Android, no App Store needed</span>
-  <button id="pwa-btn" style="background:var(--teal);color:#fff;border:none;padding:7px 14px;border-radius:8px;font-size:12px;cursor:pointer;font-weight:600">Install</button>
-  <button onclick="document.getElementById('pwa-banner').style.display='none'" style="background:none;border:none;color:rgba(255,255,255,.5);font-size:20px;cursor:pointer;margin-left:4px">×</button>
-</div>
 <div id="toast"></div>
 
 <script>
@@ -1084,7 +958,7 @@ document.getElementById('cm-save').addEventListener('click',function(){
   if(!a1){toast('Please enter a service address');return;}
   var divs=[];document.querySelectorAll('.cr input:checked').forEach(function(cb){divs.push(cb.value);});
   var pt=document.getElementById('cf-pt').value;
-  var data={fname:document.getElementById('cf-fn').value.trim(),lname:ln,company:document.getElementById('cf-co').value.trim(),spouse_name:document.getElementById('cf-sp').value.trim(),hoa_community:document.getElementById('cf-hoa').value.trim(),phone:ph,phone2:document.getElementById('cf-ph2').value.trim(),email:document.getElementById('cf-em').value.trim(),email2:document.getElementById('cf-em2').value.trim(),address:a1,city:document.getElementById('cf-c1').value.trim()||'Riviera Beach',zip:document.getElementById('cf-z1').value.trim(),address2:document.getElementById('cf-a2').value.trim(),city2:document.getElementById('cf-c2').value.trim(),zip2:document.getElementById('cf-z2').value.trim(),address3:document.getElementById('cf-a3').value.trim(),city3:document.getElementById('cf-c3').value.trim(),zip3:document.getElementById('cf-z3').value.trim(),notes:document.getElementById('cf-nt').value.trim(),billing_address:document.getElementById('cf-ba').value.trim(),divisions:divs.length?divs.join(','):'Lawn & Tree',status:document.getElementById('cf-st').value,client_type:document.getElementById('cf-ty').value,crew:document.getElementById('cf-cr').value,lead_source:document.getElementById('cf-ls').value,lawn_size:document.getElementById('cf-lsz').value,payment_terms:pt,custom_payment_terms:pt==='Custom'?document.getElementById('cf-ct').value.trim():'',ask_review:document.getElementById('cf-ar').value==='true',locked_gate:document.getElementById('cf-lg').checked,has_dog:document.getElementById('cf-dg').checked,has_irrigation:document.getElementById('cf-ir').checked,has_pest_control:document.getElementById('cf-pc').checked,lifetime_value:0,tags:document.getElementById('cf-tags').value};
+  var data={fname:document.getElementById('cf-fn').value.trim(),lname:ln,company:document.getElementById('cf-co').value.trim(),spouse_name:document.getElementById('cf-sp').value.trim(),hoa_community:document.getElementById('cf-hoa').value.trim(),phone:ph,phone2:document.getElementById('cf-ph2').value.trim(),email:document.getElementById('cf-em').value.trim(),email2:document.getElementById('cf-em2').value.trim(),address:a1,city:document.getElementById('cf-c1').value.trim()||'Riviera Beach',zip:document.getElementById('cf-z1').value.trim(),address2:document.getElementById('cf-a2').value.trim(),city2:document.getElementById('cf-c2').value.trim(),zip2:document.getElementById('cf-z2').value.trim(),address3:document.getElementById('cf-a3').value.trim(),city3:document.getElementById('cf-c3').value.trim(),zip3:document.getElementById('cf-z3').value.trim(),notes:document.getElementById('cf-nt').value.trim(),billing_address:document.getElementById('cf-ba').value.trim(),divisions:divs.length?divs.join(','):'Lawn & Tree',status:document.getElementById('cf-st').value,client_type:document.getElementById('cf-ty').value,crew:document.getElementById('cf-cr').value,lead_source:document.getElementById('cf-ls').value,lawn_size:document.getElementById('cf-lsz').value,payment_terms:pt,custom_payment_terms:pt==='Custom'?document.getElementById('cf-ct').value.trim():'',ask_review:document.getElementById('cf-ar').value==='true',locked_gate:document.getElementById('cf-lg').checked,has_dog:document.getElementById('cf-dg').checked,has_irrigation:document.getElementById('cf-ir').checked,has_pest_control:document.getElementById('cf-pc').checked,lifetime_value:0};
   var btn=this;btn.disabled=true;set('cm-slbl','Saving...');
   var p=ecid?db('PATCH','/clients?id=eq.'+ecid,data):db('POST','/clients',data);
   p.then(function(){toast(ecid?'Client updated!':'Client saved!');cm2('ov-client');loadAll();}).catch(function(e){toast('Error: '+e.message);}).finally(function(){btn.disabled=false;set('cm-slbl',ecid?'Save changes':'Save client');});
@@ -1249,125 +1123,6 @@ document.getElementById('cst').addEventListener('change',rc);
 
 // TOAST
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},3000);}
-
-// TAGS
-var cTags=[];
-function addClientTag(t){t=t.trim();if(!t||cTags.indexOf(t)>-1)return;cTags.push(t);renderClientTags();var el=document.getElementById('cf-tags');if(el)el.value=cTags.join(',');var inp=document.getElementById('cf-tags-input');if(inp)inp.value='';}
-function removeClientTag(t){cTags=cTags.filter(function(x){return x!==t;});renderClientTags();var el=document.getElementById('cf-tags');if(el)el.value=cTags.join(',');}
-function renderClientTags(){var el=document.getElementById('cf-tags-display');if(!el)return;el.innerHTML='';cTags.forEach(function(t){var s=document.createElement('span');s.className='tag';s.style.cursor='pointer';s.textContent=t+' x';s.onclick=function(){removeClientTag(t);};el.appendChild(s);});}
-var cti=document.getElementById('cf-tags-input');
-if(cti)cti.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===','){e.preventDefault();addClientTag(this.value);}});
-
-// MAP LINK
-function setMapLink(addr,city,zip){var el=document.getElementById('d-a1-map');if(!el)return;var q=encodeURIComponent((addr||'')+' '+(city||'')+' FL '+(zip||''));el.href='https://www.google.com/maps/search/?api=1&query='+q;}
-
-// SETTINGS SECTIONS
-function openSettingsSection(s){
-  if(s==='pwa'){alert('Install PHL CRM on your phone:\n\niPhone: Open in Safari > Share > Add to Home Screen\n\nAndroid: Open in Chrome > Menu > Install app\n\nNo App Store needed. Free forever.');}
-  else if(s==='roles'){alert('Role levels:\n\nOwner/Admin: Full access\nOffice Manager: Full scheduling, invoicing, clients\nCrew Lead: Own crew + assigned clients\nField Tech: View schedule + time clock\nTime clock only: QR scan only (300+ staff)');}
-  else if(s==='customfields'){toast('Custom fields UI coming in next update');}
-  else if(s==='company'){toast('Company settings form coming in next update');}
-  else{toast('Coming soon: '+s);}
-}
-
-// TEAM SCREEN
-function loadTeam(){
-  var tb=document.getElementById('team-rows');
-  if(!tb)return;
-  tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px"><span class="spin"></span> Loading...</td></tr>';
-  db('GET','/employees?order=created_at.asc&select=*').then(function(emps){
-    var q=(document.getElementById('team-q')||{value:''}).value.toLowerCase();
-    var dv=(document.getElementById('team-div')||{value:''}).value;
-    var rl=(document.getElementById('team-role')||{value:''}).value;
-    var list=emps.filter(function(e){
-      var n=((e.fname||'')+' '+(e.lname||'')).toLowerCase();
-      return(!q||n.includes(q)||(e.employee_id||'').includes(q))&&(!dv||e.division===dv)&&(!rl||e.role===rl);
-    });
-    var sub=document.getElementById('team-sub');
-    if(sub)sub.textContent=emps.length+' total employees, '+emps.filter(function(e){return e.active;}).length+' active';
-    if(!list.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px"><a href="PHL_TimeClock_Secure.html" target="_blank" class="btn pr">Add employees in Time Clock admin</a></td></tr>';return;}
-    tb.innerHTML='';
-    list.forEach(function(e){
-      var n=(e.fname||'')+' '+(e.lname||'');
-      var r=e.role||'Time clock only';
-      var rb=r==='Owner / Admin'?'ba':r==='Office Manager'?'bb':r==='Crew Lead'?'bg':r==='Field Tech'?'bp':'bk';
-      tb.innerHTML+='<tr><td style="padding:9px 14px"><div style="display:flex;align-items:center;gap:8px"><div class="av" style="background:'+(COLS[(e.id||0)%COLS.length])+'">'+((e.fname||'')[0]||'').toUpperCase()+((e.lname||'')[0]||'').toUpperCase()+'</div><div><div style="font-weight:600">'+n+'</div>'+(e.phone?'<div style="font-size:10px;color:var(--muted)">'+e.phone+'</div>':'')+'</div></div></td><td style="font-size:11px;color:var(--muted)">'+(e.employee_id||'')+'</td><td>'+(e.division||'')+'</td><td>'+(e.crew||'')+'</td><td><span class="b '+rb+'">'+r+'</span></td><td>'+(e.active?'<span class="b bg">Active</span>':'<span class="b bk">Archived</span>')+'</td><td><a href="PHL_TimeClock_Secure.html" target="_blank" class="btn sm"><i class="ti ti-external-link"></i></a></td></tr>';
-    });
-  }).catch(function(){
-    if(tb)tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px"><a href="PHL_TimeClock_Secure.html" target="_blank" class="btn pr">Open Time Clock Admin to manage employees</a></td></tr>';
-  });
-}
-
-// PATCH vc() for tags and map
-var _vc0=vc;
-vc=function(id){
-  _vc0(id);
-  var c=clients.find(function(x){return x.id===id;});
-  if(!c)return;
-  setMapLink(c.address,c.city,c.zip);
-  var te=document.getElementById('d-tags');
-  if(te){var tags=(c.tags||'').split(',').filter(Boolean);te.innerHTML=tags.length?tags.map(function(t){return'<span class="tag">'+t+'</span>';}).join(' '):'<span style="color:var(--muted)">No tags</span>';}
-};
-
-// PATCH oac for tags
-var _oac0=oac;
-oac=function(){_oac0();cTags=[];renderClientTags();var el=document.getElementById('cf-tags');if(el)el.value='';};
-
-// PATCH oec for tags  
-var _oec0=oec;
-oec=function(id){_oec0(id);var c=clients.find(function(x){return x.id===id;});if(!c)return;cTags=(c.tags||'').split(',').filter(Boolean);var el=document.getElementById('cf-tags');if(el)el.value=c.tags||'';renderClientTags();};
-
-// EXTEND go() for new screens
-var _go0=go;
-go=function(id,div){
-  _go0(id,div);
-  if(id==='team')loadTeam();
-};
-
-// Wire new sidebar items
-document.querySelectorAll('[data-s="team"]').forEach(function(n){n.addEventListener('click',function(){go('team');});});
-document.querySelectorAll('[data-s="expenses"]').forEach(function(n){n.addEventListener('click',function(){go('expenses');});});
-document.querySelectorAll('[data-s="products"]').forEach(function(n){n.addEventListener('click',function(){go('products');});});
-
-// Expense export button
-var eeb=document.getElementById('btn-exp-export');
-if(eeb)eeb.addEventListener('click',function(){toast('Expense report exported!');});
-var aeb=document.getElementById('btn-add-expense');
-if(aeb)aeb.addEventListener('click',function(){toast('Full expense form coming in next update');});
-var apb=document.getElementById('btn-add-product');
-if(apb)apb.addEventListener('click',function(){toast('Add product form coming in next update');});
-
-// Jobber CSV import for products
-var jci=document.getElementById('jobber-csv-input');
-if(jci){jci.addEventListener('change',function(e){
-  var file=e.target.files[0];if(!file)return;
-  var reader=new FileReader();
-  reader.onload=function(ev){
-    var lines=ev.target.result.split('\n');
-    var html='';var count=0;
-    lines.slice(1).forEach(function(line){
-      if(!line.trim())return;
-      var cols=line.split(',');
-      var name=(cols[0]||'').replace(/"/g,'').trim();
-      var desc=(cols[1]||'').replace(/"/g,'').trim();
-      var price=parseFloat((cols[2]||'0').replace(/[$"]/g,''))||0;
-      if(!name)return;
-      count++;
-      html+='<tr><td style="font-weight:600">'+name+'</td><td>'+desc+'</td><td><span class="b bg">Service</span></td><td>$'+price.toFixed(2)+'</td><td><span class="b bg">Yes</span></td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>';
-    });
-    var pr=document.getElementById('products-rows');if(pr&&html)pr.innerHTML=html;
-    var prev=document.getElementById('products-import-preview');
-    if(prev){prev.style.display='block';prev.textContent='Imported '+count+' products from Jobber';}
-    toast('Imported '+count+' items from Jobber!');
-  };
-  reader.readAsText(file);
-});}
-
-// PWA
-var _dp;
-window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();_dp=e;var b=document.getElementById('pwa-banner');if(b)b.style.display='flex';});
-var pb=document.getElementById('pwa-btn');
-if(pb)pb.addEventListener('click',function(){if(_dp){_dp.prompt();}});
 
 loadAll();
 })();
