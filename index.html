@@ -2,6 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<!-- PHL CRM v1779413172 -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PHL Land Care CRM</title>
 <link rel="manifest" href="manifest.json">
@@ -1245,6 +1249,125 @@ document.getElementById('cst').addEventListener('change',rc);
 
 // TOAST
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(function(){t.classList.remove('show');},3000);}
+
+// TAGS
+var cTags=[];
+function addClientTag(t){t=t.trim();if(!t||cTags.indexOf(t)>-1)return;cTags.push(t);renderClientTags();var el=document.getElementById('cf-tags');if(el)el.value=cTags.join(',');var inp=document.getElementById('cf-tags-input');if(inp)inp.value='';}
+function removeClientTag(t){cTags=cTags.filter(function(x){return x!==t;});renderClientTags();var el=document.getElementById('cf-tags');if(el)el.value=cTags.join(',');}
+function renderClientTags(){var el=document.getElementById('cf-tags-display');if(!el)return;el.innerHTML='';cTags.forEach(function(t){var s=document.createElement('span');s.className='tag';s.style.cursor='pointer';s.textContent=t+' x';s.onclick=function(){removeClientTag(t);};el.appendChild(s);});}
+var cti=document.getElementById('cf-tags-input');
+if(cti)cti.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===','){e.preventDefault();addClientTag(this.value);}});
+
+// MAP LINK
+function setMapLink(addr,city,zip){var el=document.getElementById('d-a1-map');if(!el)return;var q=encodeURIComponent((addr||'')+' '+(city||'')+' FL '+(zip||''));el.href='https://www.google.com/maps/search/?api=1&query='+q;}
+
+// SETTINGS SECTIONS
+function openSettingsSection(s){
+  if(s==='pwa'){alert('Install PHL CRM on your phone:\n\niPhone: Open in Safari > Share > Add to Home Screen\n\nAndroid: Open in Chrome > Menu > Install app\n\nNo App Store needed. Free forever.');}
+  else if(s==='roles'){alert('Role levels:\n\nOwner/Admin: Full access\nOffice Manager: Full scheduling, invoicing, clients\nCrew Lead: Own crew + assigned clients\nField Tech: View schedule + time clock\nTime clock only: QR scan only (300+ staff)');}
+  else if(s==='customfields'){toast('Custom fields UI coming in next update');}
+  else if(s==='company'){toast('Company settings form coming in next update');}
+  else{toast('Coming soon: '+s);}
+}
+
+// TEAM SCREEN
+function loadTeam(){
+  var tb=document.getElementById('team-rows');
+  if(!tb)return;
+  tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px"><span class="spin"></span> Loading...</td></tr>';
+  db('GET','/employees?order=created_at.asc&select=*').then(function(emps){
+    var q=(document.getElementById('team-q')||{value:''}).value.toLowerCase();
+    var dv=(document.getElementById('team-div')||{value:''}).value;
+    var rl=(document.getElementById('team-role')||{value:''}).value;
+    var list=emps.filter(function(e){
+      var n=((e.fname||'')+' '+(e.lname||'')).toLowerCase();
+      return(!q||n.includes(q)||(e.employee_id||'').includes(q))&&(!dv||e.division===dv)&&(!rl||e.role===rl);
+    });
+    var sub=document.getElementById('team-sub');
+    if(sub)sub.textContent=emps.length+' total employees, '+emps.filter(function(e){return e.active;}).length+' active';
+    if(!list.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px"><a href="PHL_TimeClock_Secure.html" target="_blank" class="btn pr">Add employees in Time Clock admin</a></td></tr>';return;}
+    tb.innerHTML='';
+    list.forEach(function(e){
+      var n=(e.fname||'')+' '+(e.lname||'');
+      var r=e.role||'Time clock only';
+      var rb=r==='Owner / Admin'?'ba':r==='Office Manager'?'bb':r==='Crew Lead'?'bg':r==='Field Tech'?'bp':'bk';
+      tb.innerHTML+='<tr><td style="padding:9px 14px"><div style="display:flex;align-items:center;gap:8px"><div class="av" style="background:'+(COLS[(e.id||0)%COLS.length])+'">'+((e.fname||'')[0]||'').toUpperCase()+((e.lname||'')[0]||'').toUpperCase()+'</div><div><div style="font-weight:600">'+n+'</div>'+(e.phone?'<div style="font-size:10px;color:var(--muted)">'+e.phone+'</div>':'')+'</div></div></td><td style="font-size:11px;color:var(--muted)">'+(e.employee_id||'')+'</td><td>'+(e.division||'')+'</td><td>'+(e.crew||'')+'</td><td><span class="b '+rb+'">'+r+'</span></td><td>'+(e.active?'<span class="b bg">Active</span>':'<span class="b bk">Archived</span>')+'</td><td><a href="PHL_TimeClock_Secure.html" target="_blank" class="btn sm"><i class="ti ti-external-link"></i></a></td></tr>';
+    });
+  }).catch(function(){
+    if(tb)tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:24px"><a href="PHL_TimeClock_Secure.html" target="_blank" class="btn pr">Open Time Clock Admin to manage employees</a></td></tr>';
+  });
+}
+
+// PATCH vc() for tags and map
+var _vc0=vc;
+vc=function(id){
+  _vc0(id);
+  var c=clients.find(function(x){return x.id===id;});
+  if(!c)return;
+  setMapLink(c.address,c.city,c.zip);
+  var te=document.getElementById('d-tags');
+  if(te){var tags=(c.tags||'').split(',').filter(Boolean);te.innerHTML=tags.length?tags.map(function(t){return'<span class="tag">'+t+'</span>';}).join(' '):'<span style="color:var(--muted)">No tags</span>';}
+};
+
+// PATCH oac for tags
+var _oac0=oac;
+oac=function(){_oac0();cTags=[];renderClientTags();var el=document.getElementById('cf-tags');if(el)el.value='';};
+
+// PATCH oec for tags  
+var _oec0=oec;
+oec=function(id){_oec0(id);var c=clients.find(function(x){return x.id===id;});if(!c)return;cTags=(c.tags||'').split(',').filter(Boolean);var el=document.getElementById('cf-tags');if(el)el.value=c.tags||'';renderClientTags();};
+
+// EXTEND go() for new screens
+var _go0=go;
+go=function(id,div){
+  _go0(id,div);
+  if(id==='team')loadTeam();
+};
+
+// Wire new sidebar items
+document.querySelectorAll('[data-s="team"]').forEach(function(n){n.addEventListener('click',function(){go('team');});});
+document.querySelectorAll('[data-s="expenses"]').forEach(function(n){n.addEventListener('click',function(){go('expenses');});});
+document.querySelectorAll('[data-s="products"]').forEach(function(n){n.addEventListener('click',function(){go('products');});});
+
+// Expense export button
+var eeb=document.getElementById('btn-exp-export');
+if(eeb)eeb.addEventListener('click',function(){toast('Expense report exported!');});
+var aeb=document.getElementById('btn-add-expense');
+if(aeb)aeb.addEventListener('click',function(){toast('Full expense form coming in next update');});
+var apb=document.getElementById('btn-add-product');
+if(apb)apb.addEventListener('click',function(){toast('Add product form coming in next update');});
+
+// Jobber CSV import for products
+var jci=document.getElementById('jobber-csv-input');
+if(jci){jci.addEventListener('change',function(e){
+  var file=e.target.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    var lines=ev.target.result.split('\n');
+    var html='';var count=0;
+    lines.slice(1).forEach(function(line){
+      if(!line.trim())return;
+      var cols=line.split(',');
+      var name=(cols[0]||'').replace(/"/g,'').trim();
+      var desc=(cols[1]||'').replace(/"/g,'').trim();
+      var price=parseFloat((cols[2]||'0').replace(/[$"]/g,''))||0;
+      if(!name)return;
+      count++;
+      html+='<tr><td style="font-weight:600">'+name+'</td><td>'+desc+'</td><td><span class="b bg">Service</span></td><td>$'+price.toFixed(2)+'</td><td><span class="b bg">Yes</span></td><td><button class="btn sm"><i class="ti ti-edit"></i></button></td></tr>';
+    });
+    var pr=document.getElementById('products-rows');if(pr&&html)pr.innerHTML=html;
+    var prev=document.getElementById('products-import-preview');
+    if(prev){prev.style.display='block';prev.textContent='Imported '+count+' products from Jobber';}
+    toast('Imported '+count+' items from Jobber!');
+  };
+  reader.readAsText(file);
+});}
+
+// PWA
+var _dp;
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();_dp=e;var b=document.getElementById('pwa-banner');if(b)b.style.display='flex';});
+var pb=document.getElementById('pwa-btn');
+if(pb)pb.addEventListener('click',function(){if(_dp){_dp.prompt();}});
 
 loadAll();
 })();
