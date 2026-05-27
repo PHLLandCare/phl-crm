@@ -7,7 +7,7 @@ import Dashboard from './pages/Dashboard'
 type AuthState = 'loading' | 'unauthenticated' | 'must_change_password' | 'authenticated'
 
 export default function App() {
-  const [authState, setAuthState] = useState<AuthState>('unauthenticated')
+  const [authState, setAuthState] = useState<AuthState>('loading')
 
   useEffect(() => {
     const checkSession = async () => {
@@ -50,6 +50,7 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
+  if (authState === 'loading') return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#f0fdf4'}}><div style={{width:40,height:40,border:'4px solid #bbf7d0',borderTop:'4px solid #16a34a',borderRadius:'50%',animation:'spin 1s linear infinite'}} /></div>
   if (authState === 'unauthenticated') return <LoginPage />
   if (authState === 'must_change_password') return <ChangePasswordPage />
   if (authState === 'authenticated') return <Dashboard />
