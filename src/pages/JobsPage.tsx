@@ -1,284 +1,142 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-type JobStatus = 'draft' | 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'on_hold';
-type JobPriority = 'low' | 'normal' | 'high' | 'urgent';
-
-interface ClientRef {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string | null;
-  phone: string | null;
-}
-
-interface EmployeeRef {
-  id: string;
-  name: string;
-}
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
 
 interface Job {
-  id: string;
-  job_number: string;
-  title: string;
-  description: string | null;
-  client_id: string | null;
-  client?: ClientRef | null;
-  status: JobStatus;
-  job_type: string | null;
-  priority: JobPriority;
-  scheduled_start: string | null;
-  scheduled_end: string | null;
-  actual_start: string | null;
-  actual_end: string | null;
-  assigned_to: string | null;
-  employee?: EmployeeRef | null;
-  service_address: string | null;
-  city: string | null;
-  state: string | null;
-  zip: string | null;
-  instructions: string | null;
-  customer_notes: string | null;
-  total_amount: number;
-  created_at: string;
-  updated_at: string;
+  id: string
+  job_number: string
+  title: string
+  description: string | null
+  client_id: string | null
+  client_name: string
+  status: string
+  job_type: string | null
+  priority: string
+  scheduled_start: string | null
+  scheduled_end: string | null
+  actual_start: string | null
+  actual_end: string | null
+  assigned_to: string | null
+  assigned_name: string | null
+  service_address: string | null
+  city: string | null
+  state: string | null
+  zip: string | null
+  instructions: string | null
+  customer_notes: string | null
+  total_amount: number
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
 }
 
-interface JobFormData {
-  title: string;
-  description: string;
-  client_id: string;
-  status: JobStatus;
-  job_type: string;
-  priority: JobPriority;
-  scheduled_start: string;
-  scheduled_end: string;
-  assigned_to: string;
-  service_address: string;
-  city: string;
-  state: string;
-  zip: string;
-  instructions: string;
-  customer_notes: string;
-  total_amount: string;
+const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
+  draft:       { bg: 'rgba(100,116,139,0.15)', color: '#94a3b8' },
+  scheduled:   { bg: 'rgba(96,165,250,0.15)',  color: '#60a5fa' },
+  in_progress: { bg: 'rgba(251,191,36,0.15)',  color: '#fbbf24' },
+  completed:   { bg: 'rgba(74,222,128,0.15)',  color: '#4ade80' },
+  cancelled:   { bg: 'rgba(248,113,113,0.15)', color: '#f87171' },
+  on_hold:     { bg: 'rgba(251,146,60,0.15)',  color: '#fb923c' },
 }
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-
-const STATUS_CONFIG: Record<JobStatus, { label: string; color: string; bg: string; dot: string }> = {
-  draft:       { label: 'Draft',       color: 'text-gray-600',   bg: 'bg-gray-100',   dot: 'bg-gray-400'   },
-  scheduled:   { label: 'Scheduled',   color: 'text-blue-700',   bg: 'bg-blue-100',   dot: 'bg-blue-500'   },
-  in_progress: { label: 'In Progress', color: 'text-yellow-800', bg: 'bg-yellow-100', dot: 'bg-yellow-500' },
-  completed:   { label: 'Completed',   color: 'text-green-700',  bg: 'bg-green-100',  dot: 'bg-green-500'  },
-  cancelled:   { label: 'Cancelled',   color: 'text-red-600',    bg: 'bg-red-100',    dot: 'bg-red-400'    },
-  on_hold:     { label: 'On Hold',     color: 'text-orange-700', bg: 'bg-orange-100', dot: 'bg-orange-400' },
-};
-
-const PRIORITY_CONFIG: Record<JobPriority, { label: string; color: string }> = {
-  low:    { label: 'Low',    color: 'text-gray-500'  },
-  normal: { label: 'Normal', color: 'text-blue-600'  },
-  high:   { label: 'High',   color: 'text-orange-600'},
-  urgent: { label: 'Urgent', color: 'text-red-600'   },
-};
 
 const JOB_TYPES = [
-  { value: 'lawn_care',    label: '🌿 Lawn Care'    },
-  { value: 'landscaping',  label: '🌳 Landscaping'  },
-  { value: 'irrigation',   label: '💧 Irrigation'   },
-  { value: 'tree_service', label: '🪓 Tree Service'  },
-  { value: 'pest_control', label: '🐛 Pest Control'  },
-  { value: 'other',        label: '🔧 Other'         },
-];
+  { value: 'lawn_care',    label: 'Lawn Care'    },
+  { value: 'landscaping',  label: 'Landscaping'  },
+  { value: 'irrigation',   label: 'Irrigation'   },
+  { value: 'tree_service', label: 'Tree Service'  },
+  { value: 'pest_control', label: 'Pest Control'  },
+  { value: 'other',        label: 'Other'         },
+]
 
-const ALL_STATUSES: JobStatus[] = ['draft', 'scheduled', 'in_progress', 'completed', 'cancelled', 'on_hold'];
+const ALL_STATUSES = ['draft', 'scheduled', 'in_progress', 'completed', 'cancelled', 'on_hold']
 
-const EMPTY_FORM: JobFormData = {
-  title: '', description: '', client_id: '', status: 'draft',
+const EMPTY_FORM = {
+  title: '', description: '', client_id: '', client_name: '', status: 'draft',
   job_type: '', priority: 'normal', scheduled_start: '', scheduled_end: '',
-  assigned_to: '', service_address: '', city: '', state: '', zip: '',
+  assigned_to: '', assigned_name: '', service_address: '', city: '', state: '', zip: '',
   instructions: '', customer_notes: '', total_amount: '',
-};
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function formatDateTime(iso: string | null): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('en-US', {
-    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-  });
-}
+export default function JobsPage() {
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [clients, setClients] = useState<any[]>([])
+  const [employees, setEmployees] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('All')
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [showModal, setShowModal] = useState(false)
+  const [editingJob, setEditingJob] = useState<Job | null>(null)
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [saving, setSaving] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
-function toInputDateTime(iso: string | null): string {
-  if (!iso) return '';
-  return iso.slice(0, 16); // "YYYY-MM-DDTHH:MM"
-}
+  const loadJobs = async () => {
+    setLoading(true)
+    const { data } = await supabase.from('jobs').select('*').is('deleted_at', null).order('created_at', { ascending: false })
+    setJobs(data ?? [])
+    setLoading(false)
+  }
 
-function clientName(c?: ClientRef | null): string {
-  if (!c) return '—';
-  return `${c.first_name} ${c.last_name}`.trim();
-}
+  const loadClients = async () => {
+    const { data } = await supabase.from('clients').select('id,first_name,last_name').is('deleted_at', null).order('last_name')
+    setClients(data ?? [])
+  }
 
-// ─── Status Badge ─────────────────────────────────────────────────────────────
-
-const StatusBadge: React.FC<{ status: JobStatus }> = ({ status }) => {
-  const cfg = STATUS_CONFIG[status];
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${cfg.bg} ${cfg.color}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
-      {cfg.label}
-    </span>
-  );
-};
-
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-
-const SkeletonRow: React.FC = () => (
-  <div className="animate-pulse flex items-center gap-4 px-6 py-4 border-b border-gray-100">
-    <div className="h-4 bg-gray-200 rounded w-20" />
-    <div className="h-4 bg-gray-200 rounded flex-1" />
-    <div className="h-6 bg-gray-200 rounded-full w-24" />
-    <div className="h-4 bg-gray-200 rounded w-32" />
-    <div className="h-4 bg-gray-200 rounded w-24" />
-  </div>
-);
-
-// ─── Main Component ───────────────────────────────────────────────────────────
-
-const JobsPage: React.FC = () => {
-  // Data
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [clients, setClients] = useState<ClientRef[]>([]);
-  const [employees, setEmployees] = useState<EmployeeRef[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  // UI state
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [editingJob, setEditingJob] = useState<Job | null>(null);
-  const [form, setForm] = useState<JobFormData>(EMPTY_FORM);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-
-  // Filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<JobStatus | 'all'>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-
-  // ── Fetch ──
-
-  const fetchJobs = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data, error: err } = await supabase
-        .from('jobs')
-        .select(`
-          id, job_number, title, description, client_id, status, job_type,
-          priority, scheduled_start, scheduled_end, actual_start, actual_end,
-          assigned_to, service_address, city, state, zip,
-          instructions, customer_notes, total_amount, created_at, updated_at,
-          client:clients(id, first_name, last_name, email, phone),
-          employee:employees(id, name)
-        `)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
-
-      if (err) throw new Error(err.message);
-      setJobs((data ?? []) as unknown as Job[]);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load jobs');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchClients = useCallback(async () => {
-    const { data } = await supabase
-      .from('clients')
-      .select('id, first_name, last_name, email, phone')
-      .is('deleted_at', null)
-      .order('last_name');
-    setClients((data as ClientRef[]) ?? []);
-  }, []);
-
-  const fetchEmployees = useCallback(async () => {
-    const { data } = await supabase
-      .from('employees')
-      .select('id, name')
-      .order('name');
-    setEmployees((data as EmployeeRef[]) ?? []);
-  }, []);
+  const loadEmployees = async () => {
+    const { data } = await supabase.from('employees').select('id,name').order('name')
+    setEmployees(data ?? [])
+  }
 
   useEffect(() => {
-    fetchJobs();
-    fetchClients();
-    fetchEmployees();
-  }, [fetchJobs, fetchClients, fetchEmployees]);
+    loadJobs()
+    loadClients()
+    loadEmployees()
+    const channel = supabase.channel('jobs-page')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, loadJobs)
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [])
 
-  // ── Filtering ──
+  const fmt = (n: number) => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+  const sc = (s: string) => STATUS_COLORS[s?.toLowerCase()] || STATUS_COLORS.draft
+  const statusLabel = (s: string) => s.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())
 
-  const filteredJobs = jobs.filter(j => {
-    const matchSearch = !searchQuery
-      || j.title.toLowerCase().includes(searchQuery.toLowerCase())
-      || j.job_number.toLowerCase().includes(searchQuery.toLowerCase())
-      || clientName(j.client).toLowerCase().includes(searchQuery.toLowerCase());
-    const matchStatus = statusFilter === 'all' || j.status === statusFilter;
-    const matchType = typeFilter === 'all' || j.job_type === typeFilter;
-    return matchSearch && matchStatus && matchType;
-  });
+  const filtered = jobs.filter(j => {
+    const matchSearch = `${j.job_number} ${j.client_name} ${j.title}`.toLowerCase().includes(search.toLowerCase())
+    const matchStatus = statusFilter === 'All' ? true : j.status === statusFilter.toLowerCase().replace(' ', '_')
+    return matchSearch && matchStatus
+  })
 
-  // ── Status quick-change ──
-
-  const handleStatusChange = async (job: Job, newStatus: JobStatus) => {
-    const updates: Partial<Job> = { status: newStatus };
-    if (newStatus === 'in_progress' && !job.actual_start) {
-      updates.actual_start = new Date().toISOString();
-    }
-    if (newStatus === 'completed' && !job.actual_end) {
-      updates.actual_end = new Date().toISOString();
-    }
-
-    const { error: err } = await supabase
-      .from('jobs')
-      .update(updates)
-      .eq('id', job.id);
-
-    if (err) { alert('Failed to update status: ' + err.message); return; }
-
-    setJobs(prev => prev.map(j => j.id === job.id ? { ...j, ...updates } : j));
-    if (selectedJob?.id === job.id) setSelectedJob(prev => prev ? { ...prev, ...updates } : prev);
-  };
-
-  // ── Open modal ──
+  const handleStatusChange = async (job: Job, newStatus: string) => {
+    const updates: any = { status: newStatus, updated_at: new Date().toISOString() }
+    if (newStatus === 'in_progress' && !job.actual_start) updates.actual_start = new Date().toISOString()
+    if (newStatus === 'completed' && !job.actual_end) updates.actual_end = new Date().toISOString()
+    await supabase.from('jobs').update(updates).eq('id', job.id)
+    setSelectedJob({ ...job, ...updates })
+    loadJobs()
+  }
 
   const openCreate = () => {
-    setEditingJob(null);
-    setForm(EMPTY_FORM);
-    setFormError(null);
-    setShowModal(true);
-  };
+    setEditingJob(null)
+    setForm(EMPTY_FORM)
+    setShowModal(true)
+  }
 
   const openEdit = (job: Job) => {
-    setEditingJob(job);
+    setEditingJob(job)
     setForm({
       title: job.title,
       description: job.description ?? '',
       client_id: job.client_id ?? '',
+      client_name: job.client_name ?? '',
       status: job.status,
       job_type: job.job_type ?? '',
-      priority: job.priority,
-      scheduled_start: toInputDateTime(job.scheduled_start),
-      scheduled_end: toInputDateTime(job.scheduled_end),
+      priority: job.priority ?? 'normal',
+      scheduled_start: job.scheduled_start ? job.scheduled_start.slice(0, 16) : '',
+      scheduled_end: job.scheduled_end ? job.scheduled_end.slice(0, 16) : '',
       assigned_to: job.assigned_to ?? '',
+      assigned_name: job.assigned_name ?? '',
       service_address: job.service_address ?? '',
       city: job.city ?? '',
       state: job.state ?? '',
@@ -286,28 +144,25 @@ const JobsPage: React.FC = () => {
       instructions: job.instructions ?? '',
       customer_notes: job.customer_notes ?? '',
       total_amount: job.total_amount ? String(job.total_amount) : '',
-    });
-    setFormError(null);
-    setShowModal(true);
-  };
-
-  // ── Save ──
+    })
+    setShowModal(true)
+  }
 
   const handleSave = async () => {
-    if (!form.title.trim()) { setFormError('Job title is required.'); return; }
-    setSaving(true);
-    setFormError(null);
-
-    const payload = {
+    if (!form.title.trim()) return
+    setSaving(true)
+    const payload: any = {
       title: form.title.trim(),
       description: form.description.trim() || null,
       client_id: form.client_id || null,
+      client_name: form.client_name.trim() || null,
       status: form.status,
       job_type: form.job_type || null,
       priority: form.priority,
       scheduled_start: form.scheduled_start ? new Date(form.scheduled_start).toISOString() : null,
       scheduled_end: form.scheduled_end ? new Date(form.scheduled_end).toISOString() : null,
       assigned_to: form.assigned_to || null,
+      assigned_name: form.assigned_name || null,
       service_address: form.service_address.trim() || null,
       city: form.city.trim() || null,
       state: form.state.trim() || null,
@@ -315,719 +170,335 @@ const JobsPage: React.FC = () => {
       instructions: form.instructions.trim() || null,
       customer_notes: form.customer_notes.trim() || null,
       total_amount: parseFloat(form.total_amount) || 0,
-    };
-
-    try {
-      if (editingJob) {
-        const { error: err } = await supabase.from('jobs').update(payload).eq('id', editingJob.id);
-        if (err) throw new Error(err.message);
-      } else {
-        const { error: err } = await supabase.from('jobs').insert(payload);
-        if (err) throw new Error(err.message);
-      }
-      setShowModal(false);
-      fetchJobs();
-    } catch (e: unknown) {
-      setFormError(e instanceof Error ? e.message : 'Failed to save job');
-    } finally {
-      setSaving(false);
+      updated_at: new Date().toISOString(),
     }
-  };
-
-  // ── Delete ──
+    if (editingJob) {
+      await supabase.from('jobs').update(payload).eq('id', editingJob.id)
+    } else {
+      await supabase.from('jobs').insert(payload)
+    }
+    setSaving(false)
+    setShowModal(false)
+    loadJobs()
+  }
 
   const handleDelete = async (id: string) => {
-    const { error: err } = await supabase
-      .from('jobs')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', id);
-    if (err) { alert('Failed to delete: ' + err.message); return; }
-    setDeleteConfirm(null);
-    setSelectedJob(null);
-    fetchJobs();
-  };
-
-  // ── Stats ──
+    await supabase.from('jobs').update({ deleted_at: new Date().toISOString() }).eq('id', id)
+    setDeleteConfirm(null)
+    setSelectedJob(null)
+    loadJobs()
+  }
 
   const stats = {
     total: jobs.length,
     scheduled: jobs.filter(j => j.status === 'scheduled').length,
     inProgress: jobs.filter(j => j.status === 'in_progress').length,
     completed: jobs.filter(j => j.status === 'completed').length,
-  };
+  }
 
-  // ─── Render ───────────────────────────────────────────────────────────────
+  const inp: React.CSSProperties = { width: '100%', padding: '9px 11px', border: '1px solid #1e293b', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: '#0f172a', color: '#f1f5f9', boxSizing: 'border-box' }
+  const lbl: React.CSSProperties = { fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'block' }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* ── Header ── */}
-      <div className="bg-white border-b border-gray-200 px-6 py-5">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  // ── JOB DETAIL VIEW ──
+  if (selectedJob) {
+    return (
+      <div style={{ padding: '2rem', background: '#0a0f1a', minHeight: '100vh' }}>
+        <button onClick={() => setSelectedJob(null)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 16 }}>
+          ← Back to Jobs
+        </button>
+
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Jobs</h1>
-            <p className="text-sm text-gray-500 mt-0.5">Manage and track all field service jobs</p>
-          </div>
-          <button
-            onClick={openCreate}
-            className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors shadow-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            New Job
-          </button>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5">
-          {[
-            { label: 'Total Jobs',   value: stats.total,      color: 'text-gray-900'  },
-            { label: 'Scheduled',    value: stats.scheduled,  color: 'text-blue-700'  },
-            { label: 'In Progress',  value: stats.inProgress, color: 'text-yellow-700'},
-            { label: 'Completed',    value: stats.completed,  color: 'text-green-700' },
-          ].map(s => (
-            <div key={s.label} className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3">
-              <p className="text-xs text-gray-500 font-medium">{s.label}</p>
-              <p className={`text-2xl font-bold mt-0.5 ${s.color}`}>{s.value}</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <span style={{ background: sc(selectedJob.status).bg, color: sc(selectedJob.status).color, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>{statusLabel(selectedJob.status)}</span>
+              <span style={{ fontSize: 13, color: '#475569' }}>{selectedJob.job_number}</span>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Filters ── */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex flex-wrap gap-3 items-center">
-        {/* Search */}
-        <div className="relative flex-1 min-w-48">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text"
-            placeholder="Search jobs, clients…"
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-          />
-        </div>
-
-        {/* Status filter */}
-        <select
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value as JobStatus | 'all')}
-          className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-        >
-          <option value="all">All Statuses</option>
-          {ALL_STATUSES.map(s => (
-            <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
-          ))}
-        </select>
-
-        {/* Type filter */}
-        <select
-          value={typeFilter}
-          onChange={e => setTypeFilter(e.target.value)}
-          className="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-        >
-          <option value="all">All Types</option>
-          {JOB_TYPES.map(t => (
-            <option key={t.value} value={t.value}>{t.label}</option>
-          ))}
-        </select>
-
-        <span className="text-xs text-gray-400 ml-auto">
-          {filteredJobs.length} of {jobs.length} jobs
-        </span>
-      </div>
-
-      {/* ── Error ── */}
-      {error && (
-        <div className="mx-6 mt-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-center gap-2">
-          <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          {error}
-          <button onClick={fetchJobs} className="ml-auto underline text-red-600 hover:text-red-800">Retry</button>
-        </div>
-      )}
-
-      {/* ── Table / List ── */}
-      <div className="mx-6 my-5">
-        {loading ? (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            {[...Array(5)].map((_, i) => <SkeletonRow key={i} />)}
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: '#f1f5f9' }}>{selectedJob.title}</h1>
+            {selectedJob.client_name && <p style={{ margin: '4px 0 0', fontSize: 14, color: '#64748b' }}>{selectedJob.client_name}</p>}
           </div>
-        ) : filteredJobs.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-16 text-center">
-            <div className="text-5xl mb-4">🏗️</div>
-            <p className="text-gray-700 font-semibold text-lg">No jobs found</p>
-            <p className="text-gray-400 text-sm mt-1 mb-6">
-              {searchQuery || statusFilter !== 'all' || typeFilter !== 'all'
-                ? 'Try adjusting your filters'
-                : 'Create your first job to get started'}
-            </p>
-            {!searchQuery && statusFilter === 'all' && typeFilter === 'all' && (
-              <button
-                onClick={openCreate}
-                className="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                New Job
-              </button>
-            )}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={() => openEdit(selectedJob)} style={{ padding: '8px 16px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Edit Job</button>
+            <button onClick={() => setDeleteConfirm(selectedJob.id)} style={{ padding: '8px 16px', background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Delete</button>
           </div>
-        ) : (
-          <>
-            {/* Desktop Table */}
-            <div className="hidden md:block bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50">
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Job #</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Title / Client</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Type</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Scheduled</th>
-                    <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Assigned</th>
-                    <th className="text-right px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Amount</th>
-                    <th className="px-6 py-3" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {filteredJobs.map(job => (
-                    <tr
-                      key={job.id}
-                      onClick={() => setSelectedJob(job)}
-                      className="hover:bg-gray-50 cursor-pointer transition-colors"
-                    >
-                      <td className="px-6 py-4">
-                        <span className="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                          {job.job_number}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-medium text-gray-900">{job.title}</p>
-                        {job.client && (
-                          <p className="text-xs text-gray-400 mt-0.5">{clientName(job.client)}</p>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <StatusBadge status={job.status} />
-                      </td>
-                      <td className="px-6 py-4 text-gray-500">
-                        {JOB_TYPES.find(t => t.value === job.job_type)?.label ?? '—'}
-                      </td>
-                      <td className="px-6 py-4 text-gray-500">
-                        {job.scheduled_start ? formatDate(job.scheduled_start) : '—'}
-                      </td>
-                      <td className="px-6 py-4 text-gray-500">
-                        {job.employee?.name ?? '—'}
-                      </td>
-                      <td className="px-6 py-4 text-right font-semibold text-gray-900">
-                        {job.total_amount > 0 ? `$${Number(job.total_amount).toFixed(2)}` : '—'}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={e => { e.stopPropagation(); openEdit(job); }}
-                          className="text-xs text-gray-400 hover:text-green-600 font-medium transition-colors"
-                        >
-                          Edit
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+        </div>
 
-            {/* Mobile Cards */}
-            <div className="md:hidden space-y-3">
-              {filteredJobs.map(job => (
-                <div
-                  key={job.id}
-                  onClick={() => setSelectedJob(job)}
-                  className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 cursor-pointer active:bg-gray-50"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-mono text-xs text-gray-400">{job.job_number}</span>
-                        <StatusBadge status={job.status} />
-                      </div>
-                      <p className="font-semibold text-gray-900 truncate">{job.title}</p>
-                      {job.client && (
-                        <p className="text-sm text-gray-500 mt-0.5">{clientName(job.client)}</p>
-                      )}
-                    </div>
-                    {job.total_amount > 0 && (
-                      <span className="font-bold text-gray-900 text-sm flex-shrink-0">
-                        ${Number(job.total_amount).toFixed(2)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-4 mt-3 text-xs text-gray-400">
-                    {job.scheduled_start && (
-                      <span>📅 {formatDate(job.scheduled_start)}</span>
-                    )}
-                    {job.employee?.name && (
-                      <span>👤 {job.employee.name}</span>
-                    )}
-                    {job.job_type && (
-                      <span>{JOB_TYPES.find(t => t.value === job.job_type)?.label}</span>
-                    )}
-                  </div>
+        {/* Status buttons */}
+        <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1rem 1.25rem', marginBottom: 16 }}>
+          <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quick Status Change</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {ALL_STATUSES.map(s => (
+              <button key={s} onClick={() => handleStatusChange(selectedJob, s)} style={{
+                padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                background: selectedJob.status === s ? sc(s).bg : 'transparent',
+                color: selectedJob.status === s ? sc(s).color : '#64748b',
+                border: selectedJob.status === s ? `1px solid ${sc(s).color}` : '1px solid #1e293b',
+              }}>{statusLabel(s)}</button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Details */}
+          <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Job Details</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 32px' }}>
+              {[
+                { label: 'Client', value: selectedJob.client_name || '—' },
+                { label: 'Job #', value: selectedJob.job_number },
+                { label: 'Type', value: JOB_TYPES.find(t => t.value === selectedJob.job_type)?.label || '—' },
+                { label: 'Priority', value: selectedJob.priority || '—' },
+                { label: 'Scheduled Start', value: fmtDate(selectedJob.scheduled_start) },
+                { label: 'Scheduled End', value: fmtDate(selectedJob.scheduled_end) },
+                { label: 'Actual Start', value: fmtDate(selectedJob.actual_start) },
+                { label: 'Actual End', value: fmtDate(selectedJob.actual_end) },
+                { label: 'Assigned To', value: selectedJob.assigned_name || '—' },
+                { label: 'Amount', value: fmt(selectedJob.total_amount || 0) },
+              ].map(row => (
+                <div key={row.label} style={{ borderBottom: '1px solid #1e293b', paddingBottom: 10 }}>
+                  <p style={{ margin: '0 0 2px', fontSize: 11, color: '#475569', fontWeight: 600 }}>{row.label}</p>
+                  <p style={{ margin: 0, fontSize: 13, color: '#f1f5f9' }}>{row.value}</p>
                 </div>
               ))}
             </div>
-          </>
-        )}
+            {(selectedJob.service_address || selectedJob.city) && (
+              <div style={{ marginTop: 12 }}>
+                <p style={{ margin: '0 0 2px', fontSize: 11, color: '#475569', fontWeight: 600 }}>Service Address</p>
+                <p style={{ margin: 0, fontSize: 13, color: '#f1f5f9' }}>
+                  {[selectedJob.service_address, selectedJob.city, selectedJob.state, selectedJob.zip].filter(Boolean).join(', ')}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {selectedJob.description && (
+            <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
+              <p style={{ margin: '0 0 6px', fontSize: 11, color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Description</p>
+              <p style={{ margin: 0, fontSize: 13, color: '#cbd5e1' }}>{selectedJob.description}</p>
+            </div>
+          )}
+
+          {selectedJob.instructions && (
+            <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
+              <p style={{ margin: '0 0 6px', fontSize: 11, color: '#fbbf24', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Crew Instructions (Internal)</p>
+              <p style={{ margin: 0, fontSize: 13, color: '#cbd5e1' }}>{selectedJob.instructions}</p>
+            </div>
+          )}
+
+          {selectedJob.customer_notes && (
+            <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
+              <p style={{ margin: '0 0 6px', fontSize: 11, color: '#60a5fa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Customer Notes</p>
+              <p style={{ margin: 0, fontSize: 13, color: '#cbd5e1' }}>{selectedJob.customer_notes}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  // ── JOBS LIST VIEW ──
+  return (
+    <div style={{ padding: '2rem', background: '#0a0f1a', minHeight: '100vh' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#f1f5f9', margin: '0 0 2px' }}>Jobs</h1>
+          <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>{jobs.length} total jobs</p>
+        </div>
+        <button onClick={openCreate} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>+ New Job</button>
       </div>
 
-      {/* ── Detail Slide-Over ── */}
-      {selectedJob && (
-        <div className="fixed inset-0 z-40 flex justify-end">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setSelectedJob(null)} />
-          <div className="relative z-50 w-full max-w-lg bg-white shadow-2xl h-full overflow-y-auto flex flex-col">
-            {/* Header */}
-            <div className="flex items-start justify-between gap-3 px-6 py-5 border-b border-gray-200 bg-white sticky top-0 z-10">
-              <div>
-                <span className="font-mono text-xs text-gray-400">{selectedJob.job_number}</span>
-                <h2 className="text-lg font-bold text-gray-900 mt-0.5">{selectedJob.title}</h2>
-                {selectedJob.client && (
-                  <p className="text-sm text-gray-500 mt-0.5">{clientName(selectedJob.client)}</p>
-                )}
-              </div>
-              <button onClick={() => setSelectedJob(null)} className="text-gray-400 hover:text-gray-600 mt-1">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Status bar */}
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
-              <p className="text-xs text-gray-500 font-medium mb-2">Quick Status Change</p>
-              <div className="flex flex-wrap gap-2">
-                {ALL_STATUSES.map(s => {
-                  const cfg = STATUS_CONFIG[s];
-                  const active = selectedJob.status === s;
-                  return (
-                    <button
-                      key={s}
-                      onClick={() => handleStatusChange(selectedJob, s)}
-                      className={`px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
-                        active
-                          ? `${cfg.bg} ${cfg.color} border-transparent ring-2 ring-offset-1 ring-green-500`
-                          : 'bg-white text-gray-500 border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      {cfg.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Body */}
-            <div className="flex-1 px-6 py-5 space-y-6">
-              {/* Details grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <DetailField label="Status">
-                  <StatusBadge status={selectedJob.status} />
-                </DetailField>
-                <DetailField label="Priority">
-                  <span className={`text-sm font-semibold ${PRIORITY_CONFIG[selectedJob.priority].color}`}>
-                    {PRIORITY_CONFIG[selectedJob.priority].label}
-                  </span>
-                </DetailField>
-                <DetailField label="Type">
-                  {JOB_TYPES.find(t => t.value === selectedJob.job_type)?.label ?? '—'}
-                </DetailField>
-                <DetailField label="Amount">
-                  {selectedJob.total_amount > 0
-                    ? <span className="font-bold text-gray-900">${Number(selectedJob.total_amount).toFixed(2)}</span>
-                    : '—'}
-                </DetailField>
-                <DetailField label="Scheduled Start">
-                  {formatDateTime(selectedJob.scheduled_start)}
-                </DetailField>
-                <DetailField label="Scheduled End">
-                  {formatDateTime(selectedJob.scheduled_end)}
-                </DetailField>
-                <DetailField label="Actual Start">
-                  {formatDateTime(selectedJob.actual_start)}
-                </DetailField>
-                <DetailField label="Actual End">
-                  {formatDateTime(selectedJob.actual_end)}
-                </DetailField>
-                <DetailField label="Assigned To" className="col-span-2">
-                  {selectedJob.employee?.name ?? '—'}
-                </DetailField>
-              </div>
-
-              {/* Address */}
-              {(selectedJob.service_address || selectedJob.city) && (
-                <div>
-                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Service Address</p>
-                  <p className="text-sm text-gray-700">
-                    {[selectedJob.service_address, selectedJob.city, selectedJob.state, selectedJob.zip]
-                      .filter(Boolean).join(', ')}
-                  </p>
-                </div>
-              )}
-
-              {/* Description */}
-              {selectedJob.description && (
-                <div>
-                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Description</p>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{selectedJob.description}</p>
-                </div>
-              )}
-
-              {/* Instructions */}
-              {selectedJob.instructions && (
-                <div>
-                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Crew Instructions</p>
-                  <p className="text-sm text-gray-700 bg-yellow-50 border border-yellow-200 rounded-lg p-3 whitespace-pre-wrap">
-                    {selectedJob.instructions}
-                  </p>
-                </div>
-              )}
-
-              {/* Customer Notes */}
-              {selectedJob.customer_notes && (
-                <div>
-                  <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Customer Notes</p>
-                  <p className="text-sm text-gray-700 bg-blue-50 border border-blue-200 rounded-lg p-3 whitespace-pre-wrap">
-                    {selectedJob.customer_notes}
-                  </p>
-                </div>
-              )}
-
-              {/* Meta */}
-              <div className="text-xs text-gray-400 border-t border-gray-100 pt-4">
-                <p>Created {formatDate(selectedJob.created_at)}</p>
-                <p>Updated {formatDate(selectedJob.updated_at)}</p>
-              </div>
-            </div>
-
-            {/* Footer actions */}
-            <div className="px-6 py-4 border-t border-gray-200 bg-white sticky bottom-0 flex gap-3">
-              <button
-                onClick={() => openEdit(selectedJob)}
-                className="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors"
-              >
-                Edit Job
-              </button>
-              <button
-                onClick={() => setDeleteConfirm(selectedJob.id)}
-                className="px-4 py-2.5 text-red-600 border border-red-200 hover:bg-red-50 font-semibold rounded-lg text-sm transition-colors"
-              >
-                Delete
-              </button>
-            </div>
+      {/* Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: '1.5rem' }}>
+        {[
+          { label: 'Total Jobs',  value: stats.total,      sub: 'all time' },
+          { label: 'Scheduled',   value: stats.scheduled,  sub: 'upcoming' },
+          { label: 'In Progress', value: stats.inProgress, sub: 'active now' },
+          { label: 'Completed',   value: stats.completed,  sub: 'done' },
+        ].map((s, i) => (
+          <div key={i} style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1rem 1.25rem' }}>
+            <p style={{ margin: '0 0 2px', fontSize: 12, color: '#64748b', fontWeight: 600 }}>{s.label}</p>
+            <p style={{ margin: '0 0 8px', fontSize: 11, color: '#475569' }}>{s.sub}</p>
+            <span style={{ fontSize: 28, fontWeight: 800, color: '#f1f5f9' }}>{s.value}</span>
           </div>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          <input placeholder="Search jobs..." value={search} onChange={e => setSearch(e.target.value)} style={{ ...inp, paddingLeft: 32, height: 38 }} />
+          <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#475569' }}>🔍</span>
+        </div>
+        {['All', 'Draft', 'Scheduled', 'In Progress', 'Completed', 'Cancelled', 'On Hold'].map(s => (
+          <button key={s} onClick={() => setStatusFilter(s)} style={{
+            padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+            background: statusFilter === s ? 'rgba(74,222,128,0.15)' : '#0f172a',
+            color: statusFilter === s ? '#4ade80' : '#64748b',
+            border: statusFilter === s ? '1px solid rgba(74,222,128,0.3)' : '1px solid #1e293b',
+          }}>{s}</button>
+        ))}
+        <p style={{ margin: 0, fontSize: 12, color: '#475569' }}>{filtered.length} results</p>
+      </div>
+
+      {/* Table */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '3rem', color: '#475569' }}>Loading...</div>
+      ) : (
+        <div style={{ background: '#0f172a', borderRadius: 14, border: '1px solid #1e293b', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #1e293b', background: '#0d1526' }}>
+                {['Job #', 'Title', 'Client', 'Type', 'Scheduled', 'Assigned', 'Amount', 'Status', ''].map(h => (
+                  <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={9} style={{ padding: '3rem', textAlign: 'center', color: '#475569', fontSize: 13 }}>No jobs found</td></tr>
+              ) : filtered.map(j => (
+                <tr key={j.id} onClick={() => setSelectedJob(j)}
+                  style={{ borderBottom: '1px solid #1e293b', cursor: 'pointer' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                  <td style={{ padding: '12px 14px', fontSize: 12, color: '#64748b', fontFamily: 'monospace' }}>{j.job_number}</td>
+                  <td style={{ padding: '12px 14px', fontSize: 13, color: '#f1f5f9', fontWeight: 600 }}>{j.title}</td>
+                  <td style={{ padding: '12px 14px', fontSize: 13, color: '#cbd5e1' }}>{j.client_name || '—'}</td>
+                  <td style={{ padding: '12px 14px', fontSize: 12, color: '#64748b' }}>{JOB_TYPES.find(t => t.value === j.job_type)?.label || '—'}</td>
+                  <td style={{ padding: '12px 14px', fontSize: 12, color: '#64748b' }}>{fmtDate(j.scheduled_start)}</td>
+                  <td style={{ padding: '12px 14px', fontSize: 12, color: '#64748b' }}>{j.assigned_name || '—'}</td>
+                  <td style={{ padding: '12px 14px', fontSize: 13, color: '#4ade80', fontWeight: 700 }}>{j.total_amount > 0 ? fmt(j.total_amount) : '—'}</td>
+                  <td style={{ padding: '12px 14px' }}>
+                    <span style={{ background: sc(j.status).bg, color: sc(j.status).color, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700 }}>{statusLabel(j.status)}</span>
+                  </td>
+                  <td style={{ padding: '12px 14px' }}>
+                    <button onClick={e => { e.stopPropagation(); openEdit(j) }} style={{ background: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* ── Create / Edit Modal ── */}
+      {/* New / Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 overflow-y-auto">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setShowModal(false)} />
-          <div className="relative z-50 w-full max-w-2xl bg-white rounded-2xl shadow-2xl my-auto">
-            {/* Modal header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
-              <h2 className="text-lg font-bold text-gray-900">
-                {editingJob ? `Edit Job — ${editingJob.job_number}` : 'New Job'}
-              </h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 500 }} onClick={() => setShowModal(false)} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 640, maxHeight: '90vh', overflowY: 'auto', background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 501, padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>{editingJob ? `Edit Job — ${editingJob.job_number}` : 'New Job'}</h2>
+              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 22, cursor: 'pointer' }}>×</button>
             </div>
 
-            {/* Modal body */}
-            <div className="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
-              {formError && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
-                  {formError}
-                </div>
-              )}
+            <label style={lbl}>Job Title *</label>
+            <input style={{ ...inp, marginBottom: 12 }} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="e.g. Spring Lawn Cleanup" />
 
-              {/* Title */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Job Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={form.title}
-                  onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  placeholder="e.g. Spring Lawn Cleanup"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                />
+                <label style={lbl}>Client</label>
+                <select style={inp} value={form.client_id} onChange={e => {
+                  const c = clients.find(c => c.id == e.target.value)
+                  setForm({ ...form, client_id: e.target.value, client_name: c ? `${c.first_name} ${c.last_name}` : '' })
+                }}>
+                  <option value="">— Select client —</option>
+                  {clients.map(c => <option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>)}
+                </select>
               </div>
-
-              {/* Client + Status row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Client</label>
-                  <select
-                    value={form.client_id}
-                    onChange={e => setForm(f => ({ ...f, client_id: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                  >
-                    <option value="">— Select client —</option>
-                    {clients.map(c => (
-                      <option key={c.id} value={c.id}>{clientName(c)}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Status</label>
-                  <select
-                    value={form.status}
-                    onChange={e => setForm(f => ({ ...f, status: e.target.value as JobStatus }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                  >
-                    {ALL_STATUSES.map(s => (
-                      <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Type + Priority row */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Job Type</label>
-                  <select
-                    value={form.job_type}
-                    onChange={e => setForm(f => ({ ...f, job_type: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                  >
-                    <option value="">— Select type —</option>
-                    {JOB_TYPES.map(t => (
-                      <option key={t.value} value={t.value}>{t.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Priority</label>
-                  <select
-                    value={form.priority}
-                    onChange={e => setForm(f => ({ ...f, priority: e.target.value as JobPriority }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                  >
-                    {(Object.keys(PRIORITY_CONFIG) as JobPriority[]).map(p => (
-                      <option key={p} value={p}>{PRIORITY_CONFIG[p].label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Scheduled times */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Scheduled Start</label>
-                  <input
-                    type="datetime-local"
-                    value={form.scheduled_start}
-                    onChange={e => setForm(f => ({ ...f, scheduled_start: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Scheduled End</label>
-                  <input
-                    type="datetime-local"
-                    value={form.scheduled_end}
-                    onChange={e => setForm(f => ({ ...f, scheduled_end: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                </div>
-              </div>
-
-              {/* Assigned To + Amount */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Assigned To</label>
-                  <select
-                    value={form.assigned_to}
-                    onChange={e => setForm(f => ({ ...f, assigned_to: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                  >
-                    <option value="">— Unassigned —</option>
-                    {employees.map(e => (
-                      <option key={e.id} value={e.id}>{e.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Total Amount ($)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={form.total_amount}
-                    onChange={e => setForm(f => ({ ...f, total_amount: e.target.value }))}
-                    placeholder="0.00"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                </div>
-              </div>
-
-              {/* Service Address */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Service Address</label>
-                <input
-                  type="text"
-                  value={form.service_address}
-                  onChange={e => setForm(f => ({ ...f, service_address: e.target.value }))}
-                  placeholder="Street address"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 mb-2"
-                />
-                <div className="grid grid-cols-3 gap-2">
-                  <input
-                    type="text"
-                    value={form.city}
-                    onChange={e => setForm(f => ({ ...f, city: e.target.value }))}
-                    placeholder="City"
-                    className="col-span-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                  <input
-                    type="text"
-                    value={form.state}
-                    onChange={e => setForm(f => ({ ...f, state: e.target.value }))}
-                    placeholder="State"
-                    className="col-span-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                  <input
-                    type="text"
-                    value={form.zip}
-                    onChange={e => setForm(f => ({ ...f, zip: e.target.value }))}
-                    placeholder="ZIP"
-                    className="col-span-1 border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                  />
-                </div>
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Description</label>
-                <textarea
-                  rows={3}
-                  value={form.description}
-                  onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  placeholder="What needs to be done…"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                />
-              </div>
-
-              {/* Crew Instructions */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Crew Instructions
-                  <span className="ml-1 text-xs font-normal text-gray-400">(internal only)</span>
-                </label>
-                <textarea
-                  rows={2}
-                  value={form.instructions}
-                  onChange={e => setForm(f => ({ ...f, instructions: e.target.value }))}
-                  placeholder="Gate code, access notes, special equipment…"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                />
-              </div>
-
-              {/* Customer Notes */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                  Customer Notes
-                  <span className="ml-1 text-xs font-normal text-gray-400">(visible to client)</span>
-                </label>
-                <textarea
-                  rows={2}
-                  value={form.customer_notes}
-                  onChange={e => setForm(f => ({ ...f, customer_notes: e.target.value }))}
-                  placeholder="Notes to share with the customer…"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                />
+                <label style={lbl}>Status</label>
+                <select style={inp} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+                  {ALL_STATUSES.map(s => <option key={s} value={s}>{statusLabel(s)}</option>)}
+                </select>
               </div>
             </div>
 
-            {/* Modal footer */}
-            <div className="px-6 py-4 border-t border-gray-200 flex gap-3 justify-end">
-              <button
-                onClick={() => setShowModal(false)}
-                disabled={saving}
-                className="px-5 py-2.5 text-sm font-semibold text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="px-5 py-2.5 text-sm font-semibold bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-60 flex items-center gap-2"
-              >
-                {saving && (
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                )}
-                {saving ? 'Saving…' : editingJob ? 'Save Changes' : 'Create Job'}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={lbl}>Job Type</label>
+                <select style={inp} value={form.job_type} onChange={e => setForm({ ...form, job_type: e.target.value })}>
+                  <option value="">— Select type —</option>
+                  {JOB_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>Priority</label>
+                <select style={inp} value={form.priority} onChange={e => setForm({ ...form, priority: e.target.value })}>
+                  {['low', 'normal', 'high', 'urgent'].map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={lbl}>Scheduled Start</label>
+                <input style={inp} type="datetime-local" value={form.scheduled_start} onChange={e => setForm({ ...form, scheduled_start: e.target.value })} />
+              </div>
+              <div>
+                <label style={lbl}>Scheduled End</label>
+                <input style={inp} type="datetime-local" value={form.scheduled_end} onChange={e => setForm({ ...form, scheduled_end: e.target.value })} />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={lbl}>Assigned To</label>
+                <select style={inp} value={form.assigned_to} onChange={e => {
+                  const emp = employees.find(emp => emp.id == e.target.value)
+                  setForm({ ...form, assigned_to: e.target.value, assigned_name: emp?.name || '' })
+                }}>
+                  <option value="">— Unassigned —</option>
+                  {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>Total Amount ($)</label>
+                <input style={inp} type="number" min="0" step="0.01" value={form.total_amount} onChange={e => setForm({ ...form, total_amount: e.target.value })} placeholder="0.00" />
+              </div>
+            </div>
+
+            <label style={lbl}>Service Address</label>
+            <input style={{ ...inp, marginBottom: 8 }} value={form.service_address} onChange={e => setForm({ ...form, service_address: e.target.value })} placeholder="Street address" />
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
+              <input style={inp} value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} placeholder="City" />
+              <input style={inp} value={form.state} onChange={e => setForm({ ...form, state: e.target.value })} placeholder="State" />
+              <input style={inp} value={form.zip} onChange={e => setForm({ ...form, zip: e.target.value })} placeholder="ZIP" />
+            </div>
+
+            <label style={lbl}>Description</label>
+            <textarea style={{ ...inp, height: 70, resize: 'vertical', marginBottom: 12 } as React.CSSProperties} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="What needs to be done..." />
+
+            <label style={lbl}>Crew Instructions <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(internal only)</span></label>
+            <textarea style={{ ...inp, height: 60, resize: 'vertical', marginBottom: 12 } as React.CSSProperties} value={form.instructions} onChange={e => setForm({ ...form, instructions: e.target.value })} placeholder="Gate code, access notes..." />
+
+            <label style={lbl}>Customer Notes <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(visible to client)</span></label>
+            <textarea style={{ ...inp, height: 60, resize: 'vertical', marginBottom: 20 } as React.CSSProperties} value={form.customer_notes} onChange={e => setForm({ ...form, customer_notes: e.target.value })} placeholder="Notes to share with customer..." />
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setShowModal(false)} style={{ padding: '10px 20px', border: '1px solid #1e293b', borderRadius: 9, background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={handleSave} disabled={saving} style={{ padding: '10px 20px', border: 'none', borderRadius: 9, background: '#16a34a', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
+                {saving ? 'Saving...' : editingJob ? 'Save Changes' : 'Create Job'}
               </button>
             </div>
           </div>
-        </div>
+        </>
       )}
 
-      {/* ── Delete Confirm ── */}
+      {/* Delete Confirm */}
       {deleteConfirm && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setDeleteConfirm(null)} />
-          <div className="relative z-50 bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm text-center">
-            <div className="text-4xl mb-3">🗑️</div>
-            <h3 className="text-lg font-bold text-gray-900">Delete this job?</h3>
-            <p className="text-sm text-gray-500 mt-1 mb-5">
-              This action cannot be undone. The job will be permanently removed.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteConfirm(null)}
-                className="flex-1 px-4 py-2.5 text-sm font-semibold text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 px-4 py-2.5 text-sm font-semibold bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-              >
-                Delete
-              </button>
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 500 }} onClick={() => setDeleteConfirm(null)} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 360, background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 501, padding: 24, textAlign: 'center' }}>
+            <p style={{ fontSize: 32, margin: '0 0 12px' }}>🗑️</p>
+            <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>Delete this job?</h3>
+            <p style={{ margin: '0 0 20px', fontSize: 13, color: '#64748b' }}>This cannot be undone.</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: '10px', border: '1px solid #1e293b', borderRadius: 9, background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={() => handleDelete(deleteConfirm)} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 9, background: '#dc2626', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>Delete</button>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
-  );
-};
-
-// ─── DetailField helper ────────────────────────────────────────────────────────
-
-interface DetailFieldProps {
-  label: string;
-  children: React.ReactNode;
-  className?: string;
+  )
 }
-
-const DetailField: React.FC<DetailFieldProps> = ({ label, children, className = '' }) => (
-  <div className={className}>
-    <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">{label}</p>
-    <div className="text-sm text-gray-700">{children}</div>
-  </div>
-);
-
-export default JobsPage;
