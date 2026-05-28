@@ -170,7 +170,7 @@ export default function ClientsPage() {
     setUploadingFile(false)
   }
 
-  const handleDeleteFile = async (fileId: string, url: string) => {
+  const handleDeleteFile = async (fileId: number, url: string) => {
     if (!confirm('Delete this file?')) return
     await supabase.from('client_files').delete().eq('id', fileId)
     const path = url.split('/client-files/')[1]
