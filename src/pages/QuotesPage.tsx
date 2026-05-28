@@ -84,7 +84,7 @@ export default function QuotesPage() {
 
   const openQuote = (q: Quote) => {
     setSelectedQuote(q)
-    setEditMode(false)
+    
     navigate('/quotes/' + q.id)
   }
 
