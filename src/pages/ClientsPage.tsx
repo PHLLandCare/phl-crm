@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 interface Client {
@@ -52,6 +53,7 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
 }
 
 export default function ClientsPage() {
+  const navigate = useNavigate()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -100,6 +102,7 @@ export default function ClientsPage() {
     setSelectedClient(c)
     setEditMode(false)
     setActiveTab('info')
+    navigate('/clients/' + c.id)
     setForm({
       first_name: c.first_name || '', last_name: c.last_name || '',
       company: c.company || '', phone: c.phone || '', email: c.email || '',
@@ -217,7 +220,7 @@ export default function ClientsPage() {
     return (
       <div style={{ padding: '2rem', background: '#0a0f1a', minHeight: '100vh' }}>
         {/* Back button */}
-        <button onClick={() => setSelectedClient(null)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button onClick={() => { setSelectedClient(null); navigate('/clients'); }} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
           ← Back to Clients
         </button>
 
