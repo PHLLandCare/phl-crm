@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import ClientsPage from './ClientsPage'
 import JobsPage from './JobsPage'
@@ -12,7 +13,9 @@ import TeamPage from './TeamPage'
 import SettingsPage from './SettingsPage'
 
 export default function Dashboard() {
-  const [page, setPage] = useState('dashboard')
+  const navigate = useNavigate()
+  const location = useLocation()
+  const page = location.pathname.replace('/', '') || 'dashboard'
   const [counts, setCounts] = useState({clients:0,requests:0,quotes:0,jobs:0,invoices:0})
   const [userName, setUserName] = useState('')
   const [userInitials, setUserInitials] = useState('')
@@ -99,12 +102,12 @@ export default function Dashboard() {
   const NavItem = ({label,id,count,onClick}:{label:string,id:string,count?:number,onClick?:()=>void}) => (
     <button onClick={onClick||(() =>setPage(id))} style={{
       width:'100%',textAlign:'left',padding:'8px 16px',
-      background:page===id?'rgba(74,222,128,0.1)':'transparent',
-      border:'none',borderLeft:page===id?'2px solid #4ade80':'2px solid transparent',
+      background:page===id || (id==='dashboard' && page==='')?'rgba(74,222,128,0.1)':'transparent',
+      border:'none',borderLeft:page===id || (id==='dashboard' && page==='')?'2px solid #4ade80':'2px solid transparent',
       cursor:'pointer',fontSize:13,
-      color:page===id?'#f1f5f9':'#64748b',
+      color:page===id || (id==='dashboard' && page==='')?'#f1f5f9':'#64748b',
       display:'flex',alignItems:'center',gap:9,
-      fontWeight:page===id?600:400,fontFamily:'inherit',
+      fontWeight:page===id || (id==='dashboard' && page==='')?600:400,fontFamily:'inherit',
       transition:'all 0.1s',
     }}>
       <span style={{flex:1}}>{label}</span>
@@ -128,10 +131,10 @@ export default function Dashboard() {
       case 'inventory': return <InventoryPage />
       case 'team': return <TeamPage />
       case 'settings': return <SettingsPage />
+      case 'timeclock': { window.open('https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html','_blank'); navigate('/'); return null; }
       default: return (
-        <div style={{padding:'2rem'}}>
+        <div style={{padding:'2rem',maxWidth:1400,margin:'0 auto'}}>
           <div style={{marginBottom:'1.75rem'}}>
-            <p style={{margin:'0 0 1px',fontSize:13,color:'#94a3b8',fontVariantNumeric:'tabular-nums'}}>{new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}</p>
             <p style={{margin:'0 0 2px',fontSize:13,color:'#64748b'}}>{dateStr}</p>
             <h1 style={{margin:0,fontSize:26,fontWeight:700,color:'#f1f5f9'}}>{greeting}, {firstName}</h1>
           </div>
@@ -195,25 +198,18 @@ export default function Dashboard() {
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:16}}>
             <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem'}}>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1rem'}}>
-                <p style={{margin:0,fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Today's Appointments</p>
-                <button onClick={()=>setPage('schedule')} style={{background:'none',border:'1px solid #1e293b',borderRadius:7,padding:'4px 12px',fontSize:11,color:'#64748b',cursor:'pointer',fontFamily:'inherit'}}>View Schedule</button>
-              </div>
+              <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Recent Clients</p>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
                 <thead>
-                  <tr>{['Client','Division','Time','Status'].map(h=>(<th key={h} style={{padding:'8px 12px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>))}</tr>
+                  <tr>{['Client','Division','Status'].map(h=>(<th key={h} style={{padding:'8px 12px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>))}</tr>
                 </thead>
                 <tbody>
                   {recentClients.length===0 ? (
-                    <tr><td colSpan={4} style={{padding:'3rem',textAlign:'center',color:'#475569',fontSize:13}}>
-                      <div style={{marginBottom:8}}>No appointments scheduled today</div>
-                      <button onClick={()=>setPage('schedule')} style={{background:'none',border:'1px solid #1e293b',borderRadius:7,padding:'6px 14px',fontSize:12,color:'#4ade80',cursor:'pointer',fontFamily:'inherit'}}>Schedule a Job</button>
-                    </td></tr>
+                    <tr><td colSpan={3} style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No clients yet</td></tr>
                   ) : recentClients.map((c,i)=>(
                     <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
                       <td style={{padding:'10px 12px',fontSize:13,color:'#f1f5f9'}}>{c.first_name} {c.last_name}</td>
                       <td style={{padding:'10px 12px',fontSize:13,color:'#64748b'}}>{c.divisions||'--'}</td>
-                      <td style={{padding:'10px 12px',fontSize:13,color:'#64748b'}}>--</td>
                       <td style={{padding:'10px 12px'}}>
                         <span style={{background:c.status==='active'?'rgba(74,222,128,0.15)':'rgba(100,116,139,0.2)',color:c.status==='active'?'#4ade80':'#94a3b8',padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:600}}>{c.status}</span>
                       </td>
@@ -224,17 +220,17 @@ export default function Dashboard() {
             </div>
             <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem'}}>
               <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Business Performance</p>
-              <div style={{background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:10,cursor:'pointer'}} onClick={()=>setPage('invoices')}>
+              <div style={{background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:10,cursor:'pointer'}} onClick={()=>navigate('/invoices')}>
                 <p style={{margin:'0 0 4px',fontSize:13,fontWeight:600,color:'#f1f5f9'}}>Receivables</p>
                 <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b'}}>{counts.clients} clients owe you</p>
                 <p style={{margin:0,fontSize:22,fontWeight:800,color:'#4ade80'}}>{fmt(revenue.receivables)}</p>
               </div>
-              <div style={{background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:10,cursor:'pointer'}} onClick={()=>setPage('jobs')}>
+              <div style={{background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:10,cursor:'pointer'}} onClick={()=>navigate('/jobs')}>
                 <p style={{margin:'0 0 4px',fontSize:13,fontWeight:600,color:'#f1f5f9'}}>Upcoming jobs</p>
                 <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b'}}>This week</p>
                 <p style={{margin:0,fontSize:22,fontWeight:800,color:'#f1f5f9'}}>{fmt(jobStats.totalValue)}</p>
               </div>
-              <div style={{background:'#1e293b',borderRadius:10,padding:'1rem',cursor:'pointer'}} onClick={()=>setPage('invoices')}>
+              <div style={{background:'#1e293b',borderRadius:10,padding:'1rem',cursor:'pointer'}} onClick={()=>navigate('/invoices')}>
                 <p style={{margin:'0 0 4px',fontSize:13,fontWeight:600,color:'#f1f5f9'}}>Revenue</p>
                 <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b'}}>This month so far</p>
                 <p style={{margin:0,fontSize:22,fontWeight:800,color:'#f1f5f9'}}>{fmt(revenue.monthly)}</p>
@@ -294,7 +290,7 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
-      <div style={{flex:1,marginLeft:220,minHeight:'100vh',background:'#0a0f1a',width:'calc(100vw - 220px)',maxWidth:'calc(100vw - 220px)',overflowX:'hidden'}}>
+      <div style={{flex:1,marginLeft:220,minHeight:'100vh',background:'#0a0f1a'}}>
         {renderPage()}
       </div>
     </div>
