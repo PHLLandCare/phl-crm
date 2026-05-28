@@ -333,8 +333,8 @@ var SUPA_URL = 'https://gmblbltckwipghqutkhw.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtYmxibHRja3dpcGdocXV0a2h3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMDcxNjEsImV4cCI6MjA5NDg4MzE2MX0.Bri1R1CHV27YKAu_CrwSkb_hZPCBJvOWSlp1UQTXQaI';
 var COLORS = ['#1d9e75','#378add','#d85a30','#7f77dd','#ba7517','#0a2540','#e91e8c','#29b6d8','#5e8a00','#9c4e00'];
 
-document.getElementById('kiosk-logo').src = LOGO;
-document.getElementById('admin-logo').src = LOGO;
+
+
 
 async function sb(method, path, body) {
   var opts = {method:method,headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Prefer':'return=representation'}};
