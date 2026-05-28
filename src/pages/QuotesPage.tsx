@@ -43,7 +43,7 @@ export default function QuotesPage() {
   const [lineItems, setLineItems] = useState<LineItem[]>([])
   const [showNew, setShowNew] = useState(false)
   const [clients, setClients] = useState<any[]>([])
-  const [editMode, setEditMode] = useState(false)
+  // editMode removed
   const [newNote, setNewNote] = useState('')
   const [form, setForm] = useState({
     client_id: '', client_name: '', title: '', message: '', status: 'draft'
