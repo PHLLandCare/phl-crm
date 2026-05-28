@@ -344,7 +344,7 @@ var COLORS = ['#1d9e75','#378add','#d85a30','#7f77dd','#ba7517','#0a2540','#e91e
 document.getElementById('kiosk-logo').src = 'https://phllandcare.github.io/phl-crm/phl_logo.jpg';
 document.getElementById('admin-logo').src = 'https://phllandcare.github.io/phl-crm/phl_logo.jpg';
 
-// ── WAREHOUSE GPS ──
+// WAREHOUSE GPS
 var WAREHOUSE_LAT = 27.3890724;
 var WAREHOUSE_LNG = -80.4625397;
 var ALLOWED_RADIUS_METERS = 152; // 500 feet
@@ -357,7 +357,7 @@ function gpsDistance(lat1,lng1,lat2,lng2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
-// ── HANDLE QR SCAN ON PAGE LOAD ──
+// HANDLE QR SCAN ON PAGE LOAD
 (function(){
   var params=new URLSearchParams(window.location.search);
   var empId=params.get('emp');
@@ -368,7 +368,7 @@ function gpsDistance(lat1,lng1,lat2,lng2){
   var msg=document.getElementById('clockin-msg');
   if(ov) ov.style.display='flex';
   if(msg) msg.textContent='Verifying location...';
-  // Validate token age — badge tokens have BADGE in them and never expire
+  // Validate token age - badge tokens have BADGE in them and never expire
   var isBadge=token.indexOf('BADGE')>-1;
   var parts=token.split('-');
   var ts=parseInt(parts[2]||'0');
@@ -433,9 +433,9 @@ function showClockResult(type, message){
   var sub=document.getElementById('clockin-sub');
   if(msg) msg.textContent=message;
   if(icon){
-    if(type==='in') icon.textContent='✅';
-    else if(type==='out') icon.textContent='👋';
-    else icon.textContent='❌';
+    if(type==='in') icon.textContent='OK';
+    else if(type==='out') icon.textContent='BYE';
+    else icon.textContent='ERR';
   }
   if(sub) sub.style.display='block';
   setTimeout(function(){
@@ -483,7 +483,7 @@ function rotateQR(){
   if(fill)fill.style.width=(qrSecs/30*100)+'%';
   var lbl=document.getElementById('qr-expire');
   if(lbl)lbl.textContent='Refreshes in '+qrSecs+'s';
-  if(qrSecs<=0){qrSecs=30;initKioskQR();if(lbl){lbl.textContent='✓ New token generated';lbl.style.background='#e1f5ee';lbl.style.color='#085041';setTimeout(function(){lbl.style.background='';lbl.style.color='';},1200);}}
+  if(qrSecs<=0){qrSecs=30;initKioskQR();if(lbl){lbl.textContent='New token generated';lbl.style.background='#e1f5ee';lbl.style.color='#085041';setTimeout(function(){lbl.style.background='';lbl.style.color='';},1200);}}
 }
 setInterval(rotateQR,1000);
 initKioskQR();
@@ -527,7 +527,7 @@ function renderEmps(){
   tb.innerHTML='';
   list.forEach(function(e){
     var tr=document.createElement('tr');
-    tr.innerHTML='<td style="display:flex;align-items:center;gap:8px;padding:9px 12px"><div class="av" style="background:'+col(e)+'">'+ini(e).toUpperCase()+'</div><div><div style="font-weight:600">'+fullName(e)+'</div>'+(e.phone?'<div style="font-size:10px;color:var(--muted)">'+e.phone+'</div>':'')+'</div></td><td style="font-size:11px;color:var(--muted)">'+(e.employee_id||'—')+'</td><td>'+(e.division||'—')+'</td><td>'+(e.crew||'—')+'</td><td><span class="b bs">'+(e.role||'—')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn" style="padding:4px 8px;font-size:11px" onclick="showQR('+JSON.stringify(e.employee_id)+')"><i class="ti ti-qrcode"></i> QR</button><button class="btn" style="padding:4px 8px;font-size:11px" onclick="editEmp('+JSON.stringify(e.employee_id)+')"><i class="ti ti-edit"></i></button><button class="btn amber" style="padding:4px 8px;font-size:11px" onclick="archiveEmp('+JSON.stringify(e.employee_id)+')"><i class="ti ti-archive"></i></button></div></td>';
+    tr.innerHTML='<td style="display:flex;align-items:center;gap:8px;padding:9px 12px"><div class="av" style="background:'+col(e)+'">'+ini(e).toUpperCase()+'</div><div><div style="font-weight:600">'+fullName(e)+'</div>'+(e.phone?'<div style="font-size:10px;color:var(--muted)">'+e.phone+'</div>':'')+'</div></td><td style="font-size:11px;color:var(--muted)">'+(e.employee_id||'--')+'</td><td>'+(e.division||'--')+'</td><td>'+(e.crew||'--')+'</td><td><span class="b bs">'+(e.role||'--')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn" style="padding:4px 8px;font-size:11px" onclick="showQR('+JSON.stringify(e.employee_id)+')"><i class="ti ti-qrcode"></i> QR</button><button class="btn" style="padding:4px 8px;font-size:11px" onclick="editEmp('+JSON.stringify(e.employee_id)+')"><i class="ti ti-edit"></i></button><button class="btn amber" style="padding:4px 8px;font-size:11px" onclick="archiveEmp('+JSON.stringify(e.employee_id)+')"><i class="ti ti-archive"></i></button></div></td>';
     tb.appendChild(tr);
   });
 }
@@ -540,7 +540,7 @@ function renderArch(){
   tb.innerHTML='';
   list.forEach(function(e){
     var tr=document.createElement('tr');
-    tr.innerHTML='<td style="display:flex;align-items:center;gap:8px;padding:9px 12px"><div class="av" style="background:#aaa">'+ini(e).toUpperCase()+'</div><div style="font-weight:600;color:var(--muted)">'+fullName(e)+'</div></td><td style="font-size:11px;color:var(--muted)">'+(e.employee_id||'—')+'</td><td style="color:var(--muted)">'+(e.division||'—')+'</td><td style="color:var(--muted)">'+new Date(e.created_at).toLocaleDateString()+'</td><td><button class="btn success" style="padding:4px 8px;font-size:11px" onclick="restoreEmp('+JSON.stringify(e.employee_id)+')"><i class="ti ti-refresh"></i> Restore</button></td>';
+    tr.innerHTML='<td style="display:flex;align-items:center;gap:8px;padding:9px 12px"><div class="av" style="background:#aaa">'+ini(e).toUpperCase()+'</div><div style="font-weight:600;color:var(--muted)">'+fullName(e)+'</div></td><td style="font-size:11px;color:var(--muted)">'+(e.employee_id||'--')+'</td><td style="color:var(--muted)">'+(e.division||'--')+'</td><td style="color:var(--muted)">'+new Date(e.created_at).toLocaleDateString()+'</td><td><button class="btn success" style="padding:4px 8px;font-size:11px" onclick="restoreEmp('+JSON.stringify(e.employee_id)+')"><i class="ti ti-refresh"></i> Restore</button></td>';
     tb.appendChild(tr);
   });
 }
@@ -555,13 +555,13 @@ function renderLog(){
   tb.innerHTML='';
   list.forEach(function(r){
     var emp=allEmployees.find(function(e){return e.employee_id===r.employee_id;})||{};
-    var inTime=r.clock_in?new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'—';
-    var outTime=r.clock_out?new Date(r.clock_out).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'—';
-    var hrs='—';
+    var inTime=r.clock_in?new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'--';
+    var outTime=r.clock_out?new Date(r.clock_out).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'--';
+    var hrs='--';
     if(r.clock_in&&r.clock_out)hrs=((new Date(r.clock_out)-new Date(r.clock_in))/3600000).toFixed(1);
     if(!r.clock_out)ins++;else outs++;
     var tr=document.createElement('tr');
-    tr.innerHTML='<td style="display:flex;align-items:center;gap:8px;padding:9px 12px"><div class="av" style="background:'+(col(emp)||'#29b6d8')+'">'+ini(emp||{fname:r.employee_name||'?',lname:''}).toUpperCase()+'</div><div><div style="font-weight:600">'+(r.employee_name||'Unknown')+'</div><div style="font-size:10px;color:var(--muted)">'+(r.employee_id||'')+'</div></div></td><td>'+(r.division||'—')+'</td><td style="color:var(--green);font-weight:600">'+inTime+'</td><td style="color:'+(r.clock_out?'var(--red)':'var(--muted)')+'">'+outTime+'</td><td>'+hrs+'</td><td><span class="b bm">'+(r.method||'QR scan')+'</span></td><td>'+(r.clock_out?'<span class="b bs">Out</span>':'<span class="b bg">In</span>')+'</td>';
+    tr.innerHTML='<td style="display:flex;align-items:center;gap:8px;padding:9px 12px"><div class="av" style="background:'+(col(emp)||'#29b6d8')+'">'+ini(emp||{fname:r.employee_name||'?',lname:''}).toUpperCase()+'</div><div><div style="font-weight:600">'+(r.employee_name||'Unknown')+'</div><div style="font-size:10px;color:var(--muted)">'+(r.employee_id||'')+'</div></div></td><td>'+(r.division||'--')+'</td><td style="color:var(--green);font-weight:600">'+inTime+'</td><td style="color:'+(r.clock_out?'var(--red)':'var(--muted)')+'">'+outTime+'</td><td>'+hrs+'</td><td><span class="b bm">'+(r.method||'QR scan')+'</span></td><td>'+(r.clock_out?'<span class="b bs">Out</span>':'<span class="b bg">In</span>')+'</td>';
     tb.appendChild(tr);
   });
   var ci=document.getElementById('cnt-in');if(ci)ci.textContent=ins;
@@ -577,7 +577,7 @@ function renderKioskRecent(){
   ul.innerHTML='';
   recent.forEach(function(r){
     var emp=allEmployees.find(function(e){return e.employee_id===r.employee_id;})||{};
-    var t=r.clock_in?new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'—';
+    var t=r.clock_in?new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'--';
     ul.innerHTML+='<div class="r-row"><div class="r-av" style="background:'+(col(emp)||'#29b6d8')+'">'+ini(emp||{fname:r.employee_name||'?',lname:''}).toUpperCase()+'</div><div><div class="r-name">'+(r.employee_name||'Unknown')+'</div><div class="r-div">'+(r.division||'')+'</div></div><div class="r-time">'+t+'</div><span class="b '+(r.clock_out?'br':'bg')+'" style="font-size:9px">'+(r.clock_out?'Out':'In')+'</span></div>';
   });
 }
@@ -588,11 +588,11 @@ function renderTimesheets(){
   if(!allClockEvents.length){tb.innerHTML='<tr><td colspan="6" class="empty">No clock events this week</td></tr>';return;}
   tb.innerHTML='';
   allClockEvents.forEach(function(r){
-    var inTime=r.clock_in?new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'—';
-    var outTime=r.clock_out?new Date(r.clock_out).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'—';
-    var hrs='—';
+    var inTime=r.clock_in?new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'--';
+    var outTime=r.clock_out?new Date(r.clock_out).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'--';
+    var hrs='--';
     if(r.clock_in&&r.clock_out)hrs=((new Date(r.clock_out)-new Date(r.clock_in))/3600000).toFixed(1);
-    tb.innerHTML+='<tr><td><div style="font-weight:600">'+(r.employee_name||'Unknown')+'</div></td><td>'+(r.division||'—')+'</td><td style="color:var(--green)">'+inTime+'</td><td style="color:var(--red)">'+outTime+'</td><td style="font-weight:600">'+hrs+'</td><td><span class="b bm">'+(r.method||'QR')+'</span></td></tr>';
+    tb.innerHTML+='<tr><td><div style="font-weight:600">'+(r.employee_name||'Unknown')+'</div></td><td>'+(r.division||'--')+'</td><td style="color:var(--green)">'+inTime+'</td><td style="color:var(--red)">'+outTime+'</td><td style="font-weight:600">'+hrs+'</td><td><span class="b bm">'+(r.method||'QR')+'</span></td></tr>';
   });
 }
 
@@ -621,7 +621,7 @@ function editEmp(eid){
   var e=allEmployees.find(function(x){return x.employee_id===eid;});
   if(!e){toast('Employee not found');return;}
   editingEmpId=eid;
-  document.getElementById('emp-drawer-title').textContent='Edit — '+fullName(e);
+  document.getElementById('emp-drawer-title').textContent='Edit: '+fullName(e);
   document.getElementById('emp-save-lbl').textContent='Save changes';
   document.getElementById('ef-fname').value=e.fname||'';
   document.getElementById('ef-lname').value=e.lname||'';
@@ -669,7 +669,7 @@ async function archiveEmp(eid){
   var e=allEmployees.find(function(x){return x.employee_id===eid;});
   if(!e)return;
   if(!confirm('Archive '+fullName(e)+'?\n\nThis removes their clock-in access but KEEPS all their time records permanently. You can restore them at any time.'))return;
-  try{await sb('PATCH','/employees?employee_id=eq.'+encodeURIComponent(eid),{active:false});toast(fullName(e)+' archived — all records preserved');await loadEmployees();}
+  try{await sb('PATCH','/employees?employee_id=eq.'+encodeURIComponent(eid),{active:false});toast(fullName(e)+' archived - all records preserved');await loadEmployees();}
   catch(e2){toast('Error: '+e2.message);}
 }
 async function restoreEmp(eid){
@@ -689,7 +689,7 @@ async function manualClockIn(){
     await sb('POST','/clock_events',{employee_id:emp.employee_id,employee_name:fullName(emp),division:emp.division,clock_in:now,method:'Manual ID',flagged:false});
     document.getElementById('m-eid').value='';
     document.getElementById('manual-form').classList.remove('open');
-    toast('✓ '+fullName(emp)+' clocked in!');
+    toast(''+fullName(emp)+' clocked in!');
     await loadClockEvents();
   }catch(e){toast('Error: '+e.message);}
 }
@@ -697,16 +697,16 @@ async function manualClockIn(){
 function showQR(eid){
   var e=allEmployees.find(function(x){return x.employee_id===eid;});
   if(!e){toast('Employee not found');return;}
-  document.getElementById('qr-modal-title').textContent='QR Badge — '+fullName(e);
+  document.getElementById('qr-modal-title').textContent='QR Badge: '+fullName(e);
   document.getElementById('qr-emp-name').textContent=fullName(e);
-  document.getElementById('qr-emp-id').textContent=e.employee_id+' · '+e.division;
+  document.getElementById('qr-emp-id').textContent=e.employee_id+' - '+e.division;
   var container=document.getElementById('qr-display');
   container.innerHTML='';
-  // Personal QR badge — encodes emp ID + badge token (never expires)
+  // Personal QR badge - encodes emp ID + badge token (never expires)
   var badgeToken='PHL-KIOSK-'+Date.now()+'-BADGE';
   var qrUrl='https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html?emp='+encodeURIComponent(e.employee_id)+'&token='+badgeToken;
   try{new QRCode(container,{text:qrUrl,width:180,height:180,colorDark:'#0a2540',colorLight:'#ffffff'});}
-  catch(err){container.innerHTML='<div style="width:180px;height:180px;background:#f4f6f9;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:11px;color:var(--muted);padding:12px"><div style="font-size:32px;margin-bottom:8px">📱</div><strong style="color:var(--text);font-size:13px">'+fullName(e)+'</strong><div style="margin-top:4px">'+e.employee_id+'</div></div>';}
+  catch(err){container.innerHTML='<div style="width:180px;height:180px;background:#f4f6f9;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:11px;color:var(--muted);padding:12px"><div style="font-size:32px;margin-bottom:8px"></div><strong style="color:var(--text);font-size:13px">'+fullName(e)+'</strong><div style="margin-top:4px">'+e.employee_id+'</div></div>';}
   document.getElementById('qr-modal').classList.add('open');
 }
 function closeQRModal(){document.getElementById('qr-modal').classList.remove('open');document.getElementById('qr-display').innerHTML='';}
