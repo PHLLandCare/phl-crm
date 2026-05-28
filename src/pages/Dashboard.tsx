@@ -96,8 +96,8 @@ export default function Dashboard() {
 
   const fmt = (n:number) => n >= 1000000 ? `$${(n/1000000).toFixed(1)}M` : n >= 1000 ? `$${(n/1000).toFixed(1)}k` : `$${n}`
 
-  const NavItem = ({label,id,icon,count}:{label:string,id:string,icon:string,count?:number}) => (
-    <button onClick={()=>setPage(id)} style={{
+  const NavItem = ({label,id,count,onClick}:{label:string,id:string,count?:number,onClick?:()=>void}) => (
+    <button onClick={onClick||(() =>setPage(id))} style={{
       width:'100%',textAlign:'left',padding:'8px 16px',
       background:page===id?'rgba(74,222,128,0.1)':'transparent',
       border:'none',borderLeft:page===id?'2px solid #4ade80':'2px solid transparent',
@@ -107,7 +107,6 @@ export default function Dashboard() {
       fontWeight:page===id?600:400,fontFamily:'inherit',
       transition:'all 0.1s',
     }}>
-      <span style={{fontSize:15}}>{icon}</span>
       <span style={{flex:1}}>{label}</span>
       {count!==undefined && count>0 && <span style={{fontSize:10,background:'rgba(255,255,255,0.1)',padding:'1px 7px',borderRadius:20,color:'#94a3b8'}}>{count}</span>}
     </button>
@@ -135,23 +134,15 @@ export default function Dashboard() {
             <p style={{margin:'0 0 2px',fontSize:13,color:'#64748b'}}>{dateStr}</p>
             <h1 style={{margin:0,fontSize:26,fontWeight:700,color:'#f1f5f9'}}>{greeting}, {firstName}</h1>
           </div>
-
           <p style={{fontSize:11,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.08em',margin:'0 0 10px'}}>Workflow</p>
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:1,marginBottom:'2rem',background:'#1e293b',borderRadius:14,overflow:'hidden',border:'1px solid #1e293b'}}>
             <div style={{background:'#0f172a',padding:'1.25rem',borderRight:'1px solid #1e293b'}}>
-              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
-                <span style={{fontSize:14}}>📋</span>
-                <span style={{fontSize:12,color:'#64748b',fontWeight:600}}>Requests</span>
-              </div>
+              <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b',fontWeight:600}}>Requests</p>
               <p style={{margin:'0 0 2px',fontSize:30,fontWeight:800,color:'#f1f5f9',lineHeight:1}}>{counts.requests}</p>
-              <p style={{margin:'0 0 12px',fontSize:12,color:'#64748b'}}>New</p>
+              <p style={{margin:0,fontSize:12,color:'#64748b'}}>New</p>
             </div>
-
             <div style={{background:'#0f172a',padding:'1.25rem',borderRight:'1px solid #1e293b'}}>
-              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
-                <span style={{fontSize:14}}>💬</span>
-                <span style={{fontSize:12,color:'#64748b',fontWeight:600}}>Quotes</span>
-              </div>
+              <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b',fontWeight:600}}>Quotes</p>
               <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:2}}>
                 <p style={{margin:0,fontSize:30,fontWeight:800,color:'#f1f5f9',lineHeight:1}}>{quoteStats.approved}</p>
                 <p style={{margin:0,fontSize:12,color:'#4ade80',fontWeight:600}}>{fmt(quoteStats.approvedValue)}</p>
@@ -168,12 +159,8 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-
             <div style={{background:'#0f172a',padding:'1.25rem',borderRight:'1px solid #1e293b'}}>
-              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
-                <span style={{fontSize:14}}>🔧</span>
-                <span style={{fontSize:12,color:'#64748b',fontWeight:600}}>Jobs</span>
-              </div>
+              <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b',fontWeight:600}}>Jobs</p>
               <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:2}}>
                 <p style={{margin:0,fontSize:30,fontWeight:800,color:'#f1f5f9',lineHeight:1}}>{jobStats.requiresInvoicing}</p>
                 <p style={{margin:0,fontSize:12,color:'#4ade80',fontWeight:600}}>{fmt(jobStats.totalValue)}</p>
@@ -186,12 +173,8 @@ export default function Dashboard() {
                 </div>
               </div>
             </div>
-
             <div style={{background:'#0f172a',padding:'1.25rem'}}>
-              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
-                <span style={{fontSize:14}}>🧾</span>
-                <span style={{fontSize:12,color:'#64748b',fontWeight:600}}>Invoices</span>
-              </div>
+              <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b',fontWeight:600}}>Invoices</p>
               <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:2}}>
                 <p style={{margin:0,fontSize:30,fontWeight:800,color:'#f1f5f9',lineHeight:1}}>{invoiceStats.awaitingPayment}</p>
                 <p style={{margin:0,fontSize:12,color:'#4ade80',fontWeight:600}}>{fmt(invoiceStats.totalValue)}</p>
@@ -209,17 +192,12 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-
           <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:16}}>
             <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem'}}>
               <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Recent Clients</p>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
                 <thead>
-                  <tr>
-                    {['Client','Division','Status'].map(h=>(
-                      <th key={h} style={{padding:'8px 12px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>
-                    ))}
-                  </tr>
+                  <tr>{['Client','Division','Status'].map(h=>(<th key={h} style={{padding:'8px 12px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>))}</tr>
                 </thead>
                 <tbody>
                   {recentClients.length===0 ? (
@@ -227,7 +205,7 @@ export default function Dashboard() {
                   ) : recentClients.map((c,i)=>(
                     <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
                       <td style={{padding:'10px 12px',fontSize:13,color:'#f1f5f9'}}>{c.first_name} {c.last_name}</td>
-                      <td style={{padding:'10px 12px',fontSize:13,color:'#64748b'}}>{c.divisions||'—'}</td>
+                      <td style={{padding:'10px 12px',fontSize:13,color:'#64748b'}}>{c.divisions||'--'}</td>
                       <td style={{padding:'10px 12px'}}>
                         <span style={{background:c.status==='active'?'rgba(74,222,128,0.15)':'rgba(100,116,139,0.2)',color:c.status==='active'?'#4ade80':'#94a3b8',padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:600}}>{c.status}</span>
                       </td>
@@ -236,7 +214,6 @@ export default function Dashboard() {
                 </tbody>
               </table>
             </div>
-
             <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem'}}>
               <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Business Performance</p>
               <div style={{background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:10,cursor:'pointer'}} onClick={()=>setPage('invoices')}>
@@ -281,29 +258,27 @@ export default function Dashboard() {
         </div>
         <div style={{flex:1,paddingTop:4}}>
           <SectionLabel title="Main" />
-          <NavItem label="Dashboard" id="dashboard" icon="⊞" />
-          <NavItem label="Clients" id="clients" icon="👥" count={counts.clients} />
-          <NavItem label="Quotes" id="quotes" icon="💬" count={counts.quotes} />
-          <NavItem label="Jobs" id="jobs" icon="🔧" count={counts.jobs} />
-          <NavItem label="Invoices" id="invoices" icon="🧾" count={counts.invoices} />
-          <NavItem label="Schedule" id="schedule" icon="📅" />
-          <NavItem label="Team Chat" id="teamchat" icon="💬" />
-
+          <NavItem label="Dashboard" id="dashboard" />
+          <NavItem label="Clients" id="clients" count={counts.clients} />
+          <NavItem label="Quotes" id="quotes" count={counts.quotes} />
+          <NavItem label="Jobs" id="jobs" count={counts.jobs} />
+          <NavItem label="Invoices" id="invoices" count={counts.invoices} />
+          <NavItem label="Schedule" id="schedule" />
+          <NavItem label="Team Chat" id="teamchat" />
           <SectionLabel title="Divisions" />
-          <NavItem label="Lawn & Tree" id="div-lawn" icon="🌿" />
-          <NavItem label="Irrigation" id="div-irrigation" icon="💧" />
-          <NavItem label="Extermination" id="div-extermination" icon="🐛" />
-          <NavItem label="Nursery" id="div-nursery" icon="🌱" />
-          <NavItem label="Farm" id="div-farm" icon="🚜" />
-
+          <NavItem label="Lawn and Tree" id="div-lawn" />
+          <NavItem label="Irrigation" id="div-irrigation" />
+          <NavItem label="Extermination" id="div-extermination" />
+          <NavItem label="Nursery" id="div-nursery" />
+          <NavItem label="Farm" id="div-farm" />
           <SectionLabel title="Tools" />
-          <NavItem label="Time Clock" id="timeclock" icon="🕐" />
-          <NavItem label="Payroll" id="payroll" icon="💰" />
-          <NavItem label="All Employees" id="team" icon="👤" />
-          <NavItem label="Expenses" id="expenses" icon="🧮" />
-          <NavItem label="Inventory" id="inventory" icon="📦" />
-          <NavItem label="Reports" id="reports" icon="📊" />
-          <NavItem label="Settings" id="settings" icon="⚙️" />
+          <NavItem label="Time Clock" id="timeclock" onClick={()=>window.open('https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html','_blank')} />
+          <NavItem label="Payroll" id="payroll" />
+          <NavItem label="All Employees" id="team" />
+          <NavItem label="Expenses" id="expenses" />
+          <NavItem label="Inventory" id="inventory" />
+          <NavItem label="Reports" id="reports" />
+          <NavItem label="Settings" id="settings" />
         </div>
         <div style={{padding:'10px 14px',borderTop:'1px solid #1e293b'}}>
           <button onClick={handleSignOut} style={{width:'100%',background:'rgba(255,255,255,0.05)',color:'#64748b',border:'1px solid #1e293b',borderRadius:8,padding:'7px',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>
