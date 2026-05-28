@@ -182,6 +182,8 @@ export default function TeamPage() {
   const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
   const [showInvite, setShowInvite] = useState(false)
+  const [addMode, setAddMode] = useState<'invite' | 'manual'>('invite')
+  const [manualPassword, setManualPassword] = useState('')
   const [showEdit, setShowEdit] = useState(false)
   const [editMember, setEditMember] = useState<TeamMember | null>(null)
   const [inviteEmail, setInviteEmail] = useState('')
@@ -215,14 +217,37 @@ export default function TeamPage() {
 
   const handleInvite = async () => {
     if (!inviteEmail.trim() || !inviteName.trim()) { setError('Name and email are required.'); return }
+    if (addMode === 'manual' && !manualPassword.trim()) { setError('Password is required for manual add.'); return }
     setSaving(true); setError(null)
     try {
-      const { error: err } = await supabase.auth.admin.inviteUserByEmail(inviteEmail.trim(), {
-        data: { full_name: inviteName.trim(), role: inviteRole }
-      })
-      if (err) throw new Error(err.message)
-      setSuccess(`Invite sent to ${inviteEmail}!`)
-      setShowInvite(false); setInviteEmail(''); setInviteName(''); setInviteRole('worker_limited')
+      if (addMode === 'invite') {
+        const { error: err } = await supabase.auth.admin.inviteUserByEmail(inviteEmail.trim(), {
+          data: { full_name: inviteName.trim(), role: inviteRole }
+        })
+        if (err) throw new Error(err.message)
+        setSuccess(`Invite sent to ${inviteEmail}!`)
+      } else {
+        // Manual create with password
+        const { data, error: err } = await supabase.auth.admin.createUser({
+          email: inviteEmail.trim(),
+          password: manualPassword.trim(),
+          email_confirm: true,
+          user_metadata: { full_name: inviteName.trim(), role: inviteRole }
+        })
+        if (err) throw new Error(err.message)
+        // Create user_profile record
+        if (data?.user) {
+          await supabase.from('user_profiles').upsert({
+            id: data.user.id,
+            full_name: inviteName.trim(),
+            role: inviteRole,
+            active: true,
+          })
+        }
+        setSuccess(`${inviteName} added successfully! They can log in with their email and the password you set.`)
+      }
+      setShowInvite(false)
+      setInviteEmail(''); setInviteName(''); setInviteRole('worker_limited'); setManualPassword('')
       setTimeout(() => setSuccess(null), 5000)
       loadMembers()
     } catch (e: any) { setError('Failed: ' + e.message) }
@@ -395,15 +420,31 @@ export default function TeamPage() {
         <>
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 500 }} onClick={() => setShowInvite(false)} />
           <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 520, maxHeight: '90vh', overflowY: 'auto', background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 501, padding: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>Invite team member</h2>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>Add team member</h2>
               <button onClick={() => setShowInvite(false)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 22, cursor: 'pointer' }}>×</button>
+            </div>
+
+            {/* Mode tabs */}
+            <div style={{ display: 'flex', gap: 0, marginBottom: 20, background: '#0f172a', borderRadius: 8, padding: 3 }}>
+              <button onClick={() => setAddMode('invite')} style={{ flex: 1, padding: '8px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: addMode === 'invite' ? '#1e293b' : 'transparent', color: addMode === 'invite' ? '#f1f5f9' : '#64748b' }}>
+                📧 Send invite email
+              </button>
+              <button onClick={() => setAddMode('manual')} style={{ flex: 1, padding: '8px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: addMode === 'manual' ? '#1e293b' : 'transparent', color: addMode === 'manual' ? '#f1f5f9' : '#64748b' }}>
+                🔑 Add manually
+              </button>
             </div>
             {error && <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#f87171', marginBottom: 14 }}>{error}</div>}
             <label style={lbl}>Full name *</label>
             <input style={{ ...inp, marginBottom: 12 }} value={inviteName} onChange={e => setInviteName(e.target.value)} placeholder="e.g. Brandon Ryan" />
             <label style={lbl}>Email address *</label>
             <input style={{ ...inp, marginBottom: 16 }} type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="e.g. brandon@phllandcare.com" />
+            {addMode === 'manual' && (
+              <>
+                <label style={lbl}>Temporary password *</label>
+                <input style={{ ...inp, marginBottom: 16 }} type="password" value={manualPassword} onChange={e => setManualPassword(e.target.value)} placeholder="Set a temporary password" />
+              </>
+            )}
             <label style={lbl}>Permission level</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
               {ROLE_OPTIONS.map(r => (
@@ -417,13 +458,15 @@ export default function TeamPage() {
                 </div>
               ))}
             </div>
-            <div style={{ background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#60a5fa', marginBottom: 20 }}>
-              📧 They'll receive an email with a link to set their password and access PHL CRM.
+            <div style={{ background: addMode === 'invite' ? 'rgba(96,165,250,0.08)' : 'rgba(74,222,128,0.08)', border: `1px solid ${addMode === 'invite' ? 'rgba(96,165,250,0.2)' : 'rgba(74,222,128,0.2)'}`, borderRadius: 8, padding: '10px 12px', fontSize: 12, color: addMode === 'invite' ? '#60a5fa' : '#4ade80', marginBottom: 20 }}>
+              {addMode === 'invite'
+                ? '📧 They\'ll receive an email with a link to set their password and access PHL CRM.'
+                : '🔑 Creates their account immediately. Share their email and password with them directly.'}
             </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={() => setShowInvite(false)} style={{ padding: '10px 20px', border: '1px solid #1e293b', borderRadius: 9, background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>Cancel</button>
               <button onClick={handleInvite} disabled={saving} style={{ padding: '10px 20px', border: 'none', borderRadius: 9, background: '#16a34a', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
-                {saving ? 'Sending...' : 'Send invite'}
+                {saving ? 'Saving...' : addMode === 'invite' ? 'Send invite' : 'Add user'}
               </button>
             </div>
           </div>
