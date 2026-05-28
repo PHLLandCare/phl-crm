@@ -151,7 +151,7 @@ const SkeletonRow: React.FC = () => (
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-const Jobs: React.FC = () => {
+const JobsPage: React.FC = () => {
   // Data
   const [jobs, setJobs] = useState<Job[]>([]);
   const [clients, setClients] = useState<ClientRef[]>([]);
@@ -1030,4 +1030,4 @@ const DetailField: React.FC<DetailFieldProps> = ({ label, children, className = 
   </div>
 );
 
-export default Jobs;
+export default JobsPage;
