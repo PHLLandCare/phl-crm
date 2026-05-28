@@ -129,7 +129,7 @@ export default function Dashboard() {
       case 'team': return <TeamPage />
       case 'settings': return <SettingsPage />
       default: return (
-        <div style={{padding:'2rem',maxWidth:1400,margin:'0 auto'}}>
+        <div style={{padding:'2rem 2rem 2rem 2rem'}}>
           <div style={{marginBottom:'1.75rem'}}>
             <p style={{margin:'0 0 2px',fontSize:13,color:'#64748b'}}>{dateStr}</p>
             <h1 style={{margin:0,fontSize:26,fontWeight:700,color:'#f1f5f9'}}>{greeting}, {firstName}</h1>
@@ -192,7 +192,7 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:16}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 340px',gap:16}}>
             <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem'}}>
               <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Recent Clients</p>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
@@ -286,7 +286,7 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
-      <div style={{flex:1,marginLeft:220,minHeight:'100vh',background:'#0a0f1a'}}>
+      <div style={{flex:1,marginLeft:220,minHeight:'100vh',background:'#0a0f1a',width:'calc(100vw - 220px)',overflowX:'hidden'}}>
         {renderPage()}
       </div>
     </div>

@@ -123,7 +123,7 @@ export default function ClientsPage() {
   const lbl = {fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase' as const,letterSpacing:'0.05em',marginBottom:4,display:'block'}
 
   return (
-    <div style={{padding:'2rem',maxWidth:1400,margin:'0 auto'}}>
+    <div style={{padding:'2rem'}}>
 
       {/* Header */}
       <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'1.5rem',flexWrap:'wrap',gap:12}}>
@@ -135,7 +135,7 @@ export default function ClientsPage() {
       </div>
 
       {/* Stats cards */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12,marginBottom:'1.5rem'}}>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:'1.5rem'}}>
         {[
           {label:'New leads',sub:'Past 30 days',val:newLeads,badge:'-30%',badgeColor:'#f87171'},
           {label:'New clients',sub:'Past 30 days',val:newClients,badge:'0%',badgeColor:'#94a3b8'},
