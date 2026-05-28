@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import LoginPage from './pages/LoginPage'
 import ChangePasswordPage from './pages/ChangePasswordPage'
@@ -13,7 +14,6 @@ export default function App() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) setAuthState('authenticated')
     })
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) {
         setAuthState('authenticated')
@@ -26,5 +26,12 @@ export default function App() {
 
   if (authState === 'unauthenticated') return <LoginPage />
   if (authState === 'must_change_password') return <ChangePasswordPage />
-  return <Dashboard />
+
+  return (
+    <BrowserRouter basename="/phl-crm">
+      <Routes>
+        <Route path="/*" element={<Dashboard />} />
+      </Routes>
+    </BrowserRouter>
+  )
 }
