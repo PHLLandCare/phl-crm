@@ -193,7 +193,7 @@ const JobsPage: React.FC = () => {
         .order('created_at', { ascending: false });
 
       if (err) throw new Error(err.message);
-      setJobs((data ?? []) as Job[]);
+      setJobs((data ?? []) as unknown as Job[]);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load jobs');
     } finally {
