@@ -359,21 +359,25 @@ function gpsDistance(lat1,lng1,lat2,lng2){
 }
 
 // HANDLE QR SCAN ON PAGE LOAD
-(function(){
-  var params=new URLSearchParams(window.location.search);
-  var empId=params.get('emp');
-  var token=params.get('token');
+function handleQRScan(){
+  var search=window.location.search;
+  if(!search) return;
+  var empId=null,token=null;
+  var pairs=search.slice(1).split('&');
+  for(var i=0;i<pairs.length;i++){
+    var kv=pairs[i].split('=');
+    if(kv[0]==='emp') empId=decodeURIComponent(kv[1]||'');
+    if(kv[0]==='token') token=decodeURIComponent(kv[1]||'');
+  }
   if(!empId||!token) return;
-  // Show overlay immediately
   var ov=document.getElementById('clockin-overlay');
   var msg=document.getElementById('clockin-msg');
   if(ov) ov.style.display='flex';
   if(msg) msg.textContent='Verifying location...';
-  // Validate token age - badge tokens have BADGE in them and never expire
   var isBadge=token.indexOf('BADGE')>-1;
   var parts=token.split('-');
-  var ts=parseInt(parts[2]||'0');
-  if(!isBadge && Date.now()-ts > 35000){
+  var ts=parseInt(parts[2]||'0',10);
+  if(!isBadge && (Date.now()-ts)>35000){
     showClockResult('error','QR code expired. Please scan the kiosk again.');
     return;
   }
@@ -388,13 +392,14 @@ function gpsDistance(lat1,lng1,lat2,lng2){
         doClockIn(empId,'QR + GPS');
       } else {
         var feet=Math.round(dist*3.28084);
-        showClockResult('error','Too far from warehouse ('+feet+' ft). Must be within 500 ft to clock in.');
+        showClockResult('error','Too far ('+feet+' ft). Must be within 500 ft.');
       }
     },
     function(){ doClockIn(empId,'QR (GPS denied)'); },
     {timeout:8000,maximumAge:0}
   );
-})();
+}
+handleQRScan();
 
 async function doClockIn(empId, method){
   var msg=document.getElementById('clockin-msg');
