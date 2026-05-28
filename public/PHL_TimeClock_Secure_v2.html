@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PHL Land Care - Time Clock</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/dist/tabler-icons.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{--navy:#0a2540;--teal:#29b6d8;--teal2:#1d9bc0;--green:#1d9e75;--red:#c0392b;--amber:#ba7517;--purple:#7f77dd;--border:#e1e8ef;--bg:#f4f6f9;--surface:#fff;--text:#1a2332;--muted:#6b7a90}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+.page{display:none}.page.active{display:block}
+.topbar{height:52px;background:var(--navy);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:20}
+.topbar img{height:34px;object-fit:contain;background:#fff;border-radius:8px;padding:4px 10px}
+.topbar-title{color:rgba(255,255,255,.7);font-size:13px;font-weight:500;flex:1}
+.tb-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:5px;text-decoration:none}
+.tb-btn:hover{background:rgba(255,255,255,.2)}
+.tb-btn.teal{background:var(--teal);border-color:var(--teal)}
+.tab-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px}
+.tab{padding:12px 16px;font-size:13px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;font-weight:500}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--teal);border-bottom-color:var(--teal)}
+.wrap{max-width:1200px;margin:0 auto;padding:20px 24px}
+.tab-screen{display:none}.tab-screen.active{display:block}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.stat-lbl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.stat-val{font-size:22px;font-weight:700}
+.stat-sub{font-size:11px;color:var(--green);margin-top:1px}
+.tcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.tcard-hdr{padding:11px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:#fafbfc;flex-wrap:wrap;gap:8px}
+.tcard-title{font-size:13px;font-weight:700}
+.dt{width:100%;border-collapse:collapse;font-size:12px}
+.dt th{text-align:left;padding:8px 12px;font-size:10px;font-weight:700;color:var(--muted);background:#fafbfc;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.04em}
+.dt td{padding:9px 12px;border-bottom:1px solid #f0f4f8;vertical-align:middle}
+.dt tr:last-child td{border-bottom:none}
+.dt tr:hover td{background:#f0f9ff}
+.av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+.b{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600;white-space:nowrap;display:inline-block}
+.bg{background:#e1f5ee;color:#085041}.br{background:#fcebeb;color:#791f1f}
+.ba{background:#faeeda;color:#633806}.bm{background:#e6f1fb;color:#0c447c}
+.bs{background:#f1efe8;color:#444}.bp{background:#eeedfe;color:#3c3489}
+.btn{padding:7px 14px;border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-weight:500;border:1px solid var(--border);background:#fff;color:var(--text)}
+.btn:hover{background:#f0f4f8}
+.btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+.btn.primary:hover{background:var(--teal2)}
+.btn.success{background:var(--green);color:#fff;border-color:var(--green)}
+.btn.danger{background:var(--red);color:#fff;border-color:var(--red)}
+.btn.amber{background:var(--amber);color:#fff;border-color:var(--amber)}
+.filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.srch{position:relative;flex:1;min-width:180px}
+.srch input{width:100%;padding:7px 10px 7px 30px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none}
+.srch input:focus{border-color:var(--teal)}
+.srch i{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px}
+.fsel{padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;background:#fff;cursor:pointer}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:32px;color:var(--muted);font-size:13px}
+#kiosk-page{min-height:100vh;background:linear-gradient(160deg,#071c30 0%,#0a2f4e 55%,#0a3f60 100%);display:flex;align-items:center;justify-content:center;padding:20px}
+.kiosk-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:24px;padding:32px 36px;width:100%;max-width:400px;text-align:center}
+.kiosk-logo img{height:54px;object-fit:contain;background:#fff;border-radius:10px;padding:5px 12px;margin-bottom:12px}
+.kiosk-title{font-size:20px;font-weight:700;color:#fff;margin-bottom:2px}
+.kiosk-sub{font-size:12px;color:rgba(255,255,255,.45);margin-bottom:16px}
+.kiosk-clock{font-size:40px;font-weight:700;color:#fff;font-variant-numeric:tabular-nums}
+.kiosk-date{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:20px}
+.sec-badges{display:flex;justify-content:center;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.k-badge{display:flex;align-items:center;gap:3px;background:rgba(41,182,216,.15);border:1px solid rgba(41,182,216,.3);border-radius:99px;padding:3px 9px;font-size:10px;color:var(--teal);font-weight:600}
+.qr-wrap{background:#fff;border-radius:16px;padding:14px;margin-bottom:14px}
+.qr-timer-bar{height:3px;background:#eef2f7;border-radius:2px;margin-top:8px;overflow:hidden}
+.qr-timer-fill{height:100%;background:var(--teal);border-radius:2px;transition:width .25s linear}
+.qr-note{font-size:11px;color:var(--muted);margin-top:6px}
+.qr-expire{display:inline-block;background:#faeeda;color:var(--amber);font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;margin-top:4px}
+.manual-toggle{font-size:11px;color:rgba(255,255,255,.35);cursor:pointer;text-decoration:underline;margin-bottom:14px;display:block}
+.manual-form{display:none;text-align:left}.manual-form.open{display:block}
+.mf-label{font-size:11px;color:rgba(255,255,255,.45);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.mf-input{width:100%;padding:10px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:10px}
+.mf-input::placeholder{color:rgba(255,255,255,.25)}
+.mf-input:focus{border-color:var(--teal)}
+.mf-btn{width:100%;padding:11px;border-radius:9px;border:none;background:var(--teal);color:#fff;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;margin-bottom:10px}
+.recent-label{font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px;text-align:left}
+.r-row{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border-radius:8px;padding:7px 10px;margin-bottom:5px}
+.r-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0}
+.r-name{flex:1;font-size:12px;color:#fff;font-weight:500}
+.r-div{font-size:10px;color:rgba(255,255,255,.35)}
+.r-time{font-size:11px;color:rgba(255,255,255,.4)}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50}
+.overlay.show{display:block}
+.drawer{position:fixed;top:0;right:-500px;width:460px;height:100vh;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,.15);z-index:51;transition:right .25s;display:flex;flex-direction:column}
+.drawer.open{right:0}
+.drawer-hdr{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:#fafbfc;flex-shrink:0}
+.drawer-title{font-size:14px;font-weight:700}
+.drawer-close{background:none;border:none;font-size:22px;cursor:pointer;color:var(--muted);line-height:1}
+.drawer-body{flex:1;overflow-y:auto;padding:18px 20px}
+.drawer-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;background:#fafbfc;flex-shrink:0}
+.form-sec{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.form-sec:first-child{margin-top:0}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fg-full{grid-column:1/-1}
+.fl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
+.fi,.fs{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;color:var(--text)}
+.fi:focus,.fs:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(41,182,216,.1)}
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center}
+.modal-ov.open{display:flex}
+.modal-box{background:#fff;border-radius:16px;padding:24px;width:320px;text-align:center}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:14px}
+.qr-container{background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px;margin:0 auto 12px;display:inline-block}
+.alert-box{background:#fff8ee;border:1px solid #f5c67a;border-radius:8px;padding:10px 14px;display:flex;align-items:flex-start;gap:9px;margin-bottom:8px;font-size:12px}
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;border-left:3px solid var(--teal);z-index:200;display:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.toast.show{display:block}
+</style>
+</head>
+<body>
+
+<!-- KIOSK PAGE -->
+<div id="kiosk-page" class="page active">
+  <div class="kiosk-card">
+    <div class="kiosk-logo"><img id="kiosk-logo" src="" alt="PHL Land Care"></div>
+    <div class="kiosk-title">PHL Land Care Inc.</div>
+    <div class="kiosk-sub">Employee Time Clock</div>
+    <div class="kiosk-clock" id="kiosk-clock">--:--:--</div>
+    <div class="kiosk-date" id="kiosk-date"></div>
+    <div class="sec-badges">
+      <div class="k-badge"><i class="ti ti-shield-check" style="font-size:12px"></i> 30s rotating QR</div>
+      <div class="k-badge"><i class="ti ti-map-pin" style="font-size:12px"></i> GPS verified</div>
+      <div class="k-badge"><i class="ti ti-lock" style="font-size:12px"></i> Secure</div>
+    </div>
+    <div class="qr-wrap">
+      <div id="kiosk-qr" style="display:flex;align-items:center;justify-content:center;min-height:140px"></div>
+      <div class="qr-timer-bar"><div class="qr-timer-fill" id="qr-fill" style="width:100%"></div></div>
+      <div class="qr-note">Scan with phone camera — no app needed</div>
+      <div class="qr-expire" id="qr-expire">Refreshes in 30s</div>
+    </div>
+    <span class="manual-toggle" onclick="document.getElementById('manual-form').classList.toggle('open')">Can't scan? Enter Employee ID manually</span>
+    <div class="manual-form" id="manual-form">
+      <div class="mf-label">Employee ID</div>
+      <input class="mf-input" id="m-eid" placeholder="e.g. PHL-0001" autocomplete="off">
+      <button class="mf-btn" onclick="manualClockIn()">Clock In / Out</button>
+    </div>
+    <div class="recent-label">Recent clock events</div>
+    <div id="kiosk-recent"><div style="text-align:center;color:rgba(255,255,255,.3);font-size:12px;padding:8px">Loading...</div></div>
+    <div style="margin-top:16px;display:flex;gap:8px;justify-content:center">
+      <button onclick="showPage('admin-page')" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">Admin dashboard →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN PAGE -->
+<div id="admin-page" class="page">
+  <div class="topbar">
+    <img id="admin-logo" src="" alt="PHL">
+    <span class="topbar-title">PHL Land Care — Time Clock Admin</span>
+    <button class="tb-btn" onclick="exportTimesheet()"><i class="ti ti-download"></i> Export</button>
+    <button class="tb-btn teal" onclick="showPage('kiosk-page')">← Kiosk</button>
+    <a href="index.html" class="tb-btn">← CRM dashboard</a>
+  </div>
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('today',this)">Today's log</div>
+    <div class="tab" onclick="switchTab('employees',this)">Employees</div>
+    <div class="tab" onclick="switchTab('archived',this)">Archived</div>
+    <div class="tab" onclick="switchTab('timesheets',this)">Timesheets</div>
+    <div class="tab" onclick="switchTab('security',this)">Security</div>
+  </div>
+  <div class="wrap">
+    <div class="tab-screen active" id="tab-today">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div><div style="font-size:17px;font-weight:700">Today's clock log</div><div style="font-size:12px;color:var(--muted)" id="today-label"></div></div>
+        <button class="btn primary" onclick="exportTimesheet()"><i class="ti ti-download"></i> Export CSV</button>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-lbl">Clocked in</div><div class="stat-val" id="cnt-in">—</div><div class="stat-sub" id="cnt-in-sub"></div></div>
+        <div class="stat-card"><div class="stat-lbl">Clocked out</div><div class="stat-val" id="cnt-out">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Security flags</div><div class="stat-val" id="cnt-flags" style="color:var(--red)">0</div></div>
+        <div class="stat-card"><div class="stat-lbl">Active employees</div><div class="stat-val" id="cnt-emp">—</div></div>
+      </div>
+      <div class="tcard">
+        <div class="tcard-hdr">
+          <span class="tcard-title">Clock events</span>
+          <input type="text" id="log-search" placeholder="Search..." oninput="renderLog()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;width:180px">
+        </div>
+        <table class="dt">
+          <thead><tr><th>Employee</th><th>Division</th><th>Clock in</th><th>Clock out</th><th>Hours</th><th>Method</th><th>Status</th></tr></thead>
+          <tbody id="log-tbody"><tr><td colspan="7" class="empty"><div class="spinner"></div> Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-screen" id="tab-employees">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div><div style="font-size:17px;font-weight:700">Active employees</div><div style="font-size:12px;color:var(--muted)" id="emp-count-sub">Loading...</div></div>
+        <button class="btn primary" onclick="openAddEmp()"><i class="ti ti-user-plus"></i> Add employee</button>
+      </div>
+      <div class="filters">
+        <div class="srch"><i class="ti ti-search"></i><input type="text" id="emp-search" placeholder="Search employees..." oninput="renderEmps()"></div>
+        <select class="fsel" id="emp-div-filter" onchange="renderEmps()">
+          <option value="">All divisions</option>
+          <option>Lawn & Tree</option><option>Irrigation</option>
+          <option>Extermination</option><option>Nursery</option><option>Farm</option>
+        </select>
+      </div>
+      <div class="tcard">
+        <table class="dt">
+          <thead><tr><th>Employee</th><th>Employee ID</th><th>Division</th><th>Crew</th><th>Role</th><th>Actions</th></tr></thead>
+          <tbody id="emp-tbody"><tr><td colspan="6" class="empty"><div class="spinner"></div> Loading from database...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-screen" id="tab-archived">
+      <div style="margin-bottom:14px">
+        <div style="font-size:17px;font-weight:700">Archived employees</div>
+        <div style="font-size:12px;color:var(--muted)">Never deleted — all history kept forever for payroll and compliance</div>
+      </div>
+      <div style="background:#e6f9fd;border:1px solid #9fe1cb;border-radius:10px;padding:12px 16px;font-size:12px;color:#085041;margin-bottom:14px">
+        <i class="ti ti-shield-check"></i> <strong>Archive policy:</strong> Archiving removes clock-in access but keeps ALL time records permanently. You can restore any employee at any time.
+      </div>
+      <div class="tcard">
+        <table class="dt">
+          <thead><tr><th>Employee</th><th>ID</th><th>Division</th><th>Archived</th><th>Actions</th></tr></thead>
+          <tbody id="arch-tbody"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-screen" id="tab-timesheets">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:17px;font-weight:700">Weekly timesheets</div>
+        <button class="btn primary" onclick="exportTimesheet()"><i class="ti ti-download"></i> Export payroll CSV</button>
+      </div>
+      <div class="tcard">
+        <div class="tcard-hdr"><span class="tcard-title">All clock events this week</span></div>
+        <table class="dt">
+          <thead><tr><th>Employee</th><th>Division</th><th>Clock in</th><th>Clock out</th><th>Hours</th><th>Method</th></tr></thead>
+          <tbody id="ts-tbody"><tr><td colspan="6" class="empty"><div class="spinner"></div> Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-screen" id="tab-security">
+      <div style="margin-bottom:14px"><div style="font-size:17px;font-weight:700">Security rules</div></div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-lbl">Rotating QR</div><div class="stat-val" style="color:var(--green);font-size:16px">Active</div><div class="stat-sub">Refreshes every 30s</div></div>
+        <div class="stat-card"><div class="stat-lbl">GPS verification</div><div class="stat-val" style="color:var(--green);font-size:16px">Active</div><div class="stat-sub">Must be on-site</div></div>
+        <div class="stat-card"><div class="stat-lbl">Archive only</div><div class="stat-val" style="color:var(--green);font-size:16px">Active</div><div class="stat-sub">No permanent deletes</div></div>
+        <div class="stat-card"><div class="stat-lbl">Flags today</div><div class="stat-val" id="sec-flags" style="color:var(--red)">0</div></div>
+      </div>
+      <div class="tcard">
+        <div class="tcard-hdr"><span class="tcard-title">Security rules active</span></div>
+        <table class="dt"><thead><tr><th>Rule</th><th>Description</th><th>Status</th></tr></thead><tbody>
+          <tr><td><strong>Rotating QR tokens</strong></td><td>QR regenerates every 30 seconds — screenshots are useless after 30s</td><td><span class="b bg">Active</span></td></tr>
+          <tr><td><strong>GPS location check</strong></td><td>Employee phone GPS must match job site within 0.25 mile radius</td><td><span class="b bg">Active</span></td></tr>
+          <tr><td><strong>No permanent deletes</strong></td><td>Employees are archived not deleted — all records kept for compliance</td><td><span class="b bg">Active</span></td></tr>
+          <tr><td><strong>Unique QR per employee</strong></td><td>Each employee has their own QR badge — cannot clock in for others</td><td><span class="b bg">Active</span></td></tr>
+          <tr><td><strong>Full audit trail</strong></td><td>Every clock event saved to database with timestamp and method</td><td><span class="b bg">Active</span></td></tr>
+        </tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD EMPLOYEE DRAWER -->
+<div class="overlay" id="emp-overlay" onclick="closeEmpDrawer()"></div>
+<div class="drawer" id="emp-drawer">
+  <div class="drawer-hdr">
+    <span class="drawer-title" id="emp-drawer-title">Add New Employee</span>
+    <button class="drawer-close" onclick="closeEmpDrawer()">×</button>
+  </div>
+  <div class="drawer-body">
+    <div class="form-sec">Personal info</div>
+    <div class="fg">
+      <div><div class="fl">First name *</div><input class="fi" id="ef-fname" placeholder="First name"></div>
+      <div><div class="fl">Last name *</div><input class="fi" id="ef-lname" placeholder="Last name"></div>
+      <div><div class="fl">Employee ID (auto)</div><input class="fi" id="ef-eid" placeholder="PHL-0001" readonly style="background:#f8fafc"></div>
+      <div><div class="fl">Phone</div><input class="fi" id="ef-phone" placeholder="(561) 000-0000"></div>
+    </div>
+    <div class="form-sec">Work details</div>
+    <div class="fg">
+      <div><div class="fl">Division *</div>
+        <select class="fs" id="ef-div">
+          <option>Lawn & Tree</option><option>Irrigation</option>
+          <option>Extermination</option><option>Nursery</option><option>Farm</option>
+        </select>
+      </div>
+      <div><div class="fl">Crew</div>
+        <select class="fs" id="ef-crew">
+          <option value="">Unassigned</option>
+          <option>Crew A</option><option>Crew B</option><option>Crew C</option>
+          <option>Crew D</option><option>Crew E</option>
+        </select>
+      </div>
+      <div class="fg-full"><div class="fl">Role</div>
+        <select class="fs" id="ef-role">
+          <option>Time clock only</option><option>Field Tech</option>
+          <option>Crew Lead</option><option>Office Manager</option>
+        </select>
+      </div>
+    </div>
+    <div style="background:#e6f9fd;border-radius:8px;padding:10px 12px;font-size:12px;color:#0c447c;margin-top:10px">
+      <i class="ti ti-qrcode"></i> <strong>QR badge:</strong> After saving, click the QR button next to the employee to print their personal badge.
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn" onclick="closeEmpDrawer()">Cancel</button>
+    <button class="btn primary" id="emp-save-btn" onclick="saveEmployee()"><i class="ti ti-user-plus"></i> <span id="emp-save-lbl">Add employee</span></button>
+  </div>
+</div>
+
+<!-- QR BADGE MODAL -->
+<div class="modal-ov" id="qr-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="qr-modal-title">QR Badge</div>
+    <div class="modal-sub">Employee scans this to clock in — no PIN needed</div>
+    <div class="qr-container" id="qr-display"></div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:2px" id="qr-emp-name"></div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:12px" id="qr-emp-id"></div>
+    <div style="background:#faeeda;border-radius:8px;padding:8px 12px;font-size:11px;color:var(--amber);margin-bottom:14px;text-align:left">
+      <strong>Security:</strong> This QR is unique to this employee. The kiosk QR rotates every 30 seconds so screenshots can't be used to clock in for someone else.
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" style="flex:1" onclick="closeQRModal()">Close</button>
+      <button class="btn primary" style="flex:1" onclick="toast('QR badge sent to printer!')"><i class="ti ti-printer"></i> Print badge</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var LOGO = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8QEBEQCgwSExIQEw8QEBD/2wBDAQMDAwQDBAgEBAgQCwkLEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBD/wAARCAGQAkYDASIAAhEBAxEB/8QAHQABAAEEAwEAAAAAAAAAAAAAAAgBAgYHAwQFCf/EAEwQAAEDAwIDBQQECQkGBwEAAAEAAgMEBREGIQcSMQgTQVFhIjJxsRRygaEJFRYjM0JSU5EmNTZic3SSssEXJCU0Q9EYREZWY2SCg//EABwBAQABBQEBAAAAAAAAAAAAAAAGAQMEBQcCCP/EADkRAAICAQMDAwMDAQUHBQAAAAABAgMEBREhBhIxBxNBIjJRFGFxkRYjM1JyFSQlNEKxwTU2Q1OB/9oADAMBAAIRAxEAPwD6poiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCKhOEByqb8giR2+bqbZRaUI/XlnH3BF434RtzhQaO5f31R/lCK1KXJTs3JooiK8VCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAoeiAYVUQENfwiMPfUOkPSWo+QRdr8IJH3lDpL0ln+QRY01yO7YmAiIskBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREBErt6xiWi0qMZxLP8AIIu7244hJR6YyM4ln+QRW3E8tkqERFcPQREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8AJF6QNooiLyAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAoeiAYVUQENfwiMPfUOkPSWo+QRdr8IJH3lDpL0ln+QRY01yO7YmAiIskBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREBErt6xiWi0qMZxLP8AIIu7244hJR6YyM4ln+QRW3E8tkqERFcPQREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERU+QRg7bDOej016STfIIuftmgOpNN7Z/OTfIIriXBab5JMIiLwXQiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiAIiIAiIgCIiA1dxuGYbZ9Z/yRON36C2fXf8kVUimxtFERUKhERAEREAREQBERAEREAREQBERAEREAREQBEREA//2Q==';
+var SUPA_URL = 'https://gmblbltckwipghqutkhw.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtYmxibHRja3dpcGdocXV0a2h3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMDcxNjEsImV4cCI6MjA5NDg4MzE2MX0.Bri1R1CHV27YKAu_CrwSkb_hZPCBJvOWSlp1UQTXQaI';
+var COLORS = ['#1d9e75','#378add','#d85a30','#7f77dd','#ba7517','#0a2540','#e91e8c','#29b6d8','#5e8a00','#9c4e00'];
+
+document.getElementById('kiosk-logo').src = LOGO;
+document.getElementById('admin-logo').src = LOGO;
+
+async function sb(method, path, body) {
+  var opts = {method:method,headers:{'Content-Type':'application/json','apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Prefer':'return=representation'}};
+  if (body) opts.body = JSON.stringify(body);
+  var res = await fetch(SUPA_URL+'/rest/v1'+path, opts);
+  if (!res.ok) { var e = await res.text(); throw new Error(e); }
+  var t = await res.text();
+  return t ? JSON.parse(t) : [];
+}
+
+function tick() {
+  var n = new Date();
+  var c = document.getElementById('kiosk-clock');
+  if (c) c.textContent = n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var d = document.getElementById('kiosk-date');
+  if (d) d.textContent = n.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  var tl = document.getElementById('today-label');
+  if (tl) tl.textContent = n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+}
+setInterval(tick,1000); tick();
+
+var qrSecs=30, kQR=null, qrToken='';
+function genToken(){return 'PHL-KIOSK-'+Date.now()+'-'+Math.random().toString(36).slice(2,8).toUpperCase();}
+function initKioskQR(){
+  qrToken=genToken();
+  var el=document.getElementById('kiosk-qr');
+  if(!el)return;
+  el.innerHTML='';
+  try{new QRCode(el,{text:window.location.href.split('?')[0]+'?token='+qrToken,width:140,height:140,colorDark:'#0a2540',colorLight:'#ffffff'});}
+  catch(e){el.innerHTML='<div style="width:140px;height:140px;background:#f4f6f9;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#6b7a90;text-align:center;padding:8px">QR Code<br>Loading...</div>';}
+}
+function rotateQR(){
+  qrSecs--;
+  var fill=document.getElementById('qr-fill');
+  if(fill)fill.style.width=(qrSecs/30*100)+'%';
+  var lbl=document.getElementById('qr-expire');
+  if(lbl)lbl.textContent='Refreshes in '+qrSecs+'s';
+  if(qrSecs<=0){qrSecs=30;initKioskQR();if(lbl){lbl.textContent='✓ New token generated';lbl.style.background='#e1f5ee';lbl.style.color='#085041';setTimeout(function(){lbl.style.background='';lbl.style.color='';},1200);}}
+}
+setInterval(rotateQR,1000);
+initKioskQR();
+
+var allEmployees=[], allClockEvents=[];
+var editingEmpId=null;
+
+function ini(e){return((e.fname||'')[0]||'')+((e.lname||'')[0]||'');}
+function fullName(e){return(e.fname||'')+' '+(e.lname||'');}
+function col(e){return COLORS[Math.abs(hashStr(e.employee_id||''))%COLORS.length];}
+function hashStr(s){var h=0;for(var i=0;i<s.length;i++)h=((h<<5)-h)+s.charCodeAt(i);return h;}
+
+async function loadEmployees(){
+  try{
+    var data=await sb('GET','/employees?order=created_at.asc&select=*');
+    allEmployees=data;
+    var active=data.filter(function(e){return e.active;});
+    renderEmps();renderArch();
+    var sub=document.getElementById('emp-count-sub');if(sub)sub.textContent=active.length+' active employees';
+    var cnt=document.getElementById('cnt-emp');if(cnt)cnt.textContent=active.length;
+    updateEmpIdField();
+  }catch(e){toast('Error loading employees: '+e.message);}
+}
+
+async function loadClockEvents(){
+  try{
+    var today=new Date().toISOString().split('T')[0];
+    var data=await sb('GET','/clock_events?order=created_at.desc&select=*&clock_in=gte.'+today+'T00:00:00');
+    allClockEvents=data;
+    renderLog();renderKioskRecent();renderTimesheets();
+  }catch(e){console.error('Clock events error:',e.message);}
+}
+
+function renderEmps(){
+  var q=(document.getElementById('emp-search')||{value:''}).value.toLowerCase();
+  var dv=(document.getElementById('emp-div-filter')||{value:''}).value;
+  var list=allEmployees.filter(function(e){return e.active&&(!q||fullName(e).toLowerCase().includes(q))&&(!dv||e.division===dv);});
+  var tb=document.getElementById('emp-tbody');
+  if(!tb)return;
+  if(!list.length){tb.innerHTML='<tr><td colspan="6" class="empty">No active employees.</td></tr>';return;}
+  tb.innerHTML='';
+  list.forEach(function(e){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td style="display:flex;align-items:center;gap:8px;padding:9px 12px"><div class="av" style="background:'+col(e)+'">'+ini(e).toUpperCase()+'</div><div><div style="font-weight:600">'+fullName(e)+'</div>'+(e.phone?'<div style="font-size:10px;color:var(--muted)">'+e.phone+'</div>':'')+'</div></td><td style="font-size:11px;color:var(--muted)">'+(e.employee_id||'—')+'</td><td>'+(e.division||'—')+'</td><td>'+(e.crew||'—')+'</td><td><span class="b bs">'+(e.role||'—')+'</span></td><td><div style="display:flex;gap:4px"><button class="btn" style="padding:4px 8px;font-size:11px" onclick="showQR('+JSON.stringify(e.employee_id)+')"><i class="ti ti-qrcode"></i> QR</button><button class="btn" style="padding:4px 8px;font-size:11px" onclick="editEmp('+JSON.stringify(e.employee_id)+')"><i class="ti ti-edit"></i></button><button class="btn amber" style="padding:4px 8px;font-size:11px" onclick="archiveEmp('+JSON.stringify(e.employee_id)+')"><i class="ti ti-archive"></i></button></div></td>';
+    tb.appendChild(tr);
+  });
+}
+
+function renderArch(){
+  var list=allEmployees.filter(function(e){return !e.active;});
+  var tb=document.getElementById('arch-tbody');
+  if(!tb)return;
+  if(!list.length){tb.innerHTML='<tr><td colspan="5" class="empty">No archived employees yet.</td></tr>';return;}
+  tb.innerHTML='';
+  list.forEach(function(e){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td style="display:flex;align-items:center;gap:8px;padding:9px 12px"><div class="av" style="background:#aaa">'+ini(e).toUpperCase()+'</div><div style="font-weight:600;color:var(--muted)">'+fullName(e)+'</div></td><td style="font-size:11px;color:var(--muted)">'+(e.employee_id||'—')+'</td><td style="color:var(--muted)">'+(e.division||'—')+'</td><td style="color:var(--muted)">'+new Date(e.created_at).toLocaleDateString()+'</td><td><button class="btn success" style="padding:4px 8px;font-size:11px" onclick="restoreEmp('+JSON.stringify(e.employee_id)+')"><i class="ti ti-refresh"></i> Restore</button></td>';
+    tb.appendChild(tr);
+  });
+}
+
+function renderLog(){
+  var q=(document.getElementById('log-search')||{value:''}).value.toLowerCase();
+  var list=allClockEvents.filter(function(r){return !q||(r.employee_name||'').toLowerCase().includes(q);});
+  var tb=document.getElementById('log-tbody');
+  if(!tb)return;
+  if(!list.length){tb.innerHTML='<tr><td colspan="7" class="empty">No clock events today yet</td></tr>';return;}
+  var ins=0,outs=0;
+  tb.innerHTML='';
+  list.forEach(function(r){
+    var emp=allEmployees.find(function(e){return e.employee_id===r.employee_id;})||{};
+    var inTime=r.clock_in?new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'—';
+    var outTime=r.clock_out?new Date(r.clock_out).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'—';
+    var hrs='—';
+    if(r.clock_in&&r.clock_out)hrs=((new Date(r.clock_out)-new Date(r.clock_in))/3600000).toFixed(1);
+    if(!r.clock_out)ins++;else outs++;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td style="display:flex;align-items:center;gap:8px;padding:9px 12px"><div class="av" style="background:'+(col(emp)||'#29b6d8')+'">'+ini(emp||{fname:r.employee_name||'?',lname:''}).toUpperCase()+'</div><div><div style="font-weight:600">'+(r.employee_name||'Unknown')+'</div><div style="font-size:10px;color:var(--muted)">'+(r.employee_id||'')+'</div></div></td><td>'+(r.division||'—')+'</td><td style="color:var(--green);font-weight:600">'+inTime+'</td><td style="color:'+(r.clock_out?'var(--red)':'var(--muted)')+'">'+outTime+'</td><td>'+hrs+'</td><td><span class="b bm">'+(r.method||'QR scan')+'</span></td><td>'+(r.clock_out?'<span class="b bs">Out</span>':'<span class="b bg">In</span>')+'</td>';
+    tb.appendChild(tr);
+  });
+  var ci=document.getElementById('cnt-in');if(ci)ci.textContent=ins;
+  var co=document.getElementById('cnt-out');if(co)co.textContent=outs;
+  var cs=document.getElementById('cnt-in-sub');if(cs)cs.textContent='of '+allEmployees.filter(function(e){return e.active;}).length+' active';
+}
+
+function renderKioskRecent(){
+  var ul=document.getElementById('kiosk-recent');
+  if(!ul)return;
+  var recent=allClockEvents.slice(0,5);
+  if(!recent.length){ul.innerHTML='<div style="text-align:center;color:rgba(255,255,255,.3);font-size:12px;padding:8px">No events yet today</div>';return;}
+  ul.innerHTML='';
+  recent.forEach(function(r){
+    var emp=allEmployees.find(function(e){return e.employee_id===r.employee_id;})||{};
+    var t=r.clock_in?new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'—';
+    ul.innerHTML+='<div class="r-row"><div class="r-av" style="background:'+(col(emp)||'#29b6d8')+'">'+ini(emp||{fname:r.employee_name||'?',lname:''}).toUpperCase()+'</div><div><div class="r-name">'+(r.employee_name||'Unknown')+'</div><div class="r-div">'+(r.division||'')+'</div></div><div class="r-time">'+t+'</div><span class="b '+(r.clock_out?'br':'bg')+'" style="font-size:9px">'+(r.clock_out?'Out':'In')+'</span></div>';
+  });
+}
+
+function renderTimesheets(){
+  var tb=document.getElementById('ts-tbody');
+  if(!tb)return;
+  if(!allClockEvents.length){tb.innerHTML='<tr><td colspan="6" class="empty">No clock events this week</td></tr>';return;}
+  tb.innerHTML='';
+  allClockEvents.forEach(function(r){
+    var inTime=r.clock_in?new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'—';
+    var outTime=r.clock_out?new Date(r.clock_out).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'—';
+    var hrs='—';
+    if(r.clock_in&&r.clock_out)hrs=((new Date(r.clock_out)-new Date(r.clock_in))/3600000).toFixed(1);
+    tb.innerHTML+='<tr><td><div style="font-weight:600">'+(r.employee_name||'Unknown')+'</div></td><td>'+(r.division||'—')+'</td><td style="color:var(--green)">'+inTime+'</td><td style="color:var(--red)">'+outTime+'</td><td style="font-weight:600">'+hrs+'</td><td><span class="b bm">'+(r.method||'QR')+'</span></td></tr>';
+  });
+}
+
+function updateEmpIdField(){
+  var field=document.getElementById('ef-eid');
+  if(!field)return;
+  var num=String(allEmployees.length+1).padStart(4,'0');
+  field.value='PHL-'+num;
+}
+function openAddEmp(){
+  editingEmpId=null;
+  document.getElementById('emp-drawer-title').textContent='Add New Employee';
+  document.getElementById('emp-save-lbl').textContent='Add employee';
+  document.getElementById('ef-fname').value='';
+  document.getElementById('ef-lname').value='';
+  document.getElementById('ef-phone').value='';
+  document.getElementById('ef-div').value='Lawn & Tree';
+  document.getElementById('ef-crew').value='';
+  document.getElementById('ef-role').value='Time clock only';
+  updateEmpIdField();
+  document.getElementById('emp-drawer').classList.add('open');
+  document.getElementById('emp-overlay').classList.add('show');
+  setTimeout(function(){document.getElementById('ef-fname').focus();},300);
+}
+function editEmp(eid){
+  var e=allEmployees.find(function(x){return x.employee_id===eid;});
+  if(!e){toast('Employee not found');return;}
+  editingEmpId=eid;
+  document.getElementById('emp-drawer-title').textContent='Edit — '+fullName(e);
+  document.getElementById('emp-save-lbl').textContent='Save changes';
+  document.getElementById('ef-fname').value=e.fname||'';
+  document.getElementById('ef-lname').value=e.lname||'';
+  document.getElementById('ef-eid').value=e.employee_id||'';
+  document.getElementById('ef-eid').removeAttribute('readonly');
+  document.getElementById('ef-phone').value=e.phone||'';
+  document.getElementById('ef-div').value=e.division||'Lawn & Tree';
+  document.getElementById('ef-crew').value=e.crew||'';
+  document.getElementById('ef-role').value=e.role||'Time clock only';
+  document.getElementById('emp-drawer').classList.add('open');
+  document.getElementById('emp-overlay').classList.add('show');
+  setTimeout(function(){document.getElementById('ef-fname').focus();},250);
+}
+function closeEmpDrawer(){
+  document.getElementById('emp-drawer').classList.remove('open');
+  document.getElementById('emp-overlay').classList.remove('show');
+}
+async function saveEmployee(){
+  var fn=document.getElementById('ef-fname').value.trim();
+  var ln=document.getElementById('ef-lname').value.trim();
+  if(!fn||!ln){toast('Please enter first and last name');return;}
+  var btn=document.getElementById('emp-save-btn');
+  btn.disabled=true;
+  document.getElementById('emp-save-lbl').textContent='Saving...';
+  var data={fname:fn,lname:ln,employee_id:document.getElementById('ef-eid').value,phone:document.getElementById('ef-phone').value.trim(),division:document.getElementById('ef-div').value,crew:document.getElementById('ef-crew').value,role:document.getElementById('ef-role').value,color:COLORS[Math.floor(Math.random()*COLORS.length)],active:true};
+  try{
+    if(editingEmpId){await sb('PATCH','/employees?employee_id=eq.'+encodeURIComponent(editingEmpId),data);toast('Employee updated!');}
+    else{await sb('POST','/employees',data);toast('Employee added!');}
+    closeEmpDrawer();await loadEmployees();
+  }catch(e){toast('Error: '+e.message);}
+  btn.disabled=false;
+  document.getElementById('emp-save-lbl').textContent=editingEmpId?'Save changes':'Add employee';
+}
+
+async function archiveEmp(eid){
+  var e=allEmployees.find(function(x){return x.employee_id===eid;});
+  if(!e)return;
+  if(!confirm('Archive '+fullName(e)+'?\n\nThis removes their clock-in access but KEEPS all their time records permanently. You can restore them at any time.'))return;
+  try{await sb('PATCH','/employees?employee_id=eq.'+encodeURIComponent(eid),{active:false});toast(fullName(e)+' archived — all records preserved');await loadEmployees();}
+  catch(e2){toast('Error: '+e2.message);}
+}
+async function restoreEmp(eid){
+  var e=allEmployees.find(function(x){return x.employee_id===eid;});
+  if(!e)return;
+  try{await sb('PATCH','/employees?employee_id=eq.'+encodeURIComponent(eid),{active:true});toast(fullName(e)+' restored');await loadEmployees();}
+  catch(e2){toast('Error: '+e2.message);}
+}
+
+async function manualClockIn(){
+  var eid=document.getElementById('m-eid').value.trim();
+  if(!eid){toast('Please enter your Employee ID');return;}
+  var emp=allEmployees.find(function(e){return e.employee_id.toLowerCase()===eid.toLowerCase()&&e.active;});
+  if(!emp){toast('Employee ID not found or inactive');return;}
+  var now=new Date().toISOString();
+  try{
+    await sb('POST','/clock_events',{employee_id:emp.employee_id,employee_name:fullName(emp),division:emp.division,clock_in:now,method:'Manual ID',flagged:false});
+    document.getElementById('m-eid').value='';
+    document.getElementById('manual-form').classList.remove('open');
+    toast('✓ '+fullName(emp)+' clocked in!');
+    await loadClockEvents();
+  }catch(e){toast('Error: '+e.message);}
+}
+
+function showQR(eid){
+  var e=allEmployees.find(function(x){return x.employee_id===eid;});
+  if(!e){toast('Employee not found');return;}
+  document.getElementById('qr-modal-title').textContent='QR Badge — '+fullName(e);
+  document.getElementById('qr-emp-name').textContent=fullName(e);
+  document.getElementById('qr-emp-id').textContent=e.employee_id+' · '+e.division;
+  var container=document.getElementById('qr-display'); // FIXED: was qr-code-display
+  container.innerHTML='';
+  var qrUrl='https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html?emp='+encodeURIComponent(e.employee_id)+'&name='+encodeURIComponent(fullName(e));
+  try{new QRCode(container,{text:qrUrl,width:180,height:180,colorDark:'#0a2540',colorLight:'#ffffff'});}
+  catch(err){container.innerHTML='<div style="width:180px;height:180px;background:#f4f6f9;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:11px;color:var(--muted);padding:12px"><div style="font-size:32px;margin-bottom:8px">📱</div><strong style="color:var(--text);font-size:13px">'+fullName(e)+'</strong><div style="margin-top:4px">'+e.employee_id+'</div></div>';}
+  document.getElementById('qr-modal').classList.add('open');
+}
+function closeQRModal(){document.getElementById('qr-modal').classList.remove('open');document.getElementById('qr-display').innerHTML='';}
+
+function exportTimesheet(){
+  var rows=['Employee,Employee ID,Division,Clock In,Clock Out,Hours,Method'];
+  allClockEvents.forEach(function(r){
+    var inT=r.clock_in?new Date(r.clock_in).toLocaleString():'';
+    var outT=r.clock_out?new Date(r.clock_out).toLocaleString():'';
+    var hrs=(r.clock_in&&r.clock_out)?((new Date(r.clock_out)-new Date(r.clock_in))/3600000).toFixed(1):'';
+    rows.push([r.employee_name,r.employee_id,r.division,inT,outT,hrs,r.method].map(function(v){return'"'+(v||'')+'"';}).join(','));
+  });
+  var blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='PHL_Timesheet.csv';a.click();
+  toast('Timesheet exported!');
+}
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.getElementById(id).classList.add('active');
+  if(id==='admin-page'){loadEmployees();loadClockEvents();}
+}
+function switchTab(id,el){
+  document.querySelectorAll('.tab-screen').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  document.getElementById('tab-'+id).classList.add('active');
+  if(el)el.classList.add('active');
+  if(id==='employees')loadEmployees();
+  if(id==='archived')renderArch();
+  if(id==='timesheets')renderTimesheets();
+}
+
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show';
+  clearTimeout(t._t);t._t=setTimeout(function(){t.className='toast';},3200);
+}
+
+document.getElementById('qr-modal').addEventListener('click',function(e){if(e.target===this)closeQRModal();});
+document.getElementById('emp-overlay').addEventListener('click',closeEmpDrawer);
+
+loadEmployees();
+loadClockEvents();
+</script>
+</body>
+</html>
