@@ -410,7 +410,7 @@ async function doClockIn(empId, method){
     if(existing&&existing.length){
       var ev=existing[0];
       await sb('PATCH','/clock_events?id=eq.'+ev.id,{clock_out:new Date().toISOString()});
-      showClockResult('out','Clocked out, '+emp.fname+'! Have a great day.');
+      showClockResult('out','Clocked out, '+emp.fname+'. Have a great day.');
     } else {
       await sb('POST','/clock_events',{
         employee_id:emp.employee_id,
@@ -420,7 +420,7 @@ async function doClockIn(empId, method){
         method:method,
         flagged:method.indexOf('no GPS')>-1||method.indexOf('denied')>-1
       });
-      showClockResult('in','Welcome, '+emp.fname+'! You\'re clocked in.');
+      showClockResult('in','Welcome '+emp.fname+'. You are clocked in.');
     }
   }catch(e){
     showClockResult('error','Error: '+e.message);
