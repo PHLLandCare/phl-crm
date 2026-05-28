@@ -263,7 +263,11 @@ export default function Dashboard() {
 
   return (
     <div style={{minHeight:'100vh',display:'flex',fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',background:'#0a0f1a'}}>
-      <div style={{width:220,flexShrink:0,background:'#0d1526',display:'flex',flexDirection:'column',position:'fixed',top:0,left:0,height:'100vh',overflowY:'auto',zIndex:200,borderRight:'1px solid #1e293b'}}>
+      <style>{`
+        .phl-sidebar::-webkit-scrollbar { display: none; }
+        .phl-sidebar { -ms-overflow-style: none; scrollbar-width: none; }
+      `}</style>
+      <div className="phl-sidebar" style={{width:220,flexShrink:0,background:'#0d1526',display:'flex',flexDirection:'column',position:'fixed',top:0,left:0,height:'100vh',overflowY:'auto',zIndex:200,borderRight:'1px solid #1e293b'}}>
         <div style={{padding:'12px 14px',borderBottom:'1px solid #1e293b',display:'flex',alignItems:'center',gap:10}}>
           <img src="https://phllandcare.github.io/phl-crm/phl_logo.jpg" alt="PHL" style={{width:36,height:36,borderRadius:8,objectFit:'cover',flexShrink:0,background:'#fff',padding:2}} />
           <div>
@@ -282,14 +286,23 @@ export default function Dashboard() {
           <NavItem label="Quotes" id="quotes" icon="💬" count={counts.quotes} />
           <NavItem label="Jobs" id="jobs" icon="🔧" count={counts.jobs} />
           <NavItem label="Invoices" id="invoices" icon="🧾" count={counts.invoices} />
-          <SectionLabel title="Operations" />
           <NavItem label="Schedule" id="schedule" icon="📅" />
+          <NavItem label="Team Chat" id="teamchat" icon="💬" />
+
+          <SectionLabel title="Divisions" />
+          <NavItem label="Lawn & Tree" id="div-lawn" icon="🌿" />
+          <NavItem label="Irrigation" id="div-irrigation" icon="💧" />
+          <NavItem label="Extermination" id="div-extermination" icon="🐛" />
+          <NavItem label="Nursery" id="div-nursery" icon="🌱" />
+          <NavItem label="Farm" id="div-farm" icon="🚜" />
+
+          <SectionLabel title="Tools" />
+          <NavItem label="Time Clock" id="timeclock" icon="🕐" />
           <NavItem label="Payroll" id="payroll" icon="💰" />
+          <NavItem label="All Employees" id="team" icon="👤" />
           <NavItem label="Expenses" id="expenses" icon="🧮" />
           <NavItem label="Inventory" id="inventory" icon="📦" />
-          <SectionLabel title="Team" />
-          <NavItem label="All Employees" id="team" icon="👤" />
-          <SectionLabel title="Settings" />
+          <NavItem label="Reports" id="reports" icon="📊" />
           <NavItem label="Settings" id="settings" icon="⚙️" />
         </div>
         <div style={{padding:'10px 14px',borderTop:'1px solid #1e293b'}}>
