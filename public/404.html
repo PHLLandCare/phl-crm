@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+  var path = window.location.pathname.replace('/phl-crm', '');
+  var search = window.location.search;
+  var hash = window.location.hash;
+  var url = '/phl-crm/?p=' + encodeURIComponent(path) + (search ? '&q=' + encodeURIComponent(search.slice(1)) : '') + hash;
+  window.location.replace(url);
+</script>
+</head>
+</html>
