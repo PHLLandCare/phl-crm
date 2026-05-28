@@ -3,11 +3,104 @@ import { supabase } from '../lib/supabase'
 
 type UserRole = 'superadmin' | 'manager' | 'dispatcher' | 'worker' | 'worker_limited'
 
+interface Permissions {
+  schedule: 'view_own' | 'view_complete_own' | 'edit_own' | 'edit_all' | 'edit_delete_all'
+  schedule_enabled: boolean
+  time_tracking: 'view_record_own' | 'view_record_edit_own' | 'view_record_edit_all'
+  time_tracking_enabled: boolean
+  notes: 'view_jobs_only' | 'view_all' | 'view_edit_all' | 'view_edit_delete_all'
+  notes_enabled: boolean
+  files_enabled: boolean
+  expenses: 'view_record_own' | 'view_record_edit_all'
+  expenses_enabled: boolean
+  show_pricing: boolean
+  job_costing: boolean
+  clients: 'view_name_address' | 'view_full' | 'view_edit' | 'view_edit_delete'
+  clients_enabled: boolean
+  requests: 'view_only' | 'view_create_edit' | 'view_create_edit_delete'
+  requests_enabled: boolean
+  quotes_enabled: boolean
+  jobs: 'view_only' | 'view_create_edit' | 'view_create_edit_delete'
+  jobs_enabled: boolean
+  invoices_enabled: boolean
+  payments_enabled: boolean
+  reports_enabled: boolean
+}
+
+const DEFAULT_PERMISSIONS: Record<UserRole, Permissions> = {
+  superadmin: {
+    schedule: 'edit_delete_all', schedule_enabled: true,
+    time_tracking: 'view_record_edit_all', time_tracking_enabled: true,
+    notes: 'view_edit_delete_all', notes_enabled: true,
+    files_enabled: true,
+    expenses: 'view_record_edit_all', expenses_enabled: true,
+    show_pricing: true, job_costing: true,
+    clients: 'view_edit_delete', clients_enabled: true,
+    requests: 'view_create_edit_delete', requests_enabled: true,
+    quotes_enabled: true,
+    jobs: 'view_create_edit_delete', jobs_enabled: true,
+    invoices_enabled: true, payments_enabled: true, reports_enabled: true,
+  },
+  manager: {
+    schedule: 'edit_delete_all', schedule_enabled: true,
+    time_tracking: 'view_record_edit_all', time_tracking_enabled: true,
+    notes: 'view_edit_delete_all', notes_enabled: true,
+    files_enabled: true,
+    expenses: 'view_record_edit_all', expenses_enabled: true,
+    show_pricing: true, job_costing: true,
+    clients: 'view_edit_delete', clients_enabled: true,
+    requests: 'view_create_edit_delete', requests_enabled: true,
+    quotes_enabled: true,
+    jobs: 'view_create_edit_delete', jobs_enabled: true,
+    invoices_enabled: true, payments_enabled: false, reports_enabled: true,
+  },
+  dispatcher: {
+    schedule: 'edit_all', schedule_enabled: true,
+    time_tracking: 'view_record_edit_own', time_tracking_enabled: true,
+    notes: 'view_edit_all', notes_enabled: true,
+    files_enabled: false,
+    expenses: 'view_record_own', expenses_enabled: true,
+    show_pricing: false, job_costing: false,
+    clients: 'view_edit', clients_enabled: true,
+    requests: 'view_create_edit', requests_enabled: true,
+    quotes_enabled: true,
+    jobs: 'view_create_edit', jobs_enabled: true,
+    invoices_enabled: false, payments_enabled: false, reports_enabled: false,
+  },
+  worker: {
+    schedule: 'view_complete_own', schedule_enabled: true,
+    time_tracking: 'view_record_own', time_tracking_enabled: true,
+    notes: 'view_edit_all', notes_enabled: true,
+    files_enabled: false,
+    expenses: 'view_record_own', expenses_enabled: true,
+    show_pricing: false, job_costing: false,
+    clients: 'view_full', clients_enabled: true,
+    requests: 'view_only', requests_enabled: true,
+    quotes_enabled: false,
+    jobs: 'view_only', jobs_enabled: true,
+    invoices_enabled: false, payments_enabled: false, reports_enabled: false,
+  },
+  worker_limited: {
+    schedule: 'view_complete_own', schedule_enabled: true,
+    time_tracking: 'view_record_own', time_tracking_enabled: true,
+    notes: 'view_edit_all', notes_enabled: true,
+    files_enabled: false,
+    expenses: 'view_record_own', expenses_enabled: true,
+    show_pricing: false, job_costing: false,
+    clients: 'view_name_address', clients_enabled: false,
+    requests: 'view_only', requests_enabled: false,
+    quotes_enabled: false,
+    jobs: 'view_only', jobs_enabled: true,
+    invoices_enabled: false, payments_enabled: false, reports_enabled: false,
+  },
+}
+
 interface TeamMember {
   id: string
   full_name: string
   email: string
   role: UserRole
+  permissions: Permissions
   last_sign_in_at: string | null
   created_at: string
   active: boolean
@@ -16,7 +109,7 @@ interface TeamMember {
 const ROLE_OPTIONS: { value: UserRole; label: string; desc: string }[] = [
   { value: 'superadmin',     label: 'Superadmin',       desc: 'Full access to everything including billing and settings' },
   { value: 'manager',        label: 'Manager',          desc: 'Manage all areas including billing — excludes payroll' },
-  { value: 'dispatcher',     label: 'Dispatcher',       desc: 'Edit jobs, team and client details. Recommended for team leads' },
+  { value: 'dispatcher',     label: 'Dispatcher',       desc: 'Edit job, team and client details. Recommended for team leads' },
   { value: 'worker',         label: 'Worker',           desc: 'View all clients, quotes, and jobs including pricing details' },
   { value: 'worker_limited', label: 'Worker (Limited)', desc: 'View their schedule, mark work complete, and track their time' },
 ]
@@ -34,6 +127,57 @@ function fmtDate(d: string | null) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+const Toggle: React.FC<{ on: boolean; onChange: (v: boolean) => void }> = ({ on, onChange }) => (
+  <div onClick={() => onChange(!on)} style={{
+    width: 40, height: 22, borderRadius: 11, cursor: 'pointer', position: 'relative', flexShrink: 0,
+    background: on ? '#16a34a' : '#1e293b', border: `1px solid ${on ? '#16a34a' : '#334155'}`,
+    transition: 'all 0.2s',
+  }}>
+    <div style={{
+      position: 'absolute', top: 2, left: on ? 19 : 2, width: 16, height: 16,
+      borderRadius: '50%', background: on ? '#fff' : '#475569', transition: 'left 0.2s',
+    }} />
+  </div>
+)
+
+const RadioGroup: React.FC<{
+  options: { value: string; label: string }[]
+  value: string
+  onChange: (v: string) => void
+  disabled?: boolean
+}> = ({ options, value, onChange, disabled }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+    {options.map(o => (
+      <label key={o.value} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1 }}>
+        <div onClick={() => !disabled && onChange(o.value)} style={{
+          width: 16, height: 16, borderRadius: '50%',
+          border: `2px solid ${value === o.value ? '#4ade80' : '#334155'}`,
+          background: value === o.value ? '#4ade80' : 'transparent',
+          flexShrink: 0, cursor: disabled ? 'default' : 'pointer',
+        }} />
+        <span style={{ fontSize: 12, color: '#cbd5e1' }}>{o.label}</span>
+      </label>
+    ))}
+  </div>
+)
+
+const Section: React.FC<{
+  title: string
+  enabled?: boolean
+  onToggle?: (v: boolean) => void
+  subtitle?: string
+  children?: React.ReactNode
+}> = ({ title, enabled, onToggle, subtitle, children }) => (
+  <div style={{ borderBottom: '1px solid #1e293b', paddingBottom: 16, marginBottom: 16 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>{title}</p>
+      {onToggle !== undefined && enabled !== undefined && <Toggle on={enabled} onChange={onToggle} />}
+    </div>
+    {subtitle && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#475569' }}>{subtitle}</p>}
+    {children}
+  </div>
+)
+
 export default function TeamPage() {
   const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
@@ -50,138 +194,87 @@ export default function TeamPage() {
 
   const loadMembers = async () => {
     setLoading(true)
-    try {
-      // Get user_profiles joined with auth data
-      const { data, error: err } = await supabase
-        .from('user_profiles')
-        .select('id, full_name, role, created_at, active')
-        .order('full_name')
-
-      if (err) throw new Error(err.message)
-
-      // Get auth users for email + last sign in
-      const { data: { users }, error: authErr } = await supabase.auth.admin.listUsers()
-      if (authErr) throw new Error(authErr.message)
-
-      const merged: TeamMember[] = (data ?? []).map(p => {
-        const authUser = users?.find(u => u.id === p.id)
-        return {
-          id: p.id,
-          full_name: p.full_name || '—',
-          email: authUser?.email || '—',
-          role: p.role as UserRole,
-          last_sign_in_at: authUser?.last_sign_in_at || null,
-          created_at: p.created_at,
-          active: p.active !== false,
-        }
-      })
-
-      setMembers(merged)
-    } catch (e: any) {
-      // Fallback: load without admin API
-      const { data } = await supabase
-        .from('user_profiles')
-        .select('id, full_name, role, created_at, active')
-        .order('full_name')
-
-      setMembers((data ?? []).map(p => ({
-        id: p.id,
-        full_name: p.full_name || '—',
-        email: '—',
-        role: p.role as UserRole || 'worker_limited',
-        last_sign_in_at: null,
-        created_at: p.created_at,
-        active: p.active !== false,
-      })))
-    }
+    const { data } = await supabase
+      .from('user_profiles')
+      .select('id, full_name, role, permissions, created_at, active')
+      .order('full_name')
+    setMembers((data ?? []).map(p => ({
+      id: p.id,
+      full_name: p.full_name || '—',
+      email: '—',
+      role: (p.role as UserRole) || 'worker_limited',
+      permissions: p.permissions || DEFAULT_PERMISSIONS[(p.role as UserRole) || 'worker_limited'],
+      last_sign_in_at: null,
+      created_at: p.created_at,
+      active: p.active !== false,
+    })))
     setLoading(false)
   }
 
   useEffect(() => { loadMembers() }, [])
 
   const handleInvite = async () => {
-    if (!inviteEmail.trim() || !inviteName.trim()) {
-      setError('Name and email are required.')
-      return
-    }
-    setSaving(true)
-    setError(null)
+    if (!inviteEmail.trim() || !inviteName.trim()) { setError('Name and email are required.'); return }
+    setSaving(true); setError(null)
     try {
-      // Send invite via Supabase Auth
-      const { error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(inviteEmail.trim(), {
+      const { error: err } = await supabase.auth.admin.inviteUserByEmail(inviteEmail.trim(), {
         data: { full_name: inviteName.trim(), role: inviteRole }
       })
-      if (inviteErr) throw new Error(inviteErr.message)
-
-      setSuccess(`Invite sent to ${inviteEmail}! They'll receive an email to set their password.`)
-      setShowInvite(false)
-      setInviteEmail('')
-      setInviteName('')
-      setInviteRole('worker_limited')
+      if (err) throw new Error(err.message)
+      setSuccess(`Invite sent to ${inviteEmail}!`)
+      setShowInvite(false); setInviteEmail(''); setInviteName(''); setInviteRole('worker_limited')
       setTimeout(() => setSuccess(null), 5000)
       loadMembers()
-    } catch (e: any) {
-      setError('Failed to send invite: ' + e.message)
-    }
+    } catch (e: any) { setError('Failed: ' + e.message) }
     setSaving(false)
   }
 
-  const handleUpdateRole = async () => {
+  const handleSavePermissions = async () => {
     if (!editMember) return
-    setSaving(true)
-    setError(null)
+    setSaving(true); setError(null)
     try {
-      const { error: err } = await supabase
-        .from('user_profiles')
-        .update({ role: editMember.role })
+      const { error: err } = await supabase.from('user_profiles')
+        .update({ role: editMember.role, permissions: editMember.permissions })
         .eq('id', editMember.id)
       if (err) throw new Error(err.message)
-      setShowEdit(false)
-      setEditMember(null)
-      setSuccess('Role updated successfully.')
-      setTimeout(() => setSuccess(null), 3000)
+      setShowEdit(false); setEditMember(null)
+      setSuccess('Permissions saved.'); setTimeout(() => setSuccess(null), 3000)
       loadMembers()
-    } catch (e: any) {
-      setError('Failed to update role: ' + e.message)
-    }
+    } catch (e: any) { setError('Failed: ' + e.message) }
     setSaving(false)
   }
 
   const handleDeactivate = async (member: TeamMember) => {
-    try {
-      await supabase.from('user_profiles').update({ active: false }).eq('id', member.id)
-      setDeactivateConfirm(null)
-      setSuccess(`${member.full_name} has been deactivated.`)
-      setTimeout(() => setSuccess(null), 3000)
-      loadMembers()
-    } catch (e: any) {
-      setError('Failed to deactivate: ' + e.message)
-    }
+    await supabase.from('user_profiles').update({ active: false }).eq('id', member.id)
+    setDeactivateConfirm(null); setShowEdit(false)
+    setSuccess(`${member.full_name} deactivated.`); setTimeout(() => setSuccess(null), 3000)
+    loadMembers()
   }
 
   const handleReactivate = async (member: TeamMember) => {
     await supabase.from('user_profiles').update({ active: true }).eq('id', member.id)
-    setSuccess(`${member.full_name} reactivated.`)
-    setTimeout(() => setSuccess(null), 3000)
+    setSuccess(`${member.full_name} reactivated.`); setTimeout(() => setSuccess(null), 3000)
     loadMembers()
   }
 
-  const inp: React.CSSProperties = {
-    width: '100%', padding: '9px 11px', border: '1px solid #1e293b', borderRadius: 8,
-    fontSize: 13, fontFamily: 'inherit', outline: 'none', background: '#0f172a',
-    color: '#f1f5f9', boxSizing: 'border-box',
+  const applyPreset = (role: UserRole) => {
+    if (!editMember) return
+    setEditMember({ ...editMember, role, permissions: { ...DEFAULT_PERMISSIONS[role] } })
   }
-  const lbl: React.CSSProperties = {
-    fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase',
-    letterSpacing: '0.05em', marginBottom: 4, display: 'block',
+
+  const updatePerm = (key: keyof Permissions, value: any) => {
+    if (!editMember) return
+    setEditMember({ ...editMember, permissions: { ...editMember.permissions, [key]: value } })
   }
+
+  const inp: React.CSSProperties = { width: '100%', padding: '9px 11px', border: '1px solid #1e293b', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: '#0f172a', color: '#f1f5f9', boxSizing: 'border-box' }
+  const lbl: React.CSSProperties = { fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'block' }
 
   const activeMembers = members.filter(m => m.active)
   const inactiveMembers = members.filter(m => !m.active)
 
   return (
     <div style={{ padding: '2rem', background: '#0a0f1a', minHeight: '100vh' }}>
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: '#f1f5f9', margin: '0 0 2px' }}>Team</h1>
@@ -193,34 +286,24 @@ export default function TeamPage() {
         </button>
       </div>
 
-      {/* Success / Error banners */}
-      {success && (
-        <div style={{ background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#4ade80', marginBottom: 16 }}>
-          ✓ {success}
-        </div>
-      )}
-      {error && (
-        <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#f87171', marginBottom: 16 }}>
-          {error}
-        </div>
-      )}
+      {success && <div style={{ background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.3)', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#4ade80', marginBottom: 16 }}>✓ {success}</div>}
+      {error && <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#f87171', marginBottom: 16 }}>{error}</div>}
 
-      {/* Permission levels reference */}
+      {/* Preset levels reference */}
       <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1rem 1.25rem', marginBottom: 20 }}>
-        <p style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Permission levels</p>
+        <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Preset permission levels</p>
+        <p style={{ margin: '0 0 12px', fontSize: 12, color: '#64748b' }}>Start with a preset level and customize further as needed.</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 8 }}>
           {ROLE_OPTIONS.map(r => (
             <div key={r.value} style={{ background: '#1e293b', borderRadius: 8, padding: '10px 12px' }}>
-              <span style={{ background: ROLE_COLORS[r.value].bg, color: ROLE_COLORS[r.value].color, padding: '2px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700, display: 'inline-block', marginBottom: 6 }}>
-                {r.label}
-              </span>
+              <span style={{ background: ROLE_COLORS[r.value].bg, color: ROLE_COLORS[r.value].color, padding: '2px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700, display: 'inline-block', marginBottom: 6 }}>{r.label}</span>
               <p style={{ margin: 0, fontSize: 11, color: '#64748b', lineHeight: 1.4 }}>{r.desc}</p>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Active users table */}
+      {/* Users table */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '3rem', color: '#475569' }}>Loading...</div>
       ) : (
@@ -244,7 +327,7 @@ export default function TeamPage() {
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <div style={{ width: 34, height: 34, borderRadius: '50%', background: ROLE_COLORS[m.role].bg, border: `1px solid ${ROLE_COLORS[m.role].color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: ROLE_COLORS[m.role].color, flexShrink: 0 }}>
-                          {m.full_name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                          {m.full_name.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()}
                         </div>
                         <div>
                           <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: ROLE_COLORS[m.role].color }}>{m.full_name}</p>
@@ -258,9 +341,9 @@ export default function TeamPage() {
                     <td style={{ padding: '12px 16px', fontSize: 13, color: '#64748b' }}>{fmtDate(m.last_sign_in_at)}</td>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <button onClick={() => { setEditMember({ ...m }); setShowEdit(true); setError(null) }}
+                        <button onClick={() => { setEditMember({ ...m, permissions: m.permissions || DEFAULT_PERMISSIONS[m.role] }); setShowEdit(true); setError(null) }}
                           style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
-                          Edit role
+                          Edit permissions
                         </button>
                         <button onClick={() => setDeactivateConfirm(m)}
                           style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -274,7 +357,6 @@ export default function TeamPage() {
             </table>
           </div>
 
-          {/* Inactive users */}
           {inactiveMembers.length > 0 && (
             <div style={{ background: '#0f172a', borderRadius: 14, border: '1px solid #1e293b', overflow: 'hidden' }}>
               <div style={{ padding: '12px 16px', borderBottom: '1px solid #1e293b', background: '#0d1526' }}>
@@ -287,7 +369,7 @@ export default function TeamPage() {
                       <td style={{ padding: '10px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                           <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#1e293b', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, color: '#475569' }}>
-                            {m.full_name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                            {m.full_name.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()}
                           </div>
                           <p style={{ margin: 0, fontSize: 13, color: '#475569' }}>{m.full_name}</p>
                         </div>
@@ -308,7 +390,7 @@ export default function TeamPage() {
         </>
       )}
 
-      {/* Invite Modal */}
+      {/* INVITE MODAL */}
       {showInvite && (
         <>
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 500 }} onClick={() => setShowInvite(false)} />
@@ -317,15 +399,11 @@ export default function TeamPage() {
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>Invite team member</h2>
               <button onClick={() => setShowInvite(false)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 22, cursor: 'pointer' }}>×</button>
             </div>
-
             {error && <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#f87171', marginBottom: 14 }}>{error}</div>}
-
             <label style={lbl}>Full name *</label>
             <input style={{ ...inp, marginBottom: 12 }} value={inviteName} onChange={e => setInviteName(e.target.value)} placeholder="e.g. Brandon Ryan" />
-
             <label style={lbl}>Email address *</label>
             <input style={{ ...inp, marginBottom: 16 }} type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="e.g. brandon@phllandcare.com" />
-
             <label style={lbl}>Permission level</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
               {ROLE_OPTIONS.map(r => (
@@ -339,11 +417,9 @@ export default function TeamPage() {
                 </div>
               ))}
             </div>
-
             <div style={{ background: 'rgba(96,165,250,0.08)', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#60a5fa', marginBottom: 20 }}>
               📧 They'll receive an email with a link to set their password and access PHL CRM.
             </div>
-
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={() => setShowInvite(false)} style={{ padding: '10px 20px', border: '1px solid #1e293b', borderRadius: 9, background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>Cancel</button>
               <button onClick={handleInvite} disabled={saving} style={{ padding: '10px 20px', border: 'none', borderRadius: 9, background: '#16a34a', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
@@ -354,47 +430,143 @@ export default function TeamPage() {
         </>
       )}
 
-      {/* Edit Role Modal */}
+      {/* EDIT PERMISSIONS DRAWER */}
       {showEdit && editMember && (
         <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 500 }} onClick={() => setShowEdit(false)} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 480, maxHeight: '90vh', overflowY: 'auto', background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 501, padding: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>Edit — {editMember.full_name}</h2>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500 }} onClick={() => setShowEdit(false)} />
+          <div style={{ position: 'fixed', top: 0, right: 0, width: 500, height: '100vh', background: '#0d1526', borderLeft: '1px solid #1e293b', zIndex: 501, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>{editMember.full_name}</h2>
+                <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Edit permissions</p>
+              </div>
               <button onClick={() => setShowEdit(false)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 22, cursor: 'pointer' }}>×</button>
             </div>
 
-            {error && <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#f87171', marginBottom: 14 }}>{error}</div>}
+            <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+              {error && <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#f87171', marginBottom: 14 }}>{error}</div>}
 
-            <label style={lbl}>Permission level</label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-              {ROLE_OPTIONS.map(r => (
-                <div key={r.value} onClick={() => setEditMember({ ...editMember, role: r.value })}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 8, border: `1px solid ${editMember.role === r.value ? ROLE_COLORS[r.value].color : '#1e293b'}`, background: editMember.role === r.value ? ROLE_COLORS[r.value].bg : 'transparent', cursor: 'pointer' }}>
-                  <div style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${editMember.role === r.value ? ROLE_COLORS[r.value].color : '#334155'}`, background: editMember.role === r.value ? ROLE_COLORS[r.value].color : 'transparent', flexShrink: 0 }} />
-                  <div>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: editMember.role === r.value ? ROLE_COLORS[r.value].color : '#f1f5f9' }}>{r.label}</p>
-                    <p style={{ margin: 0, fontSize: 11, color: '#64748b' }}>{r.desc}</p>
-                  </div>
+              {/* Preset picker */}
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Preset permission level</p>
+                <p style={{ margin: '0 0 10px', fontSize: 12, color: '#475569' }}>Start with a preset and customize further as needed.</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {ROLE_OPTIONS.map(r => (
+                    <div key={r.value} onClick={() => applyPreset(r.value)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, border: `1px solid ${editMember.role === r.value ? ROLE_COLORS[r.value].color : '#1e293b'}`, background: editMember.role === r.value ? ROLE_COLORS[r.value].bg : 'transparent', cursor: 'pointer' }}>
+                      <div style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${editMember.role === r.value ? ROLE_COLORS[r.value].color : '#334155'}`, background: editMember.role === r.value ? ROLE_COLORS[r.value].color : 'transparent', flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, fontWeight: 600, color: editMember.role === r.value ? ROLE_COLORS[r.value].color : '#f1f5f9' }}>{r.label}</span>
+                      <span style={{ fontSize: 11, color: '#475569' }}>{r.desc}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+
+              <div style={{ borderTop: '1px solid #1e293b', paddingTop: 16 }}>
+                <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Custom permissions</p>
+
+                <Section title="Schedule" enabled={editMember.permissions.schedule_enabled} onToggle={v => updatePerm('schedule_enabled', v)}>
+                  <RadioGroup disabled={!editMember.permissions.schedule_enabled} value={editMember.permissions.schedule} onChange={v => updatePerm('schedule', v)} options={[
+                    { value: 'view_own', label: 'View their own schedule' },
+                    { value: 'view_complete_own', label: 'View and complete their own schedule' },
+                    { value: 'edit_own', label: 'Edit their own schedule' },
+                    { value: 'edit_all', label: "Edit everyone's schedule" },
+                    { value: 'edit_delete_all', label: "Edit and delete everyone's schedule" },
+                  ]} />
+                </Section>
+
+                <Section title="Time tracking and timesheets" enabled={editMember.permissions.time_tracking_enabled} onToggle={v => updatePerm('time_tracking_enabled', v)}>
+                  <RadioGroup disabled={!editMember.permissions.time_tracking_enabled} value={editMember.permissions.time_tracking} onChange={v => updatePerm('time_tracking', v)} options={[
+                    { value: 'view_record_own', label: 'View and record their own' },
+                    { value: 'view_record_edit_own', label: 'View, record, and edit their own' },
+                    { value: 'view_record_edit_all', label: "View, record, and edit everyone's" },
+                  ]} />
+                </Section>
+
+                <Section title="Notes" enabled={editMember.permissions.notes_enabled} onToggle={v => updatePerm('notes_enabled', v)} subtitle="Includes all notes across PHL CRM.">
+                  <RadioGroup disabled={!editMember.permissions.notes_enabled} value={editMember.permissions.notes} onChange={v => updatePerm('notes', v)} options={[
+                    { value: 'view_jobs_only', label: 'View notes on jobs and visits only' },
+                    { value: 'view_all', label: 'View all notes' },
+                    { value: 'view_edit_all', label: 'View and edit all' },
+                    { value: 'view_edit_delete_all', label: 'View, edit, and delete all' },
+                  ]} />
+                </Section>
+
+                <Section title="Files and media" enabled={editMember.permissions.files_enabled} onToggle={v => updatePerm('files_enabled', v)} subtitle="Allows viewing of all client files and attachments." />
+
+                <Section title="Expenses" enabled={editMember.permissions.expenses_enabled} onToggle={v => updatePerm('expenses_enabled', v)}>
+                  <RadioGroup disabled={!editMember.permissions.expenses_enabled} value={editMember.permissions.expenses} onChange={v => updatePerm('expenses', v)} options={[
+                    { value: 'view_record_own', label: 'View, record, and edit their own' },
+                    { value: 'view_record_edit_all', label: "View, record, and edit everyone's" },
+                  ]} />
+                </Section>
+
+                <Section title="Show pricing" subtitle="Allows editing of quotes, invoices, and line items on jobs.">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 }}>
+                    <Toggle on={editMember.permissions.show_pricing} onChange={v => updatePerm('show_pricing', v)} />
+                  </div>
+                </Section>
+
+                <Section title="Job costing" subtitle="Show job profit by tracking revenue and costs from line items, labor, and expenses.">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 8 }}>
+                    <Toggle on={editMember.permissions.job_costing} onChange={v => updatePerm('job_costing', v)} />
+                  </div>
+                </Section>
+
+                <Section title="Clients and properties" enabled={editMember.permissions.clients_enabled} onToggle={v => updatePerm('clients_enabled', v)} subtitle="Includes access to all client custom fields.">
+                  <RadioGroup disabled={!editMember.permissions.clients_enabled} value={editMember.permissions.clients} onChange={v => updatePerm('clients', v)} options={[
+                    { value: 'view_name_address', label: 'View client name and address only' },
+                    { value: 'view_full', label: 'View full client and property info' },
+                    { value: 'view_edit', label: 'View and edit full client and property info' },
+                    { value: 'view_edit_delete', label: 'View, edit, and delete full client and property info' },
+                  ]} />
+                </Section>
+
+                <Section title="Requests" enabled={editMember.permissions.requests_enabled} onToggle={v => updatePerm('requests_enabled', v)}>
+                  <RadioGroup disabled={!editMember.permissions.requests_enabled} value={editMember.permissions.requests} onChange={v => updatePerm('requests', v)} options={[
+                    { value: 'view_only', label: 'View only' },
+                    { value: 'view_create_edit', label: 'View, create, and edit' },
+                    { value: 'view_create_edit_delete', label: 'View, create, edit, and delete' },
+                  ]} />
+                </Section>
+
+                <Section title="Quotes" enabled={editMember.permissions.quotes_enabled} onToggle={v => updatePerm('quotes_enabled', v)} subtitle="Full access to create, edit, and send quotes." />
+
+                <Section title="Jobs" enabled={editMember.permissions.jobs_enabled} onToggle={v => updatePerm('jobs_enabled', v)}>
+                  <RadioGroup disabled={!editMember.permissions.jobs_enabled} value={editMember.permissions.jobs} onChange={v => updatePerm('jobs', v)} options={[
+                    { value: 'view_only', label: 'View only' },
+                    { value: 'view_create_edit', label: 'View, create, and edit' },
+                    { value: 'view_create_edit_delete', label: 'View, create, edit, and delete' },
+                  ]} />
+                </Section>
+
+                <Section title="Invoices" enabled={editMember.permissions.invoices_enabled} onToggle={v => updatePerm('invoices_enabled', v)} subtitle="Full access to create, edit, and send invoices." />
+                <Section title="Payments" enabled={editMember.permissions.payments_enabled} onToggle={v => updatePerm('payments_enabled', v)} subtitle="Allow payment collection on quotes and invoices." />
+                <Section title="Reports" enabled={editMember.permissions.reports_enabled} onToggle={v => updatePerm('reports_enabled', v)} subtitle="Users will only see reports available based on their other permissions." />
+              </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowEdit(false)} style={{ padding: '10px 20px', border: '1px solid #1e293b', borderRadius: 9, background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>Cancel</button>
-              <button onClick={handleUpdateRole} disabled={saving} style={{ padding: '10px 20px', border: 'none', borderRadius: 9, background: '#16a34a', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
-                {saving ? 'Saving...' : 'Save changes'}
+            <div style={{ padding: '12px 20px', borderTop: '1px solid #1e293b', display: 'flex', gap: 8, justifyContent: 'space-between', flexShrink: 0 }}>
+              <button onClick={() => setDeactivateConfirm(editMember)}
+                style={{ padding: '9px 16px', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, background: 'rgba(248,113,113,0.1)', color: '#f87171', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>
+                Deactivate user
               </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={() => setShowEdit(false)} style={{ padding: '9px 16px', border: '1px solid #1e293b', borderRadius: 8, background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>Cancel</button>
+                <button onClick={handleSavePermissions} disabled={saving} style={{ padding: '9px 20px', border: 'none', borderRadius: 8, background: '#16a34a', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
+                  {saving ? 'Saving...' : 'Save changes'}
+                </button>
+              </div>
             </div>
           </div>
         </>
       )}
 
-      {/* Deactivate Confirm */}
+      {/* DEACTIVATE CONFIRM */}
       {deactivateConfirm && (
         <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 500 }} onClick={() => setDeactivateConfirm(null)} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 360, background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 501, padding: 24, textAlign: 'center' }}>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 600 }} onClick={() => setDeactivateConfirm(null)} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 360, background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 601, padding: 24, textAlign: 'center' }}>
             <p style={{ fontSize: 36, margin: '0 0 12px' }}>⚠️</p>
             <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>Deactivate {deactivateConfirm.full_name}?</h3>
             <p style={{ margin: '0 0 20px', fontSize: 13, color: '#64748b' }}>They will lose access to PHL CRM. You can reactivate them at any time.</p>
