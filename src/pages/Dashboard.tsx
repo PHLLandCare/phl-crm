@@ -100,7 +100,7 @@ export default function Dashboard() {
   const fmt = (n:number) => n >= 1000000 ? `$${(n/1000000).toFixed(1)}M` : n >= 1000 ? `$${(n/1000).toFixed(1)}k` : `$${n}`
 
   const NavItem = ({label,id,count,onClick}:{label:string,id:string,count?:number,onClick?:()=>void}) => (
-    <button onClick={onClick||(() =>setPage(id))} style={{
+    <button onClick={onClick||(()=>navigate('/'+id))} style={{
       width:'100%',textAlign:'left',padding:'8px 16px',
       background:page===id || (id==='dashboard' && page==='')?'rgba(74,222,128,0.1)':'transparent',
       border:'none',borderLeft:page===id || (id==='dashboard' && page==='')?'2px solid #4ade80':'2px solid transparent',
