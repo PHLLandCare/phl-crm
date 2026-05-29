@@ -262,7 +262,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 </div>
 
 <!-- ADD EMPLOYEE DRAWER -->
-<div class="overlay" id="emp-overlay" onclick="closeEmpDrawer()"></div>
+<div class="overlay" id="emp-overlay"></div>
 <div class="drawer" id="emp-drawer">
   <div class="drawer-hdr">
     <span class="drawer-title" id="emp-drawer-title">Add New Employee</span>
@@ -399,7 +399,7 @@ function handleQRScan(){
     {timeout:8000,maximumAge:0}
   );
 }
-handleQRScan();
+try{handleQRScan();}catch(qrErr){console.warn('QR scan init error:',qrErr);}
 
 async function doClockIn(empId, method){
   var msg=document.getElementById('clockin-msg');
@@ -618,6 +618,9 @@ function openAddEmp(){
   document.getElementById('ef-div').value='Lawn & Tree';
   document.getElementById('ef-crew').value='';
   document.getElementById('ef-role').value='Time clock only';
+  document.getElementById('ef-eid').setAttribute('readonly','readonly');
+  document.getElementById('ef-eid').style.background='#f8fafc';
+  document.getElementById('emp-save-btn').disabled=false;
   updateEmpIdField();
   document.getElementById('emp-drawer').classList.add('open');
   document.getElementById('emp-overlay').classList.add('show');
@@ -625,14 +628,16 @@ function openAddEmp(){
 }
 function editEmp(eid){
   var e=allEmployees.find(function(x){return x.employee_id===eid;});
-  if(!e){toast('Employee not found');return;}
+  if(!e){toast('Employee not found: '+eid);return;}
   editingEmpId=eid;
   document.getElementById('emp-drawer-title').textContent='Edit: '+fullName(e);
   document.getElementById('emp-save-lbl').textContent='Save changes';
+  document.getElementById('emp-save-btn').disabled=false;
   document.getElementById('ef-fname').value=e.fname||'';
   document.getElementById('ef-lname').value=e.lname||'';
   document.getElementById('ef-eid').value=e.employee_id||'';
   document.getElementById('ef-eid').removeAttribute('readonly');
+  document.getElementById('ef-eid').style.background='#fff';
   document.getElementById('ef-phone').value=e.phone||'';
   document.getElementById('ef-div').value=e.division||'Lawn & Tree';
   document.getElementById('ef-crew').value=e.crew||'';
@@ -644,6 +649,9 @@ function editEmp(eid){
 function closeEmpDrawer(){
   document.getElementById('emp-drawer').classList.remove('open');
   document.getElementById('emp-overlay').classList.remove('show');
+  editingEmpId=null;
+  document.getElementById('emp-save-btn').disabled=false;
+  document.getElementById('emp-save-lbl').textContent='Add employee';
 }
 async function saveEmployee(){
   var fn=document.getElementById('ef-fname').value.trim();
@@ -655,14 +663,15 @@ async function saveEmployee(){
   try{
     if(editingEmpId){
       var emp=allEmployees.find(function(x){return x.employee_id===editingEmpId;});
-      if(!emp){toast('Employee not found');btn.disabled=false;return;}
+      if(!emp){toast('Employee not found');btn.disabled=false;document.getElementById('emp-save-lbl').textContent='Save changes';return;}
+      if(!emp.id){toast('Error: employee record missing database ID. Please refresh and try again.');btn.disabled=false;document.getElementById('emp-save-lbl').textContent='Save changes';return;}
       var updateData={fname:fn,lname:ln,phone:document.getElementById('ef-phone').value.trim(),division:document.getElementById('ef-div').value,crew:document.getElementById('ef-crew').value,role:document.getElementById('ef-role').value};
       await sb('PATCH','/employees?id=eq.'+emp.id,updateData);
-      toast('Employee updated!');
+      toast(fn+' '+ln+' updated!');
     } else {
       var newData={fname:fn,lname:ln,employee_id:document.getElementById('ef-eid').value,phone:document.getElementById('ef-phone').value.trim(),division:document.getElementById('ef-div').value,crew:document.getElementById('ef-crew').value,role:document.getElementById('ef-role').value,active:true,color:COLORS[Math.floor(Math.random()*COLORS.length)]};
       await sb('POST','/employees',newData);
-      toast('Employee added!');
+      toast(fn+' '+ln+' added!');
     }
     closeEmpDrawer();
     await loadEmployees();
