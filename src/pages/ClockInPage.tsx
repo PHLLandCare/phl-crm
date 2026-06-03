@@ -48,13 +48,41 @@ export default function ClockInPage() {
   const handleClockIn = async () => {
     if (!selected) return
     setSaving(true)
-    await supabase.from('clock_events').insert({
-      employee_id: selected.employee_id,
-      full_name: `${selected.fname} ${selected.lname}`,
-      division: selected.division,
-      event_type: action,
-      timestamp: new Date().toISOString(),
-    })
+    const now = new Date().toISOString()
+
+    if (action === 'in') {
+      await supabase.from('clock_events').insert({
+        employee_id: selected.employee_id,
+        employee_name: `${selected.fname} ${selected.lname}`,
+        division: selected.division,
+        clock_in: now,
+        method: 'Personal QR',
+        flagged: false,
+      })
+    } else {
+      const { data: open } = await supabase
+        .from('clock_events')
+        .select('id')
+        .eq('employee_id', selected.employee_id)
+        .is('clock_out', null)
+        .not('clock_in', 'is', null)
+        .order('clock_in', { ascending: false })
+        .limit(1)
+
+      if (open && open.length > 0) {
+        await supabase.from('clock_events').update({ clock_out: now }).eq('id', open[0].id)
+      } else {
+        await supabase.from('clock_events').insert({
+          employee_id: selected.employee_id,
+          employee_name: `${selected.fname} ${selected.lname}`,
+          division: selected.division,
+          clock_out: now,
+          method: 'Personal QR',
+          flagged: false,
+        })
+      }
+    }
+
     setSaving(false)
     setDone(true)
     setTimeout(() => { setDone(false); setSelected(null); setSearch('') }, 3000)

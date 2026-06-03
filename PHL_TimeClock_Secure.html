@@ -443,7 +443,7 @@ async function loadEmployees() {
 async function loadClockEvents() {
   try {
     var today = new Date().toISOString().split('T')[0];
-    var data = await sb('GET', '/clock_events?order=created_at.desc&select=*&created_at=gte.' + today + 'T00:00:00');
+    var data = await sb('GET', '/clock_events?select=*&order=created_at.desc&created_at=gte.' + today + 'T00:00:00');
     allClockEvents = data;
     renderLog();
     renderKioskRecent();
@@ -701,7 +701,7 @@ function showQR(eid) {
   document.getElementById('qr-modal-title').textContent = 'QR Badge — ' + fullName(e);
   document.getElementById('qr-emp-name').textContent = fullName(e);
   document.getElementById('qr-emp-id').textContent = e.employee_id + ' · ' + e.division;
-  var container = document.getElementById('qr-code-display');
+  var container = document.getElementById('qr-display');
   container.innerHTML = '';
   var qrUrl = 'https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html?emp=' + encodeURIComponent(e.employee_id) + '&name=' + encodeURIComponent(fullName(e));
   try {
