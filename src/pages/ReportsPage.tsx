@@ -61,14 +61,24 @@ export default function ReportsPage() {
   ]
 
   return (
-    <div style={{padding:'2rem',maxWidth:1200,margin:'0 auto',fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif'}}>
+    <div style={{padding:'2rem',maxWidth:1200,margin:'0 auto',fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',background:'#0a0f1a',minHeight:'100vh'}}>
       {/* Header */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.5rem',flexWrap:'wrap',gap:12}}>
         <div>
           <h1 style={{fontSize:24,fontWeight:700,color:'#f1f5f9',margin:'0 0 4px'}}>Reports</h1>
           <p style={{fontSize:14,color:'#64748b',margin:0}}>Business performance & analytics</p>
         </div>
-        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',alignItems:'center'}}>
+          <button onClick={()=>{
+            const rows = [['Type','Date','Client','Amount','Status']]
+            invoices.forEach(i=>rows.push(['Invoice',i.created_at?.slice(0,10)||'',i.client_name||'',String(i.amount||0),i.status||'']))
+            expenses.forEach(e=>rows.push(['Expense',e.created_at?.slice(0,10)||'',e.description||'',String(e.amount||0),e.category||'']))
+            jobs.forEach(j=>rows.push(['Job',j.created_at?.slice(0,10)||'',j.client_name||j.title||'',String(j.amount||0),j.status||'']))
+            const csv=rows.map(r=>r.join(',')).join('\n')
+            const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='phl_report.csv';a.click()
+          }} style={{padding:'8px 14px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,color:'#f1f5f9',cursor:'pointer',fontSize:13,fontFamily:'inherit',fontWeight:600}}>
+            📥 Export CSV
+          </button>
           <select value={division} onChange={e=>setDivision(e.target.value)} style={{padding:'8px 12px',background:'#0f172a',border:'1px solid #1e293b',borderRadius:8,color:'#f1f5f9',fontSize:13,fontFamily:'inherit',cursor:'pointer'}}>
             {DIVS.map(d=><option key={d}>{d}</option>)}
           </select>

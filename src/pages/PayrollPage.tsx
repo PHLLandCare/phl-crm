@@ -172,28 +172,28 @@ export default function PayrollPage() {
   const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${days[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
 
   return (
-    <div style={{ padding: '2rem', maxWidth: 1300, margin: '0 auto', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' }}>
+    <div style={{ padding: '2rem', maxWidth: 1300, margin: '0 auto', background: '#0a0f1a', minHeight: '100vh', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>Payroll</h1>
-          <p style={{ fontSize: 14, color: '#6b7280', margin: 0 }}>{weekLabel}</p>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#f1f5f9', margin: '0 0 4px' }}>Payroll</h1>
+          <p style={{ fontSize: 14, color: '#64748b', margin: 0 }}>{weekLabel}</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={() => setWeekOffset(w => w - 1)} style={{ padding: '8px 14px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: 16, fontFamily: 'inherit' }}>‹</button>
-            <span style={{ fontSize: 13, color: '#6b7280', minWidth: 120, textAlign: 'center' }}>{weekLabel}</span>
-            <button onClick={() => setWeekOffset(w => w + 1)} disabled={weekOffset >= 0} style={{ padding: '8px 14px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, cursor: weekOffset < 0 ? 'pointer' : 'not-allowed', fontSize: 16, fontFamily: 'inherit', opacity: weekOffset >= 0 ? 0.4 : 1 }}>›</button>
+            <button onClick={() => setWeekOffset(w => w - 1)} style={{ padding: '8px 14px', background: '#0f172a', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: 16, fontFamily: 'inherit' }}>‹</button>
+            <span style={{ fontSize: 13, color: '#64748b', minWidth: 120, textAlign: 'center' }}>{weekLabel}</span>
+            <button onClick={() => setWeekOffset(w => w + 1)} disabled={weekOffset >= 0} style={{ padding: '8px 14px', background: '#0f172a', border: '1px solid #e5e7eb', borderRadius: 8, cursor: weekOffset < 0 ? 'pointer' : 'not-allowed', fontSize: 16, fontFamily: 'inherit', opacity: weekOffset >= 0 ? 0.4 : 1 }}>›</button>
           </div>
-          <button onClick={exportCSV} style={{ padding: '9px 16px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', fontWeight: 600 }}>📥 Export CSV</button>
-          <button onClick={printAll} style={{ padding: '9px 16px', background: '#16a34a', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', fontWeight: 600, color: '#fff' }}>🖨️ Print All Stubs</button>
+          <button onClick={exportCSV} style={{ padding: '9px 16px', background: '#0f172a', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', fontWeight: 600 }}>📥 Export CSV</button>
+          <button onClick={printAll} style={{ padding: '9px 16px', background: '#16a34a', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', fontWeight: 600, color: '#0f172a' }}>🖨️ Print All Stubs</button>
         </div>
       </div>
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
         {[{id:'payroll',label:'Payroll'},{id:'stubs',label:'Pay Stubs'},{id:'history',label:'Punch History'}].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id as any)} style={{ padding: '10px 20px', border: 'none', background: 'transparent', color: tab === t.id ? '#16a34a' : '#6b7280', fontWeight: tab === t.id ? 700 : 400, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', borderBottom: tab === t.id ? '2px solid #16a34a' : '2px solid transparent', marginBottom: -1 }}>
+          <button key={t.id} onClick={() => setTab(t.id as any)} style={{ padding: '10px 20px', border: 'none', background: 'transparent', color: tab === t.id ? '#16a34a' : '#64748b', fontWeight: tab === t.id ? 700 : 400, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', borderBottom: tab === t.id ? '2px solid #16a34a' : '2px solid transparent', marginBottom: -1 }}>
             {t.label}
           </button>
         ))}
@@ -209,18 +209,18 @@ export default function PayrollPage() {
           { label: 'Net Payroll', value: fmt(totals.net) },
           { label: 'Employer Taxes', value: fmt(employees.filter(e => e.employee_type === 'W2').reduce((a, e) => { const g = calcPay(e).gross; return a + g * 0.062 + g * 0.0145 + g * 0.006 }, 0)) },
         ].map(s => (
-          <div key={s.label} style={{ background: '#fff', borderRadius: 12, padding: '1rem', border: '1px solid #e5e7eb' }}>
-            <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 4px' }}>{s.label}</p>
-            <p style={{ fontSize: 20, fontWeight: 700, color: '#111827', margin: 0 }}>{s.value}</p>
+          <div key={s.label} style={{ background: '#0f172a', borderRadius: 12, padding: '1rem', border: '1px solid #e5e7eb' }}>
+            <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 4px' }}>{s.label}</p>
+            <p style={{ fontSize: 20, fontWeight: 700, color: '#f1f5f9', margin: 0 }}>{s.value}</p>
           </div>
         ))}
       </div>
 
       {tab === 'payroll' && !loading && (
-        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e5e7eb', overflow: 'auto' }}>
+        <div style={{ background: '#0f172a', borderRadius: 16, border: '1px solid #e5e7eb', overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
             <thead>
-              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+              <tr style={{ background: '#0a0f1a', borderBottom: '1px solid #e5e7eb' }}>
                 <th style={th}>Employee</th>
                 <th style={th}>Type / Rate</th>
                 {DAY_LABELS.map(d => <th key={d} style={{ ...th, textAlign: 'center' }}>{d}</th>)}
@@ -234,16 +234,16 @@ export default function PayrollPage() {
             </thead>
             <tbody>
               {employees.length === 0 ? (
-                <tr><td colSpan={13} style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>No employees found</td></tr>
+                <tr><td colSpan={13} style={{ padding: '2rem', textAlign: 'center', color: '#475569' }}>No employees found</td></tr>
               ) : employees.map(emp => {
                 const p = calcPay(emp)
                 const isManual = (i: number) => manualHours[emp.employee_id]?.[i] !== undefined
                 return (
                   <tr key={emp.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                    <td style={td}><span style={{ fontWeight: 600 }}>{emp.fname} {emp.lname}</span><br /><span style={{ fontSize: 11, color: '#6b7280' }}>{emp.employee_id}</span></td>
+                    <td style={td}><span style={{ fontWeight: 600 }}>{emp.fname} {emp.lname}</span><br /><span style={{ fontSize: 11, color: '#64748b' }}>{emp.employee_id}</span></td>
                     <td style={td}>
                       <span style={{ background: emp.employee_type === 'W2' ? '#dbeafe' : '#fef9c3', color: emp.employee_type === 'W2' ? '#1d4ed8' : '#854d0e', padding: '1px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>{emp.employee_type}</span>
-                      <br /><span style={{ fontSize: 12, color: '#6b7280' }}>${emp.hourly_rate || 15}/hr</span>
+                      <br /><span style={{ fontSize: 12, color: '#64748b' }}>${emp.hourly_rate || 15}/hr</span>
                     </td>
                     {DAY_LABELS.map((_, i) => (
                       <td key={i} style={{ padding: '8px 6px', textAlign: 'center' }}>
@@ -255,17 +255,17 @@ export default function PayrollPage() {
                             const v = parseFloat(e.target.value)
                             setManualHours(m => ({ ...m, [emp.employee_id]: { ...(m[emp.employee_id] || {}), [i]: isNaN(v) ? 0 : v } }))
                           }}
-                          style={{ width: 46, height: 32, padding: '0 4px', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 12, textAlign: 'center', outline: 'none', background: isManual(i) ? '#fef9c3' : '#fff', fontFamily: 'inherit' }}
+                          style={{ width: 46, height: 32, padding: '0 4px', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 12, textAlign: 'center', outline: 'none', background: isManual(i) ? '#fef9c3' : '#0f172a', fontFamily: 'inherit' }}
                         />
                       </td>
                     ))}
                     <td style={{ ...td, fontWeight: 700 }}>{fmtH(totalHours(emp))}{p.overtime > 0 && <span style={{ color: '#f59e0b', fontSize: 11, marginLeft: 4 }}>+{fmtH(p.overtime)}OT</span>}</td>
-                    <td style={{ ...td, color: p.overtime > 0 ? '#f59e0b' : '#9ca3af' }}>{fmtH(p.overtime)}</td>
+                    <td style={{ ...td, color: p.overtime > 0 ? '#f59e0b' : '#475569' }}>{fmtH(p.overtime)}</td>
                     <td style={{ ...td, fontWeight: 700 }}>{fmt(p.gross)}</td>
-                    <td style={{ ...td, color: '#6b7280', fontSize: 12 }}>{emp.employee_type === 'W2' ? fmt(p.federal + p.ss + p.medicare) : '—'}</td>
+                    <td style={{ ...td, color: '#64748b', fontSize: 12 }}>{emp.employee_type === 'W2' ? fmt(p.federal + p.ss + p.medicare) : '—'}</td>
                     <td style={{ ...td, fontWeight: 700, color: '#16a34a' }}>{fmt(p.net)}</td>
                     <td style={{ padding: '8px 12px' }}>
-                      <button onClick={() => printStub(emp)} style={{ padding: '5px 10px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>🖨️ Stub</button>
+                      <button onClick={() => printStub(emp)} style={{ padding: '5px 10px', background: '#1e293b', border: '1px solid #e5e7eb', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>🖨️ Stub</button>
                     </td>
                   </tr>
                 )
@@ -280,13 +280,13 @@ export default function PayrollPage() {
           {employees.map(emp => {
             const p = calcPay(emp)
             return (
-              <div key={emp.id} style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', padding: '1.25rem' }}>
+              <div key={emp.id} style={{ background: '#0f172a', borderRadius: 14, border: '1px solid #e5e7eb', padding: '1.25rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                   <div>
                     <p style={{ margin: 0, fontWeight: 700, fontSize: 16 }}>{emp.fname} {emp.lname}</p>
-                    <p style={{ margin: 0, fontSize: 12, color: '#6b7280' }}>{emp.employee_id} · {emp.employee_type} · ${emp.hourly_rate || 15}/hr</p>
+                    <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>{emp.employee_id} · {emp.employee_type} · ${emp.hourly_rate || 15}/hr</p>
                   </div>
-                  <button onClick={() => printStub(emp)} style={{ padding: '6px 12px', background: '#f3f4f6', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>🖨️</button>
+                  <button onClick={() => printStub(emp)} style={{ padding: '6px 12px', background: '#1e293b', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>🖨️</button>
                 </div>
                 <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 10, fontSize: 13 }}>
                   {[
@@ -299,8 +299,8 @@ export default function PayrollPage() {
                     { label: 'Net Pay', value: fmt(p.net), bold: true, color: '#16a34a' },
                   ].filter(Boolean).map((row, i) => row && (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: row.bold ? '1px solid #e5e7eb' : 'none' }}>
-                      <span style={{ color: '#374151', fontWeight: row.bold ? 700 : 400 }}>{row.label}</span>
-                      <span style={{ color: row.color || '#111827', fontWeight: row.bold ? 700 : 400 }}>{row.value}</span>
+                      <span style={{ color: '#cbd5e1', fontWeight: row.bold ? 700 : 400 }}>{row.label}</span>
+                      <span style={{ color: row.color || '#f1f5f9', fontWeight: row.bold ? 700 : 400 }}>{row.value}</span>
                     </div>
                   ))}
                 </div>
@@ -311,16 +311,16 @@ export default function PayrollPage() {
       )}
 
       {tab === 'history' && (
-        <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e5e7eb', overflow: 'auto' }}>
+        <div style={{ background: '#0f172a', borderRadius: 14, border: '1px solid #e5e7eb', overflow: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+              <tr style={{ background: '#0a0f1a', borderBottom: '1px solid #e5e7eb' }}>
                 {['Employee','Event','Date','Time'].map(h => <th key={h} style={th}>{h}</th>)}
               </tr>
             </thead>
             <tbody>
               {clockEvents.length === 0 ? (
-                <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#9ca3af' }}>No clock events this week</td></tr>
+                <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#475569' }}>No clock events this week</td></tr>
               ) : clockEvents.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((ev, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <td style={td}>{ev.employee_id}</td>
@@ -351,12 +351,12 @@ export default function PayrollPage() {
             {/* Stub title */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
               <div>
-                <p style={{ margin: '0 0 4px', fontSize: 13, color: '#6b7280' }}>EMPLOYEE</p>
+                <p style={{ margin: '0 0 4px', fontSize: 13, color: '#64748b' }}>EMPLOYEE</p>
                 <p style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{stubEmp.fname} {stubEmp.lname}</p>
-                <p style={{ margin: 0, fontSize: 12, color: '#6b7280' }}>{stubEmp.employee_id} · {stubEmp.employee_type} · ${stubEmp.hourly_rate || 15}/hr</p>
+                <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>{stubEmp.employee_id} · {stubEmp.employee_type} · ${stubEmp.hourly_rate || 15}/hr</p>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <p style={{ margin: '0 0 4px', fontSize: 13, color: '#6b7280' }}>PAY PERIOD</p>
+                <p style={{ margin: '0 0 4px', fontSize: 13, color: '#64748b' }}>PAY PERIOD</p>
                 <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{weekLabel}</p>
               </div>
             </div>
@@ -366,7 +366,7 @@ export default function PayrollPage() {
               return (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14, marginBottom: 20 }}>
                   <thead>
-                    <tr style={{ background: '#f9fafb' }}>
+                    <tr style={{ background: '#0a0f1a' }}>
                       <th style={{ padding: '8px 12px', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Description</th>
                       <th style={{ padding: '8px 12px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>Hours</th>
                       <th style={{ padding: '8px 12px', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>Rate</th>
@@ -376,7 +376,7 @@ export default function PayrollPage() {
                   <tbody>
                     <tr><td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>Regular Pay</td><td style={{ padding: '8px 12px', textAlign: 'right', borderBottom: '1px solid #f3f4f6' }}>{p.regular.toFixed(1)}</td><td style={{ padding: '8px 12px', textAlign: 'right', borderBottom: '1px solid #f3f4f6' }}>${p.rate.toFixed(2)}</td><td style={{ padding: '8px 12px', textAlign: 'right', borderBottom: '1px solid #f3f4f6' }}>${(p.regular * p.rate).toFixed(2)}</td></tr>
                     {p.overtime > 0 && <tr><td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', color: '#f59e0b' }}>Overtime Pay</td><td style={{ padding: '8px 12px', textAlign: 'right', borderBottom: '1px solid #f3f4f6' }}>{p.overtime.toFixed(1)}</td><td style={{ padding: '8px 12px', textAlign: 'right', borderBottom: '1px solid #f3f4f6' }}>${(p.rate * 1.5).toFixed(2)}</td><td style={{ padding: '8px 12px', textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#f59e0b' }}>${(p.overtime * p.rate * 1.5).toFixed(2)}</td></tr>}
-                    <tr style={{ background: '#f9fafb', fontWeight: 700 }}><td colSpan={3} style={{ padding: '8px 12px', borderBottom: '2px solid #e5e7eb' }}>Gross Pay</td><td style={{ padding: '8px 12px', textAlign: 'right', borderBottom: '2px solid #e5e7eb' }}>${p.gross.toFixed(2)}</td></tr>
+                    <tr style={{ background: '#0a0f1a', fontWeight: 700 }}><td colSpan={3} style={{ padding: '8px 12px', borderBottom: '2px solid #e5e7eb' }}>Gross Pay</td><td style={{ padding: '8px 12px', textAlign: 'right', borderBottom: '2px solid #e5e7eb' }}>${p.gross.toFixed(2)}</td></tr>
                     {stubEmp.employee_type === 'W2' && <>
                       <tr><td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', color: '#dc2626' }}>Federal Income Tax</td><td colSpan={2} style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}></td><td style={{ padding: '8px 12px', textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#dc2626' }}>-${p.federal.toFixed(2)}</td></tr>
                       <tr><td style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6', color: '#dc2626' }}>Social Security (6.2%)</td><td colSpan={2} style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}></td><td style={{ padding: '8px 12px', textAlign: 'right', borderBottom: '1px solid #f3f4f6', color: '#dc2626' }}>-${p.ss.toFixed(2)}</td></tr>
@@ -387,7 +387,7 @@ export default function PayrollPage() {
                 </table>
               )
             })()}
-            <p style={{ margin: 0, fontSize: 11, color: '#9ca3af', textAlign: 'center' }}>This is an official pay statement from {COMPANY.name} · {COMPANY.cityStateZip} · {COMPANY.email}</p>
+            <p style={{ margin: 0, fontSize: 11, color: '#475569', textAlign: 'center' }}>This is an official pay statement from {COMPANY.name} · {COMPANY.cityStateZip} · {COMPANY.email}</p>
           </div>
         </div>
       )}
@@ -395,5 +395,5 @@ export default function PayrollPage() {
   )
 }
 
-const th: React.CSSProperties = { padding: '12px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#6b7280' }
+const th: React.CSSProperties = { padding: '12px 12px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#64748b' }
 const td: React.CSSProperties = { padding: '12px 12px', fontSize: 14 }

@@ -192,13 +192,13 @@ export default function Dashboard() {
           </div>
           <p style={{fontSize:11,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.08em',margin:'0 0 10px'}}>Workflow</p>
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:1,marginBottom:'2rem',background:'#1e293b',borderRadius:14,overflow:'hidden',border:'1px solid #1e293b'}}>
-            <div style={{background:'#0f172a',padding:'1.25rem',borderRight:'1px solid #1e293b'}}>
+            <div style={{background:'#0f172a',padding:'1.25rem',borderRight:'1px solid #1e293b',borderTop:'3px solid #f59e0b'}}>
               <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b',fontWeight:600}}>Requests</p>
               <p style={{margin:'0 0 2px',fontSize:30,fontWeight:800,color:'#f1f5f9',lineHeight:1}}>{counts.requests}</p>
               <p style={{margin:0,fontSize:12,color:'#64748b'}}>New</p>
             </div>
             {can(userRole,'view_quotes') && (
-              <div style={{background:'#0f172a',padding:'1.25rem',borderRight:'1px solid #1e293b'}}>
+              <div style={{background:'#0f172a',padding:'1.25rem',borderRight:'1px solid #1e293b',borderTop:'3px solid #a855f7'}}>
                 <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b',fontWeight:600}}>Quotes</p>
                 <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:2}}>
                   <p style={{margin:0,fontSize:30,fontWeight:800,color:'#f1f5f9',lineHeight:1}}>{quoteStats.approved}</p>
@@ -214,7 +214,7 @@ export default function Dashboard() {
               </div>
             )}
             {can(userRole,'view_jobs') && (
-              <div style={{background:'#0f172a',padding:'1.25rem',borderRight:'1px solid #1e293b'}}>
+              <div style={{background:'#0f172a',padding:'1.25rem',borderRight:'1px solid #1e293b',borderTop:'3px solid #3b82f6'}}>
                 <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b',fontWeight:600}}>Jobs</p>
                 <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:2}}>
                   <p style={{margin:0,fontSize:30,fontWeight:800,color:'#f1f5f9',lineHeight:1}}>{jobStats.requiresInvoicing}</p>
@@ -229,7 +229,7 @@ export default function Dashboard() {
               </div>
             )}
             {can(userRole,'view_invoices') && (
-              <div style={{background:'#0f172a',padding:'1.25rem'}}>
+              <div style={{background:'#0f172a',padding:'1.25rem',borderTop:'3px solid #22c55e'}}>
                 <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b',fontWeight:600}}>Invoices</p>
                 <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:2}}>
                   <p style={{margin:0,fontSize:30,fontWeight:800,color:'#f1f5f9',lineHeight:1}}>{invoiceStats.awaitingPayment}</p>
@@ -337,15 +337,15 @@ export default function Dashboard() {
           <NavItem label="Farm"           id="div-farm"          icon="🚜" />
 
           <SectionLabel title="Tools" />
-          <NavItem label="Time Clock"    id="timeclock"  icon="⏰" onClick={()=>window.open('https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html','_blank')} />
-          {can(userRole,'view_payroll')   && <NavItem label="Payroll"     id="payroll"   icon="💵" />}
-          {can(userRole,'view_team')      && <NavItem label="All Employees" id="team"    icon="👤" />}
-          {can(userRole,'view_expenses')  && <NavItem label="Expenses"    id="expenses"  icon="🧾" />}
-          {can(userRole,'view_inventory') && <NavItem label="Inventory"          id="inventory" icon="📦" />}
-          {can(userRole,'view_quotes')    && <NavItem label="Products & Services" id="products"  icon="🛒" />}
-          {can(userRole,'view_reports')   && <NavItem label="Reports"             id="reports"   icon="📊" />}
-          {can(userRole,'view_settings')  && <NavItem label="Settings"            id="settings"  icon="⚙️" />}
-          {can(userRole,'manage_users')   && <NavItem label="Team Chat"           id="teamchat"  icon="💬" />}
+          <NavItem label="Time Clock"    id="timeclock"  icon="⏰" onClick={()=>window.open('https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html','_self')} />
+          {can(userRole,'view_payroll')   && <NavItem label="Payroll"           id="payroll"   icon="💵" />}
+          {can(userRole,'view_team')      && <NavItem label="All Employees"     id="team"      icon="👤" />}
+          {can(userRole,'view_expenses')  && <NavItem label="Expenses"          id="expenses"  icon="🧾" />}
+          {can(userRole,'view_inventory') && <NavItem label="Inventory"         id="inventory" icon="📦" />}
+          {can(userRole,'view_quotes')    && <NavItem label="Products & Services" id="products" icon="🛒" />}
+          {can(userRole,'view_reports')   && <NavItem label="Reports"           id="reports"   icon="📊" />}
+          {can(userRole,'view_settings')  && <NavItem label="Settings"          id="settings"  icon="⚙️" />}
+          {can(userRole,'manage_users')   && <NavItem label="Team Chat"         id="teamchat"  icon="💬" />}
         </div>
         <div style={{padding:'10px 14px',borderTop:'1px solid #1e293b'}}>
           <button onClick={handleSignOut} style={{width:'100%',background:'rgba(255,255,255,0.05)',color:'#64748b',border:'1px solid #1e293b',borderRadius:8,padding:'7px',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>
