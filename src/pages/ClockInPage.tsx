@@ -9,17 +9,24 @@ interface Employee {
   division: string
 }
 
-export default function ClockInPage() {
-  const [employees, setEmployees] = useState<Employee[]>([])
-  const [selected, setSelected] = useState<Employee | null>(null)
-  const [action, setAction] = useState<'in' | 'out'>('in')
-  const [saving, setSaving] = useState(false)
-  const [done, setDone] = useState(false)
-  const [search, setSearch] = useState('')
-  const [now, setNow] = useState(new Date())
+const DIVISION_COLORS: Record<string, string> = {
+  'Lawn & Tree':    '#16a34a',
+  'Irrigation':     '#0ea5e9',
+  'Extermination':  '#dc2626',
+  'Nursery':        '#d97706',
+  'Farm':           '#7c3aed',
+}
 
-  // Read emp param from hash query string
-  const empParam = new URLSearchParams(window.location.hash.split('?')[1] || '').get('emp')
+function divColor(division: string) {
+  return DIVISION_COLORS[division] || '#475569'
+}
+
+export default function ClockInPage() {
+  const [employees, setEmployees]   = useState<Employee[]>([])
+  const [openEvents, setOpenEvents] = useState<Set<string>>(new Set()) // employee_ids currently clocked in
+  const [saving, setSaving]         = useState<string | null>(null)    // employee_id being saved
+  const [done, setDone]             = useState<{ name: string; action: 'in' | 'out' } | null>(null)
+  const [now, setNow]               = useState(new Date())
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000)
@@ -28,135 +35,160 @@ export default function ClockInPage() {
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase.from('employees').select('id,employee_id,fname,lname,division').eq('active', true).order('fname')
-      const all = data ?? []
-      setEmployees(all)
-      // If emp param provided, auto-select
-      if (empParam) {
-        const match = all.find(e => e.employee_id === empParam)
-        if (match) setSelected(match)
-      }
+      const [empRes, evtRes] = await Promise.all([
+        supabase.from('employees').select('id,employee_id,fname,lname,division').eq('active', true).order('fname'),
+        supabase.from('clock_events').select('employee_id').is('clock_out', null).not('clock_in', 'is', null),
+      ])
+      setEmployees(empRes.data ?? [])
+      const open = new Set((evtRes.data ?? []).map((e: any) => e.employee_id as string))
+      setOpenEvents(open)
     }
     load()
-  }, [empParam])
+  }, [])
 
-  const filtered = employees.filter(e => {
-    const q = search.toLowerCase()
-    return `${e.fname} ${e.lname}`.toLowerCase().includes(q) || e.employee_id?.toLowerCase().includes(q)
-  })
-
-  const handleClockIn = async () => {
-    if (!selected) return
-    setSaving(true)
-    const now = new Date().toISOString()
+  const handleTap = async (emp: Employee) => {
+    if (saving) return
+    const isIn = openEvents.has(emp.employee_id)
+    const action: 'in' | 'out' = isIn ? 'out' : 'in'
+    setSaving(emp.employee_id)
+    const ts = new Date().toISOString()
 
     if (action === 'in') {
       await supabase.from('clock_events').insert({
-        employee_id: selected.employee_id,
-        employee_name: `${selected.fname} ${selected.lname}`,
-        division: selected.division,
-        clock_in: now,
-        method: 'Personal QR',
-        flagged: false,
+        employee_id:   emp.employee_id,
+        employee_name: `${emp.fname} ${emp.lname}`,
+        division:      emp.division,
+        clock_in:      ts,
+        method:        'Kiosk QR',
+        flagged:       false,
       })
+      setOpenEvents(prev => new Set([...prev, emp.employee_id]))
     } else {
       const { data: open } = await supabase
         .from('clock_events')
         .select('id')
-        .eq('employee_id', selected.employee_id)
+        .eq('employee_id', emp.employee_id)
         .is('clock_out', null)
         .not('clock_in', 'is', null)
         .order('clock_in', { ascending: false })
         .limit(1)
 
       if (open && open.length > 0) {
-        await supabase.from('clock_events').update({ clock_out: now }).eq('id', open[0].id)
-      } else {
-        await supabase.from('clock_events').insert({
-          employee_id: selected.employee_id,
-          employee_name: `${selected.fname} ${selected.lname}`,
-          division: selected.division,
-          clock_out: now,
-          method: 'Personal QR',
-          flagged: false,
-        })
+        await supabase.from('clock_events').update({ clock_out: ts }).eq('id', open[0].id)
       }
+      setOpenEvents(prev => { const s = new Set(prev); s.delete(emp.employee_id); return s })
     }
 
-    setSaving(false)
-    setDone(true)
-    setTimeout(() => { setDone(false); setSelected(null); setSearch('') }, 3000)
+    setSaving(null)
+    setDone({ name: `${emp.fname} ${emp.lname}`, action })
+    setTimeout(() => setDone(null), 2500)
   }
 
   const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0f1a', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', padding: '2rem' }}>
-      <div style={{ width: '100%', maxWidth: 480 }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <img src="https://phllandcare.github.io/phl-crm/phl_logo.jpg" alt="PHL" style={{ width: 72, height: 72, borderRadius: 16, objectFit: 'cover', marginBottom: 12 }} />
-          <p style={{ margin: 0, fontSize: 28, fontWeight: 800, color: '#f1f5f9' }}>{timeStr}</p>
-          <p style={{ margin: '4px 0 0', fontSize: 14, color: '#64748b' }}>{dateStr}</p>
-        </div>
+    <div style={{ minHeight: '100vh', background: '#060d18', fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' }}>
 
-        {done ? (
-          <div style={{ textAlign: 'center', background: '#0f172a', borderRadius: 20, padding: '3rem', border: '1px solid #16a34a' }}>
-            <div style={{ fontSize: 64, marginBottom: 16 }}>✅</div>
-            <p style={{ fontSize: 22, fontWeight: 700, color: '#4ade80', margin: '0 0 8px' }}>{action === 'in' ? 'Clocked In!' : 'Clocked Out!'}</p>
-            <p style={{ fontSize: 16, color: '#cbd5e1', margin: 0 }}>{selected?.fname} {selected?.lname}</p>
+      {/* Top bar */}
+      <div style={{ background: '#0a1628', borderBottom: '1px solid #1e293b', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <img src="https://phllandcare.github.io/phl-crm/phl_logo.jpg" alt="PHL" style={{ width: 40, height: 40, borderRadius: 10, objectFit: 'cover' }} />
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>PHL Land Care</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>Employee Time Clock</div>
           </div>
-        ) : (
-          <div style={{ background: '#0f172a', borderRadius: 20, padding: '1.5rem', border: '1px solid #1e293b' }}>
-            {/* In/Out toggle */}
-            <div style={{ display: 'flex', background: '#0a0f1a', borderRadius: 12, padding: 4, marginBottom: '1.25rem', gap: 4 }}>
-              {(['in', 'out'] as const).map(a => (
-                <button key={a} onClick={() => setAction(a)} style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 15, fontFamily: 'inherit', background: action === a ? '#16a34a' : 'transparent', color: action === a ? '#fff' : '#64748b', transition: 'all .15s' }}>
-                  Clock {a === 'in' ? 'In' : 'Out'}
-                </button>
-              ))}
-            </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', fontVariantNumeric: 'tabular-nums' }}>{timeStr}</div>
+          <div style={{ fontSize: 12, color: '#64748b' }}>{dateStr}</div>
+        </div>
+      </div>
 
-            {!empParam && (
-              <>
-                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or ID..." style={{ width: '100%', padding: '10px 14px', background: '#0a0f1a', border: '1px solid #1e293b', borderRadius: 10, color: '#f1f5f9', fontSize: 14, marginBottom: 12, boxSizing: 'border-box', outline: 'none', fontFamily: 'inherit' }} />
-                {search && (
-                  <div style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 12, borderRadius: 10, border: '1px solid #1e293b' }}>
-                    {filtered.map(e => (
-                      <button key={e.id} onClick={() => { setSelected(e); setSearch('') }} style={{ display: 'block', width: '100%', padding: '10px 14px', background: selected?.id === e.id ? 'rgba(74,222,128,0.1)' : 'transparent', border: 'none', borderBottom: '1px solid #1e293b', color: '#f1f5f9', textAlign: 'left', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
-                        <span style={{ fontWeight: 600 }}>{e.fname} {e.lname}</span>
-                        <span style={{ color: '#64748b', marginLeft: 8, fontSize: 12 }}>{e.employee_id} · {e.division}</span>
-                      </button>
-                    ))}
-                    {filtered.length === 0 && <p style={{ padding: '1rem', color: '#64748b', fontSize: 13, textAlign: 'center', margin: 0 }}>No employees found</p>}
-                  </div>
-                )}
-              </>
-            )}
+      {/* Success flash */}
+      {done && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: done.action === 'in' ? 'rgba(22,163,74,0.97)' : 'rgba(220,38,38,0.97)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          zIndex: 100, animation: 'fadeIn .15s ease'
+        }}>
+          <div style={{ fontSize: 80, marginBottom: 16 }}>{done.action === 'in' ? '✅' : '👋'}</div>
+          <div style={{ fontSize: 32, fontWeight: 800, color: '#fff', marginBottom: 8 }}>
+            {done.action === 'in' ? 'Clocked In!' : 'Clocked Out!'}
+          </div>
+          <div style={{ fontSize: 22, color: 'rgba(255,255,255,0.85)' }}>{done.name}</div>
+        </div>
+      )}
 
-            {selected && (
-              <div style={{ background: 'rgba(74,222,128,0.08)', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 12, padding: '1rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                  {selected.fname[0]}{selected.lname[0]}
+      {/* Instruction */}
+      <div style={{ textAlign: 'center', padding: '20px 16px 8px', color: '#64748b', fontSize: 14 }}>
+        Tap your name to clock in or out
+      </div>
+
+      {/* Employee grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, padding: '12px 16px 32px' }}>
+        {employees.map(emp => {
+          const isIn    = openEvents.has(emp.employee_id)
+          const isBusy  = saving === emp.employee_id
+          const color   = divColor(emp.division)
+
+          return (
+            <button
+              key={emp.id}
+              onClick={() => handleTap(emp)}
+              disabled={!!saving}
+              style={{
+                background:    isIn ? `${color}22` : '#0f172a',
+                border:        `2px solid ${isIn ? color : '#1e293b'}`,
+                borderRadius:  16,
+                padding:       '18px 12px',
+                cursor:        saving ? 'default' : 'pointer',
+                textAlign:     'center',
+                transition:    'all .15s',
+                opacity:       isBusy ? 0.6 : 1,
+                display:       'flex',
+                flexDirection: 'column',
+                alignItems:    'center',
+                gap:           10,
+              }}
+            >
+              {/* Avatar */}
+              <div style={{
+                width: 54, height: 54, borderRadius: '50%',
+                background: isIn ? color : '#1e293b',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 20, fontWeight: 800, color: isIn ? '#fff' : '#64748b',
+                border: isIn ? `3px solid ${color}` : '3px solid #334155',
+                transition: 'all .15s',
+              }}>
+                {isBusy ? '⏳' : `${emp.fname[0]}${emp.lname[0]}`}
+              </div>
+
+              {/* Name */}
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9', lineHeight: 1.2 }}>
+                  {emp.fname}
                 </div>
-                <div>
-                  <p style={{ margin: 0, fontWeight: 700, color: '#f1f5f9', fontSize: 16 }}>{selected.fname} {selected.lname}</p>
-                  <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>{selected.employee_id} · {selected.division}</p>
+                <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.2 }}>
+                  {emp.lname}
                 </div>
               </div>
-            )}
 
-            <button onClick={handleClockIn} disabled={!selected || saving} style={{ width: '100%', padding: '14px', background: selected ? '#16a34a' : '#1e293b', color: selected ? '#fff' : '#475569', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 17, cursor: selected ? 'pointer' : 'not-allowed', fontFamily: 'inherit', transition: 'all .15s' }}>
-              {saving ? 'Saving...' : `Clock ${action === 'in' ? 'In' : 'Out'}${selected ? ` — ${selected.fname}` : ''}`}
+              {/* Status badge */}
+              <div style={{
+                fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+                background: isIn ? color : '#1e293b',
+                color:      isIn ? '#fff' : '#475569',
+              }}>
+                {isIn ? '● Clocked In' : 'Tap to Clock In'}
+              </div>
             </button>
-          </div>
-        )}
-
-        <p style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-          <a href="https://phllandcare.github.io/phl-crm/" style={{ color: '#475569', fontSize: 13, textDecoration: 'none' }}>← Back to CRM</a>
-        </p>
+          )
+        })}
       </div>
+
+      <style>{`@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }`}</style>
     </div>
   )
 }
