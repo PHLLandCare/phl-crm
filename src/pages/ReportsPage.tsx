@@ -111,7 +111,7 @@ export default function ReportsPage() {
           {label:'Jobs',value:String(stats.jobs),sub:'Completed',color:'#a78bfa'},
           {label:'Active Clients',value:String(stats.clients),sub:'Total in CRM',color:'#34d399'},
         ].map(s=>(
-          <div key={s.label} style={{background:'#0f172a',borderRadius:12,padding:'1rem',border:'1px solid #1e293b',borderTop:`3px solid ${s.color}`}}>
+          <div key={s.label} style={{background:'#0f172a',borderRadius:12,padding:'1.1rem 1rem',border:'1px solid #1e293b',borderTop:`3px solid ${s.color}`,minHeight:90}}>
             <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b'}}>{s.label}</p>
             <p style={{margin:'0 0 2px',fontSize:22,fontWeight:800,color:s.color}}>{s.value}</p>
             <p style={{margin:0,fontSize:11,color:'#475569'}}>{s.sub}</p>
