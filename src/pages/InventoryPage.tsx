@@ -107,7 +107,7 @@ export default function InventoryPage() {
           {label:'Out of Stock', value:outOfStock,                      color:'#fca5a5'},
           {label:'Total Value',  value:`$${totalValue.toLocaleString()}`,color:'#4ade80'},
         ].map(s=>(
-          <div key={s.label} style={{background:'#0f172a',borderRadius:12,padding:'1rem',border:'1px solid #1e293b'}}>
+          <div key={s.label} style={{background:'#0f172a',borderRadius:12,padding:'1rem',border:'1px solid #1e293b',borderTop:`3px solid ${s.color}`}}>
             <p style={{fontSize:11,fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.05em',margin:'0 0 4px'}}>{s.label}</p>
             <p style={{fontSize:22,fontWeight:800,color:s.color,margin:0}}>{s.value}</p>
           </div>
