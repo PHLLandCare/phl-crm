@@ -21,9 +21,13 @@ interface Employee {
 }
 
 interface ClockEvent {
+  id: string
   employee_id: string
-  event_type: string
-  timestamp: string
+  employee_name: string
+  division: string
+  clock_in: string | null
+  clock_out: string | null
+  method: string
 }
 
 // Get Monday of week offset by n weeks from today
@@ -82,8 +86,8 @@ export default function PayrollPage() {
       const [empRes, clockRes] = await Promise.all([
         supabase.from('employees').select('*').eq('active', true).order('fname'),
         supabase.from('clock_events').select('*')
-          .gte('timestamp', weekStart.toISOString())
-          .lt('timestamp', new Date(weekStart.getTime() + 7 * 86400000).toISOString()),
+          .gte('clock_in', weekStart.toISOString())
+          .lt('clock_in', new Date(weekStart.getTime() + 7 * 86400000).toISOString()),
       ])
       setEmployees(empRes.data ?? [])
       setClockEvents(clockRes.data ?? [])
@@ -92,19 +96,22 @@ export default function PayrollPage() {
     load()
   }, [weekOffset])
 
-  // Compute clock hours per employee per day
+  // Compute clock hours per employee per day using clock_in / clock_out pairs
   const clockHours = (empId: string, dayIdx: number): number => {
     const day = days[dayIdx]
     const dayStart = day.getTime()
     const dayEnd = dayStart + 86400000
-    const events = clockEvents
-      .filter(e => e.employee_id === empId && new Date(e.timestamp).getTime() >= dayStart && new Date(e.timestamp).getTime() < dayEnd)
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    const events = clockEvents.filter(e =>
+      e.employee_id === empId &&
+      e.clock_in !== null &&
+      new Date(e.clock_in).getTime() >= dayStart &&
+      new Date(e.clock_in).getTime() < dayEnd
+    )
     let hrs = 0
-    let lastIn: number | null = null
     for (const ev of events) {
-      if (ev.event_type === 'in') lastIn = new Date(ev.timestamp).getTime()
-      else if (ev.event_type === 'out' && lastIn) { hrs += (new Date(ev.timestamp).getTime() - lastIn) / 3600000; lastIn = null }
+      if (ev.clock_in && ev.clock_out) {
+        hrs += (new Date(ev.clock_out).getTime() - new Date(ev.clock_in).getTime()) / 3600000
+      }
     }
     return Math.round(hrs * 100) / 100
   }
@@ -276,37 +283,74 @@ export default function PayrollPage() {
       )}
 
       {tab === 'stubs' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 16 }}>
-          {employees.map(emp => {
-            const p = calcPay(emp)
-            return (
-              <div key={emp.id} style={{ background: '#0f172a', borderRadius: 14, border: '1px solid #e5e7eb', padding: '1.25rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                  <div>
-                    <p style={{ margin: 0, fontWeight: 700, fontSize: 16 }}>{emp.fname} {emp.lname}</p>
-                    <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>{emp.employee_id} · {emp.employee_type} · ${emp.hourly_rate || 15}/hr</p>
-                  </div>
-                  <button onClick={() => printStub(emp)} style={{ padding: '6px 12px', background: '#1e293b', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit' }}>🖨️</button>
-                </div>
-                <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 10, fontSize: 13 }}>
-                  {[
-                    { label: 'Regular', value: `${fmtH(p.regular)} × $${p.rate} = ${fmt(p.regular * p.rate)}` },
-                    p.overtime > 0 ? { label: 'Overtime', value: `${fmtH(p.overtime)} × $${(p.rate * 1.5).toFixed(2)} = ${fmt(p.overtime * p.rate * 1.5)}`, color: '#f59e0b' } : null,
-                    { label: 'Gross Pay', value: fmt(p.gross), bold: true },
-                    emp.employee_type === 'W2' ? { label: 'Federal Income Tax', value: `-${fmt(p.federal)}`, color: '#ef4444' } : null,
-                    emp.employee_type === 'W2' ? { label: 'Social Security', value: `-${fmt(p.ss)}`, color: '#ef4444' } : null,
-                    emp.employee_type === 'W2' ? { label: 'Medicare', value: `-${fmt(p.medicare)}`, color: '#ef4444' } : null,
-                    { label: 'Net Pay', value: fmt(p.net), bold: true, color: '#16a34a' },
-                  ].filter(Boolean).map((row, i) => row && (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: row.bold ? '1px solid #e5e7eb' : 'none' }}>
-                      <span style={{ color: '#cbd5e1', fontWeight: row.bold ? 700 : 400 }}>{row.label}</span>
-                      <span style={{ color: row.color || '#f1f5f9', fontWeight: row.bold ? 700 : 400 }}>{row.value}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
+        <div style={{ background: '#0f172a', borderRadius: 16, border: '1px solid #1e293b', overflow: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 800 }}>
+            <thead>
+              <tr style={{ background: '#0a0f1a', borderBottom: '2px solid #1e293b' }}>
+                {['Employee', 'ID · Type · Rate', 'Regular', 'Overtime', 'Gross Pay', 'Fed Tax', 'SS', 'Medicare', 'Net Pay', ''].map(h => (
+                  <th key={h} style={{ padding: '12px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {employees.length === 0 ? (
+                <tr><td colSpan={10} style={{ padding: '2rem', textAlign: 'center', color: '#475569' }}>No employees found</td></tr>
+              ) : employees.map((emp, idx) => {
+                const p = calcPay(emp)
+                return (
+                  <tr key={emp.id} style={{ borderBottom: '1px solid #1e293b', background: idx % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)' }}>
+                    <td style={{ padding: '13px 14px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#16a34a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
+                          {emp.fname[0]}{emp.lname[0]}
+                        </div>
+                        <span style={{ fontWeight: 600, color: '#f1f5f9', fontSize: 14 }}>{emp.fname} {emp.lname}</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '13px 14px' }}>
+                      <div style={{ fontSize: 12, color: '#64748b' }}>{emp.employee_id}</div>
+                      <div style={{ display: 'flex', gap: 4, marginTop: 3 }}>
+                        <span style={{ background: emp.employee_type === 'W2' ? '#1e3a5f' : '#3b2f00', color: emp.employee_type === 'W2' ? '#60a5fa' : '#fbbf24', padding: '1px 7px', borderRadius: 20, fontSize: 10, fontWeight: 700 }}>{emp.employee_type}</span>
+                        <span style={{ color: '#94a3b8', fontSize: 12 }}>${emp.hourly_rate || 15}/hr</span>
+                      </div>
+                    </td>
+                    <td style={{ padding: '13px 14px', fontSize: 13, color: '#cbd5e1' }}>{fmtH(p.regular)}</td>
+                    <td style={{ padding: '13px 14px', fontSize: 13, color: p.overtime > 0 ? '#f59e0b' : '#475569', fontWeight: p.overtime > 0 ? 600 : 400 }}>{fmtH(p.overtime)}</td>
+                    <td style={{ padding: '13px 14px', fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>{fmt(p.gross)}</td>
+                    <td style={{ padding: '13px 14px', fontSize: 13, color: p.federal > 0 ? '#ef4444' : '#475569' }}>{emp.employee_type === 'W2' ? `-${fmt(p.federal)}` : '—'}</td>
+                    <td style={{ padding: '13px 14px', fontSize: 13, color: p.ss > 0 ? '#ef4444' : '#475569' }}>{emp.employee_type === 'W2' ? `-${fmt(p.ss)}` : '—'}</td>
+                    <td style={{ padding: '13px 14px', fontSize: 13, color: p.medicare > 0 ? '#ef4444' : '#475569' }}>{emp.employee_type === 'W2' ? `-${fmt(p.medicare)}` : '—'}</td>
+                    <td style={{ padding: '13px 14px', fontSize: 15, fontWeight: 800, color: '#4ade80' }}>{fmt(p.net)}</td>
+                    <td style={{ padding: '13px 14px' }}>
+                      <button onClick={() => printStub(emp)} title="Print pay stub" style={{ padding: '6px 12px', background: '#1e293b', border: '1px solid #334155', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        🖨️ Stub
+                      </button>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+            {employees.length > 0 && (() => {
+              const totalGross = employees.reduce((a, e) => a + calcPay(e).gross, 0)
+              const totalFed = employees.filter(e => e.employee_type === 'W2').reduce((a, e) => a + calcPay(e).federal, 0)
+              const totalSS = employees.filter(e => e.employee_type === 'W2').reduce((a, e) => a + calcPay(e).ss, 0)
+              const totalMed = employees.filter(e => e.employee_type === 'W2').reduce((a, e) => a + calcPay(e).medicare, 0)
+              const totalNet = employees.reduce((a, e) => a + calcPay(e).net, 0)
+              return (
+                <tfoot>
+                  <tr style={{ borderTop: '2px solid #334155', background: '#0a0f1a' }}>
+                    <td colSpan={4} style={{ padding: '13px 14px', fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Totals ({employees.length} employees)</td>
+                    <td style={{ padding: '13px 14px', fontSize: 14, fontWeight: 800, color: '#f1f5f9' }}>{fmt(totalGross)}</td>
+                    <td style={{ padding: '13px 14px', fontSize: 13, color: '#ef4444', fontWeight: 600 }}>-{fmt(totalFed)}</td>
+                    <td style={{ padding: '13px 14px', fontSize: 13, color: '#ef4444', fontWeight: 600 }}>-{fmt(totalSS)}</td>
+                    <td style={{ padding: '13px 14px', fontSize: 13, color: '#ef4444', fontWeight: 600 }}>-{fmt(totalMed)}</td>
+                    <td style={{ padding: '13px 14px', fontSize: 15, fontWeight: 800, color: '#4ade80' }}>{fmt(totalNet)}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              )
+            })()}
+          </table>
         </div>
       )}
 
@@ -315,20 +359,25 @@ export default function PayrollPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#0a0f1a', borderBottom: '1px solid #e5e7eb' }}>
-                {['Employee','Event','Date','Time'].map(h => <th key={h} style={th}>{h}</th>)}
+                {['Employee','Date','Clock In','Clock Out','Hours'].map(h => <th key={h} style={th}>{h}</th>)}
               </tr>
             </thead>
             <tbody>
               {clockEvents.length === 0 ? (
-                <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: '#475569' }}>No clock events this week</td></tr>
-              ) : clockEvents.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((ev, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={td}>{ev.employee_id}</td>
-                  <td style={td}><span style={{ background: ev.event_type === 'in' ? '#dcfce7' : '#fee2e2', color: ev.event_type === 'in' ? '#15803d' : '#dc2626', padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>Clock {ev.event_type}</span></td>
-                  <td style={td}>{new Date(ev.timestamp).toLocaleDateString()}</td>
-                  <td style={td}>{new Date(ev.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</td>
+                <tr><td colSpan={5} style={{ padding: '2rem', textAlign: 'center', color: '#475569' }}>No clock events this week</td></tr>
+              ) : clockEvents.sort((a, b) => new Date(b.clock_in ?? 0).getTime() - new Date(a.clock_in ?? 0).getTime()).map((ev, i) => {
+                const inTime = ev.clock_in ? new Date(ev.clock_in) : null
+                const outTime = ev.clock_out ? new Date(ev.clock_out) : null
+                const hrs = inTime && outTime ? ((outTime.getTime() - inTime.getTime()) / 3600000).toFixed(1) : null
+                return (
+                <tr key={i} style={{ borderBottom: '1px solid #1e293b' }}>
+                  <td style={td}><span style={{ fontWeight: 600 }}>{ev.employee_name || ev.employee_id}</span><br/><span style={{ fontSize: 11, color: '#64748b' }}>{ev.employee_id}</span></td>
+                  <td style={td}>{inTime ? inTime.toLocaleDateString() : '—'}</td>
+                  <td style={{ ...td, color: '#4ade80', fontWeight: 600 }}>{inTime ? inTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                  <td style={{ ...td, color: outTime ? '#f87171' : '#475569' }}>{outTime ? outTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : <span style={{ background: '#16a34a22', color: '#4ade80', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Active</span>}</td>
+                  <td style={{ ...td, fontWeight: 600 }}>{hrs ? `${hrs}h` : '—'}</td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>

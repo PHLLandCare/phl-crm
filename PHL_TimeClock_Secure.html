@@ -703,7 +703,7 @@ function showQR(eid) {
   document.getElementById('qr-emp-id').textContent = e.employee_id + ' · ' + e.division;
   var container = document.getElementById('qr-display');
   container.innerHTML = '';
-  var qrUrl = 'https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html?emp=' + encodeURIComponent(e.employee_id) + '&name=' + encodeURIComponent(fullName(e));
+  var qrUrl = 'https://phllandcare.github.io/phl-crm/#/clockin?emp=' + encodeURIComponent(e.employee_id);
   try {
     new QRCode(container, {text:qrUrl, width:180, height:180, colorDark:'#0a2540', colorLight:'#ffffff'});
   } catch(err) {
