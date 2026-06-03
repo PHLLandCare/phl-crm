@@ -340,12 +340,12 @@ export default function Dashboard() {
           <NavItem label="Time Clock"    id="timeclock"  icon="⏰" onClick={()=>window.open('https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html','_self')} />
           {can(userRole,'view_payroll')   && <NavItem label="Payroll"           id="payroll"   icon="💵" />}
           {can(userRole,'view_team')      && <NavItem label="All Employees"     id="team"      icon="👤" />}
+          {can(userRole,'manage_users')   && <NavItem label="Team Chat"         id="teamchat"  icon="💬" />}
           {can(userRole,'view_expenses')  && <NavItem label="Expenses"          id="expenses"  icon="🧾" />}
           {can(userRole,'view_inventory') && <NavItem label="Inventory"         id="inventory" icon="📦" />}
           {can(userRole,'view_quotes')    && <NavItem label="Products & Services" id="products" icon="🛒" />}
           {can(userRole,'view_reports')   && <NavItem label="Reports"           id="reports"   icon="📊" />}
           {can(userRole,'view_settings')  && <NavItem label="Settings"          id="settings"  icon="⚙️" />}
-          {can(userRole,'manage_users')   && <NavItem label="Team Chat"         id="teamchat"  icon="💬" />}
         </div>
         <div style={{padding:'10px 14px',borderTop:'1px solid #1e293b'}}>
           <button onClick={handleSignOut} style={{width:'100%',background:'rgba(255,255,255,0.05)',color:'#64748b',border:'1px solid #1e293b',borderRadius:8,padding:'7px',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>

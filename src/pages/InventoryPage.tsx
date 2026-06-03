@@ -9,14 +9,41 @@ interface InventoryItem {
   quantity: number
   min_level: number
   unit_cost: number
+  unit: string
+  supplier: string
+  notes: string
+  year: string
+  make: string
+  model: string
+  mileage: string
+  last_serviced: string
+  car_payment: string
+  car_insurance: string
+  gps_system: string
 }
 
+const CATEGORIES = [
+  'Fertilizers & Chemicals','Seeds & Plants','Equipment & Tools',
+  'Irrigation Parts','Safety Gear','Fuel & Lubricants',
+  'Nursery Stock','Office Supplies',
+  'Vehicles','Mowers','Blowers','Edgers','Weed Eaters',
+  'Car Payment','Car Insurance','GPS System','Other'
+]
+
+const VEHICLE_CATS = ['Vehicles','Mowers','Blowers','Edgers','Weed Eaters','Car Payment','Car Insurance','GPS System']
+
+const inp = {width:'100%',height:44,padding:'0 12px',background:'#1e293b',border:'1.5px solid #334155',borderRadius:10,fontSize:14,boxSizing:'border-box' as const,outline:'none',color:'#f1f5f9',fontFamily:'inherit'}
+const lbl = {fontSize:12,fontWeight:600,color:'#94a3b8',textTransform:'uppercase' as const,letterSpacing:'0.05em',display:'block',marginBottom:6}
+
 export default function InventoryPage() {
-  const [items, setItems] = useState<InventoryItem[]>([])
+  const [items, setItems]     = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
+  const [search, setSearch]   = useState('')
   const [showAdd, setShowAdd] = useState(false)
-  const [form, setForm] = useState({name:'',category:'Lawn & Tree Supplies',sku:'',quantity:'',min_level:'',unit_cost:''})
+  const [form, setForm]       = useState({
+    name:'',category:'Equipment & Tools',sku:'',quantity:'',min_level:'',unit_cost:'',unit:'each',supplier:'',notes:'',
+    year:'',make:'',model:'',mileage:'',last_serviced:'',car_payment:'',car_insurance:'',gps_system:''
+  })
 
   const loadItems = async () => {
     setLoading(true)
@@ -27,98 +54,102 @@ export default function InventoryPage() {
 
   useEffect(() => {
     loadItems()
-    const channel = supabase.channel('inventory')
-      .on('postgres_changes',{event:'*',schema:'public',table:'inventory'},loadItems)
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    const ch = supabase.channel('inventory').on('postgres_changes',{event:'*',schema:'public',table:'inventory'},loadItems).subscribe()
+    return () => { supabase.removeChannel(ch) }
   }, [])
+
+  const isVehicle = VEHICLE_CATS.includes(form.category)
 
   const handleAdd = async () => {
     if (!form.name) return
     await supabase.from('inventory').insert({
       ...form,
-      quantity: parseFloat(form.quantity)||0,
-      min_level: parseFloat(form.min_level)||0,
-      unit_cost: parseFloat(form.unit_cost)||0
+      quantity:   parseFloat(form.quantity)||0,
+      min_level:  parseFloat(form.min_level)||0,
+      unit_cost:  parseFloat(form.unit_cost)||0,
     })
     setShowAdd(false)
-    setForm({name:'',category:'Lawn & Tree Supplies',sku:'',quantity:'',min_level:'',unit_cost:''})
+    setForm({name:'',category:'Equipment & Tools',sku:'',quantity:'',min_level:'',unit_cost:'',unit:'each',supplier:'',notes:'',year:'',make:'',model:'',mileage:'',last_serviced:'',car_payment:'',car_insurance:'',gps_system:''})
   }
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id:string) => {
     if (!confirm('Delete this item?')) return
     await supabase.from('inventory').update({deleted_at:new Date().toISOString()}).eq('id',id)
   }
 
-  const filtered = items.filter(i =>
-    `${i.name} ${i.category} ${i.sku}`.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered   = items.filter(i => `${i.name} ${i.category} ${i.sku}`.toLowerCase().includes(search.toLowerCase()))
+  const totalValue = items.reduce((s,i) => s+(i.quantity*i.unit_cost),0)
+  const lowStock   = items.filter(i => i.quantity<=i.min_level && i.quantity>0).length
+  const outOfStock = items.filter(i => i.quantity<=0).length
 
-  const getStatus = (item: InventoryItem) => {
-    if (item.quantity <= 0) return {label:'Out of stock',color:'#fef2f2'}
-    if (item.quantity <= item.min_level) return {label:'Low stock',color:'#fef9c3'}
-    return {label:'In stock',color:'#dcfce7'}
-  }
-
-  const totalValue = items.reduce((sum,i) => sum + (i.quantity * i.unit_cost), 0)
-  const lowStock = items.filter(i => i.quantity <= i.min_level && i.quantity > 0).length
-  const outOfStock = items.filter(i => i.quantity <= 0).length
+  const statusBadge = (i:InventoryItem) =>
+    i.quantity<=0            ? {label:'Out of Stock',bg:'#450a0a',color:'#fca5a5'}
+    : i.quantity<=i.min_level ? {label:'Low Stock',  bg:'#422006',color:'#fcd34d'}
+    :                           {label:'In Stock',   bg:'#052e16',color:'#4ade80'}
 
   return (
-    <div style={{padding:'2rem',maxWidth:1200,margin:'0 auto'}}>
+    <div style={{padding:'2rem',maxWidth:1300,margin:'0 auto',fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif'}}>
+
+      {/* Header */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.5rem',flexWrap:'wrap',gap:12}}>
         <div>
-          <h1 style={{fontSize:24,fontWeight:700,color:'#111827',margin:'0 0 4px'}}>Inventory</h1>
-          <p style={{fontSize:14,color:'#6b7280',margin:0}}>{items.length} items · Total value: ${totalValue.toLocaleString()}</p>
+          <h1 style={{fontSize:24,fontWeight:700,color:'#f1f5f9',margin:'0 0 4px'}}>Inventory</h1>
+          <p style={{fontSize:14,color:'#64748b',margin:0}}>{items.length} items · Total value: ${totalValue.toLocaleString()}</p>
         </div>
         <button onClick={()=>setShowAdd(true)} style={{background:'#16a34a',color:'#fff',border:'none',borderRadius:10,padding:'10px 20px',fontSize:14,fontWeight:600,cursor:'pointer'}}>+ Add Item</button>
       </div>
 
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12,marginBottom:'1.5rem'}}>
+      {/* KPI cards */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:12,marginBottom:'1.5rem'}}>
         {[
-          {label:'Total Items',value:items.length,color:'#f9fafb'},
-          {label:'Low Stock',value:lowStock,color:'#fef9c3'},
-          {label:'Out of Stock',value:outOfStock,color:'#fef2f2'},
-          {label:'Total Value',value:`$${totalValue.toLocaleString()}`,color:'#dcfce7'},
+          {label:'Total Items',  value:items.length,                    color:'#f1f5f9'},
+          {label:'Low Stock',    value:lowStock,                        color:'#fcd34d'},
+          {label:'Out of Stock', value:outOfStock,                      color:'#fca5a5'},
+          {label:'Total Value',  value:`$${totalValue.toLocaleString()}`,color:'#4ade80'},
         ].map(s=>(
-          <div key={s.label} style={{background:s.color,borderRadius:12,padding:'1rem',border:'1px solid #e5e7eb'}}>
-            <p style={{fontSize:12,color:'#6b7280',margin:'0 0 4px'}}>{s.label}</p>
-            <p style={{fontSize:20,fontWeight:700,color:'#111827',margin:0}}>{s.value}</p>
+          <div key={s.label} style={{background:'#0f172a',borderRadius:12,padding:'1rem',border:'1px solid #1e293b'}}>
+            <p style={{fontSize:11,fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.05em',margin:'0 0 4px'}}>{s.label}</p>
+            <p style={{fontSize:22,fontWeight:800,color:s.color,margin:0}}>{s.value}</p>
           </div>
         ))}
       </div>
 
-      <input placeholder="Search inventory..." value={search} onChange={e=>setSearch(e.target.value)} style={{width:'100%',height:44,padding:'0 12px',border:'1.5px solid #e5e7eb',borderRadius:10,fontSize:14,boxSizing:'border-box',outline:'none',marginBottom:'1rem'}} />
+      {/* Search */}
+      <input placeholder="Search inventory..." value={search} onChange={e=>setSearch(e.target.value)}
+        style={{...inp,marginBottom:'1rem',background:'#0f172a',border:'1.5px solid #1e293b'}} />
 
-      {loading ? <p>Loading...</p> : (
-        <div style={{background:'#fff',borderRadius:16,border:'1px solid #e5e7eb',overflow:'auto'}}>
-          <table style={{width:'100%',borderCollapse:'collapse'}}>
+      {/* Table */}
+      {loading ? <p style={{color:'#64748b'}}>Loading...</p> : (
+        <div style={{background:'#0f172a',borderRadius:16,border:'1px solid #1e293b',overflow:'auto'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',minWidth:900}}>
             <thead>
-              <tr style={{background:'#f9fafb',borderBottom:'1px solid #e5e7eb'}}>
-                {['Name','Category','SKU','In Stock','Min Level','Unit Cost','Total Value','Status',''].map(h=>(
-                  <th key={h} style={{padding:'12px 16px',textAlign:'left',fontSize:12,fontWeight:600,color:'#6b7280',whiteSpace:'nowrap'}}>{h}</th>
+              <tr style={{borderBottom:'1px solid #1e293b',background:'#0a0f1a'}}>
+                {['Name','Category','SKU/Part#','Year/Make/Model','In Stock','Min Level','Unit Cost','Total Value','Status',''].map(h=>(
+                  <th key={h} style={{padding:'11px 14px',textAlign:'left',fontSize:11,fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.05em',whiteSpace:'nowrap'}}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length===0 ? (
-                <tr><td colSpan={9} style={{padding:'2rem',textAlign:'center',color:'#9ca3af'}}>No items found</td></tr>
-              ) : filtered.map(i=>{
-                const status = getStatus(i)
+                <tr><td colSpan={10} style={{padding:'2.5rem',textAlign:'center',color:'#475569'}}>No items found</td></tr>
+              ) : filtered.map((i,idx)=>{
+                const s = statusBadge(i)
+                const vehicleInfo = [i.year,i.make,i.model].filter(Boolean).join(' ')
                 return (
-                  <tr key={i.id} style={{borderBottom:'1px solid #f3f4f6'}}>
-                    <td style={{padding:'12px 16px',fontSize:14,fontWeight:500}}>{i.name}</td>
-                    <td style={{padding:'12px 16px',fontSize:14,color:'#6b7280'}}>{i.category||'—'}</td>
-                    <td style={{padding:'12px 16px',fontSize:14,color:'#6b7280'}}>{i.sku||'—'}</td>
-                    <td style={{padding:'12px 16px',fontSize:14,fontWeight:600}}>{i.quantity}</td>
-                    <td style={{padding:'12px 16px',fontSize:14,color:'#6b7280'}}>{i.min_level}</td>
-                    <td style={{padding:'12px 16px',fontSize:14,color:'#6b7280'}}>${i.unit_cost}</td>
-                    <td style={{padding:'12px 16px',fontSize:14,color:'#6b7280'}}>${(i.quantity*i.unit_cost).toFixed(2)}</td>
-                    <td style={{padding:'12px 16px'}}>
-                      <span style={{background:status.color,padding:'2px 10px',borderRadius:20,fontSize:12,fontWeight:500}}>{status.label}</span>
+                  <tr key={i.id} style={{borderBottom:'1px solid #1e293b',background:idx%2===0?'transparent':'rgba(255,255,255,0.02)'}}>
+                    <td style={{padding:'12px 14px',fontWeight:600,color:'#f1f5f9',fontSize:14}}>{i.name}</td>
+                    <td style={{padding:'12px 14px',fontSize:13,color:'#94a3b8'}}>{i.category||'—'}</td>
+                    <td style={{padding:'12px 14px',fontSize:12,color:'#64748b',fontFamily:'monospace'}}>{i.sku||'—'}</td>
+                    <td style={{padding:'12px 14px',fontSize:13,color:'#94a3b8'}}>{vehicleInfo||'—'}</td>
+                    <td style={{padding:'12px 14px',fontWeight:700,color:i.quantity<=0?'#fca5a5':i.quantity<=i.min_level?'#fcd34d':'#f1f5f9'}}>{i.quantity}</td>
+                    <td style={{padding:'12px 14px',fontSize:13,color:'#64748b'}}>{i.min_level}</td>
+                    <td style={{padding:'12px 14px',fontSize:13,color:'#94a3b8'}}>${i.unit_cost}</td>
+                    <td style={{padding:'12px 14px',fontSize:13,fontWeight:600,color:'#f1f5f9'}}>${(i.quantity*i.unit_cost).toFixed(2)}</td>
+                    <td style={{padding:'12px 14px'}}>
+                      <span style={{background:s.bg,color:s.color,padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:700}}>{s.label}</span>
                     </td>
-                    <td style={{padding:'12px 16px'}}>
-                      <button onClick={()=>handleDelete(i.id)} style={{background:'#fef2f2',color:'#991b1b',border:'none',borderRadius:6,padding:'4px 10px',fontSize:12,cursor:'pointer'}}>Delete</button>
+                    <td style={{padding:'12px 14px'}}>
+                      <button onClick={()=>handleDelete(i.id)} style={{background:'#450a0a',color:'#fca5a5',border:'none',borderRadius:6,padding:'4px 10px',fontSize:12,cursor:'pointer',fontWeight:600}}>Delete</button>
                     </td>
                   </tr>
                 )
@@ -128,39 +159,124 @@ export default function InventoryPage() {
         </div>
       )}
 
+      {/* Add Modal */}
       {showAdd && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.4)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:'1rem'}}>
-          <div style={{background:'#fff',borderRadius:20,padding:'2rem',width:'100%',maxWidth:500,maxHeight:'90vh',overflowY:'auto'}}>
-            <h2 style={{fontSize:18,fontWeight:700,margin:'0 0 1.5rem'}}>Add Inventory Item</h2>
-            <div style={{marginBottom:'1rem'}}>
-              <label style={{fontSize:13,fontWeight:500,color:'#374151',display:'block',marginBottom:6}}>Name *</label>
-              <input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} style={{width:'100%',height:44,padding:'0 12px',border:'1.5px solid #e5e7eb',borderRadius:10,fontSize:14,boxSizing:'border-box',outline:'none'}} />
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:'1rem'}}>
+          <div style={{background:'#0f172a',border:'1px solid #1e293b',borderRadius:20,padding:'2rem',width:'100%',maxWidth:560,maxHeight:'90vh',overflowY:'auto'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.5rem'}}>
+              <h2 style={{fontSize:18,fontWeight:700,color:'#f1f5f9',margin:0}}>+ Add Inventory Item</h2>
+              <button onClick={()=>setShowAdd(false)} style={{background:'none',border:'none',color:'#64748b',fontSize:22,cursor:'pointer',lineHeight:1}}>×</button>
             </div>
+
+            {/* Name */}
             <div style={{marginBottom:'1rem'}}>
-              <label style={{fontSize:13,fontWeight:500,color:'#374151',display:'block',marginBottom:6}}>Category</label>
-              <select value={form.category} onChange={e=>setForm({...form,category:e.target.value})} style={{width:'100%',height:44,padding:'0 12px',border:'1.5px solid #e5e7eb',borderRadius:10,fontSize:14,boxSizing:'border-box',outline:'none'}}>
-                {['Lawn & Tree Supplies','Irrigation Parts','Pest Control','Nursery Plants','Farm Supplies','Equipment','Vehicles','Safety Gear','Office Supplies'].map(c=><option key={c}>{c}</option>)}
-              </select>
+              <label style={lbl}>Item Name *</label>
+              <input placeholder="e.g. 20-20-20 Fertilizer" value={form.name} onChange={e=>setForm({...form,name:e.target.value})} style={inp} />
             </div>
-            <div style={{marginBottom:'1rem'}}>
-              <label style={{fontSize:13,fontWeight:500,color:'#374151',display:'block',marginBottom:6}}>SKU / Part #</label>
-              <input value={form.sku} onChange={e=>setForm({...form,sku:e.target.value})} style={{width:'100%',height:44,padding:'0 12px',border:'1.5px solid #e5e7eb',borderRadius:10,fontSize:14,boxSizing:'border-box',outline:'none'}} />
+
+            {/* Category + SKU */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:'1rem'}}>
+              <div>
+                <label style={lbl}>Category</label>
+                <select value={form.category} onChange={e=>setForm({...form,category:e.target.value})}
+                  style={{...inp,padding:'0 10px'}}>
+                  {CATEGORIES.map(c=><option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>SKU / Part #</label>
+                <input placeholder="e.g. FRT-2020" value={form.sku} onChange={e=>setForm({...form,sku:e.target.value})} style={inp} />
+              </div>
             </div>
-            <div style={{marginBottom:'1rem'}}>
-              <label style={{fontSize:13,fontWeight:500,color:'#374151',display:'block',marginBottom:6}}>Quantity</label>
-              <input type="number" value={form.quantity} onChange={e=>setForm({...form,quantity:e.target.value})} style={{width:'100%',height:44,padding:'0 12px',border:'1.5px solid #e5e7eb',borderRadius:10,fontSize:14,boxSizing:'border-box',outline:'none'}} />
+
+            {/* Qty + Min Stock + Unit */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:'1rem'}}>
+              <div>
+                <label style={lbl}>Quantity</label>
+                <input type="number" placeholder="0" value={form.quantity} onChange={e=>setForm({...form,quantity:e.target.value})} style={inp} />
+              </div>
+              <div>
+                <label style={lbl}>Min Stock Level</label>
+                <input type="number" placeholder="Alert when below..." value={form.min_level} onChange={e=>setForm({...form,min_level:e.target.value})} style={inp} />
+              </div>
+              <div>
+                <label style={lbl}>Unit</label>
+                <select value={form.unit} onChange={e=>setForm({...form,unit:e.target.value})} style={{...inp,padding:'0 10px'}}>
+                  {['each','bag','gallon','lb','oz','box','pallet','roll','pair'].map(u=><option key={u}>{u}</option>)}
+                </select>
+              </div>
             </div>
-            <div style={{marginBottom:'1rem'}}>
-              <label style={{fontSize:13,fontWeight:500,color:'#374151',display:'block',marginBottom:6}}>Min Level</label>
-              <input type="number" value={form.min_level} onChange={e=>setForm({...form,min_level:e.target.value})} style={{width:'100%',height:44,padding:'0 12px',border:'1.5px solid #e5e7eb',borderRadius:10,fontSize:14,boxSizing:'border-box',outline:'none'}} />
+
+            {/* Unit Cost + Supplier */}
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:'1rem'}}>
+              <div>
+                <label style={lbl}>Unit Cost ($)</label>
+                <input type="number" placeholder="0.00" value={form.unit_cost} onChange={e=>setForm({...form,unit_cost:e.target.value})} style={inp} />
+              </div>
+              <div>
+                <label style={lbl}>Supplier</label>
+                <input placeholder="e.g. SiteOne Landscape Supply" value={form.supplier} onChange={e=>setForm({...form,supplier:e.target.value})} style={inp} />
+              </div>
             </div>
+
+            {/* Vehicle / Equipment fields */}
+            {isVehicle && (
+              <>
+                <div style={{borderTop:'1px solid #1e293b',margin:'1rem 0',paddingTop:'1rem'}}>
+                  <p style={{fontSize:12,fontWeight:700,color:'#4ade80',textTransform:'uppercase',letterSpacing:'0.05em',margin:'0 0 12px'}}>🚗 Vehicle / Equipment Details</p>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:'1rem'}}>
+                  <div>
+                    <label style={lbl}>Year</label>
+                    <input placeholder="2022" value={form.year} onChange={e=>setForm({...form,year:e.target.value})} style={inp} />
+                  </div>
+                  <div>
+                    <label style={lbl}>Make</label>
+                    <input placeholder="Ford" value={form.make} onChange={e=>setForm({...form,make:e.target.value})} style={inp} />
+                  </div>
+                  <div>
+                    <label style={lbl}>Model</label>
+                    <input placeholder="F-150" value={form.model} onChange={e=>setForm({...form,model:e.target.value})} style={inp} />
+                  </div>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:'1rem'}}>
+                  <div>
+                    <label style={lbl}>Mileage</label>
+                    <input placeholder="e.g. 45,230" value={form.mileage} onChange={e=>setForm({...form,mileage:e.target.value})} style={inp} />
+                  </div>
+                  <div>
+                    <label style={lbl}>Last Serviced</label>
+                    <input type="date" value={form.last_serviced} onChange={e=>setForm({...form,last_serviced:e.target.value})} style={inp} />
+                  </div>
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:'1rem'}}>
+                  <div>
+                    <label style={lbl}>Car Payment / mo</label>
+                    <input placeholder="$0.00" value={form.car_payment} onChange={e=>setForm({...form,car_payment:e.target.value})} style={inp} />
+                  </div>
+                  <div>
+                    <label style={lbl}>Insurance / mo</label>
+                    <input placeholder="$0.00" value={form.car_insurance} onChange={e=>setForm({...form,car_insurance:e.target.value})} style={inp} />
+                  </div>
+                  <div>
+                    <label style={lbl}>GPS System</label>
+                    <input placeholder="e.g. Samsara" value={form.gps_system} onChange={e=>setForm({...form,gps_system:e.target.value})} style={inp} />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Notes */}
             <div style={{marginBottom:'1.5rem'}}>
-              <label style={{fontSize:13,fontWeight:500,color:'#374151',display:'block',marginBottom:6}}>Unit Cost ($)</label>
-              <input type="number" value={form.unit_cost} onChange={e=>setForm({...form,unit_cost:e.target.value})} style={{width:'100%',height:44,padding:'0 12px',border:'1.5px solid #e5e7eb',borderRadius:10,fontSize:14,boxSizing:'border-box',outline:'none'}} />
+              <label style={lbl}>Notes</label>
+              <textarea placeholder="Storage location, special instructions, etc." value={form.notes}
+                onChange={e=>setForm({...form,notes:e.target.value})}
+                style={{...inp,height:80,padding:'10px 12px',resize:'vertical' as const}} />
             </div>
+
             <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
-              <button onClick={()=>setShowAdd(false)} style={{padding:'10px 20px',border:'1.5px solid #e5e7eb',borderRadius:10,background:'#fff',cursor:'pointer',fontSize:14}}>Cancel</button>
-              <button onClick={handleAdd} style={{padding:'10px 20px',border:'none',borderRadius:10,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:600}}>Save Item</button>
+              <button onClick={()=>setShowAdd(false)} style={{padding:'11px 24px',border:'1px solid #334155',borderRadius:10,background:'#1e293b',color:'#cbd5e1',cursor:'pointer',fontSize:14,fontFamily:'inherit'}}>Cancel</button>
+              <button onClick={handleAdd} style={{padding:'11px 24px',border:'none',borderRadius:10,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:700,fontFamily:'inherit'}}>Add Item</button>
             </div>
           </div>
         </div>
