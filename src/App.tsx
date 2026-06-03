@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import LoginPage from './pages/LoginPage'
 import ChangePasswordPage from './pages/ChangePasswordPage'
 import Dashboard from './pages/Dashboard'
+import ClockInPage from './pages/ClockInPage'
 
 type AuthState = 'unauthenticated' | 'must_change_password' | 'authenticated'
 
@@ -24,14 +25,26 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
+  // ClockIn is public — no auth required
+  if (window.location.hash.includes('/clockin')) {
+    return (
+      <HashRouter>
+        <Routes>
+          <Route path="/clockin" element={<ClockInPage />} />
+        </Routes>
+      </HashRouter>
+    )
+  }
+
   if (authState === 'unauthenticated') return <LoginPage />
   if (authState === 'must_change_password') return <ChangePasswordPage />
 
   return (
-    <BrowserRouter basename="/phl-crm">
+    <HashRouter>
       <Routes>
+        <Route path="/clockin" element={<ClockInPage />} />
         <Route path="/*" element={<Dashboard />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   )
 }

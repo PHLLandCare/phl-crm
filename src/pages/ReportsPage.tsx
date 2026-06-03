@@ -1,0 +1,257 @@
+import { useEffect, useState } from 'react'
+import { supabase } from '../lib/supabase'
+
+type Tab = 'overview' | 'revenue' | 'labor' | 'expenses' | 'jobs'
+type Range = '7d' | '30d' | '90d' | 'ytd'
+
+const DIVS = ['All Divisions','Lawn & Tree','Irrigation','Extermination','Nursery','Farm']
+
+export default function ReportsPage() {
+  const [tab, setTab] = useState<Tab>('overview')
+  const [range, setRange] = useState<Range>('30d')
+  const [division, setDivision] = useState('All Divisions')
+  const [stats, setStats] = useState({ revenue: 0, receivables: 0, expenses: 0, jobs: 0, clients: 0, labor: 0 })
+  const [invoices, setInvoices] = useState<any[]>([])
+  const [jobs, setJobs] = useState<any[]>([])
+  const [expenses, setExpenses] = useState<any[]>([])
+
+  useEffect(() => {
+    const load = async () => {
+      const now = new Date()
+      const days = range === '7d' ? 7 : range === '30d' ? 30 : range === '90d' ? 90 : Math.floor((now.getTime() - new Date(now.getFullYear(),0,1).getTime()) / 86400000)
+      const since = new Date(now.getTime() - days * 86400000).toISOString()
+
+      const [invRes, jobRes, expRes, clientRes] = await Promise.all([
+        supabase.from('invoices').select('*').gte('created_at', since),
+        supabase.from('jobs').select('*').gte('created_at', since),
+        supabase.from('expenses').select('*').gte('created_at', since),
+        supabase.from('clients').select('id', {count:'exact',head:true}).is('deleted_at',null),
+      ])
+
+      const invData = invRes.data ?? []
+      const jobData = jobRes.data ?? []
+      const expData = expRes.data ?? []
+
+      const filteredInv = division === 'All Divisions' ? invData : invData.filter(i => i.division === division)
+      const filteredJob = division === 'All Divisions' ? jobData : jobData.filter(j => j.division === division)
+
+      setInvoices(filteredInv)
+      setJobs(filteredJob)
+      setExpenses(expData)
+      setStats({
+        revenue: filteredInv.filter(i=>i.status==='paid').reduce((a,i)=>a+(i.amount||0),0),
+        receivables: filteredInv.filter(i=>i.status==='sent'||i.status==='overdue').reduce((a,i)=>a+(i.amount||0),0),
+        expenses: expData.reduce((a,e)=>a+(e.amount||0),0),
+        jobs: filteredJob.length,
+        clients: clientRes.count ?? 0,
+        labor: 0,
+      })
+    }
+    load()
+  }, [range, division])
+
+  const fmt = (n:number) => n >= 1000 ? `$${(n/1000).toFixed(1)}k` : `$${n.toFixed(0)}`
+
+  const tabs: {id:Tab, label:string}[] = [
+    {id:'overview',label:'Overview'},
+    {id:'revenue',label:'Revenue'},
+    {id:'labor',label:'Labor'},
+    {id:'expenses',label:'Expenses'},
+    {id:'jobs',label:'Jobs'},
+  ]
+
+  return (
+    <div style={{padding:'2rem',maxWidth:1200,margin:'0 auto',fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif'}}>
+      {/* Header */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.5rem',flexWrap:'wrap',gap:12}}>
+        <div>
+          <h1 style={{fontSize:24,fontWeight:700,color:'#f1f5f9',margin:'0 0 4px'}}>Reports</h1>
+          <p style={{fontSize:14,color:'#64748b',margin:0}}>Business performance & analytics</p>
+        </div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          <select value={division} onChange={e=>setDivision(e.target.value)} style={{padding:'8px 12px',background:'#0f172a',border:'1px solid #1e293b',borderRadius:8,color:'#f1f5f9',fontSize:13,fontFamily:'inherit',cursor:'pointer'}}>
+            {DIVS.map(d=><option key={d}>{d}</option>)}
+          </select>
+          <div style={{display:'flex',background:'#0f172a',borderRadius:8,border:'1px solid #1e293b',overflow:'hidden'}}>
+            {(['7d','30d','90d','ytd'] as Range[]).map(r=>(
+              <button key={r} onClick={()=>setRange(r)} style={{padding:'8px 14px',border:'none',background:range===r?'#16a34a':'transparent',color:range===r?'#fff':'#64748b',cursor:'pointer',fontSize:13,fontWeight:range===r?600:400,fontFamily:'inherit'}}>
+                {r === 'ytd' ? 'YTD' : r.replace('d',' days')}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{display:'flex',gap:4,marginBottom:'1.5rem',borderBottom:'1px solid #1e293b',paddingBottom:0}}>
+        {tabs.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{padding:'10px 20px',border:'none',background:'transparent',color:tab===t.id?'#4ade80':'#64748b',fontWeight:tab===t.id?700:400,fontSize:14,cursor:'pointer',fontFamily:'inherit',borderBottom:tab===t.id?'2px solid #4ade80':'2px solid transparent',marginBottom:-1}}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* KPI Cards */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:12,marginBottom:'1.5rem'}}>
+        {[
+          {label:'Revenue',value:fmt(stats.revenue),sub:'Paid invoices',color:'#4ade80'},
+          {label:'Receivables',value:fmt(stats.receivables),sub:'Outstanding',color:'#fbbf24'},
+          {label:'Expenses',value:fmt(stats.expenses),sub:'Total spend',color:'#f87171'},
+          {label:'Net',value:fmt(stats.revenue-stats.expenses),sub:'Revenue - Expenses',color:'#60a5fa'},
+          {label:'Jobs',value:String(stats.jobs),sub:'Completed',color:'#a78bfa'},
+          {label:'Active Clients',value:String(stats.clients),sub:'Total in CRM',color:'#34d399'},
+        ].map(s=>(
+          <div key={s.label} style={{background:'#0f172a',borderRadius:12,padding:'1rem',border:'1px solid #1e293b'}}>
+            <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b'}}>{s.label}</p>
+            <p style={{margin:'0 0 2px',fontSize:22,fontWeight:800,color:s.color}}>{s.value}</p>
+            <p style={{margin:0,fontSize:11,color:'#475569'}}>{s.sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      {tab === 'overview' && (
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+          <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem'}}>
+            <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Invoice Status Breakdown</p>
+            {[
+              {label:'Paid', count:invoices.filter(i=>i.status==='paid').length, amt:invoices.filter(i=>i.status==='paid').reduce((a,i)=>a+(i.amount||0),0), color:'#4ade80'},
+              {label:'Awaiting Payment', count:invoices.filter(i=>i.status==='sent').length, amt:invoices.filter(i=>i.status==='sent').reduce((a,i)=>a+(i.amount||0),0), color:'#fbbf24'},
+              {label:'Overdue', count:invoices.filter(i=>i.status==='overdue').length, amt:invoices.filter(i=>i.status==='overdue').reduce((a,i)=>a+(i.amount||0),0), color:'#f87171'},
+              {label:'Draft', count:invoices.filter(i=>i.status==='draft').length, amt:invoices.filter(i=>i.status==='draft').reduce((a,i)=>a+(i.amount||0),0), color:'#64748b'},
+            ].map(r=>(
+              <div key={r.label} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #1e293b'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{width:8,height:8,borderRadius:'50%',background:r.color}} />
+                  <span style={{fontSize:13,color:'#cbd5e1'}}>{r.label}</span>
+                  <span style={{fontSize:12,color:'#475569'}}>({r.count})</span>
+                </div>
+                <span style={{fontSize:13,fontWeight:600,color:r.color}}>{fmt(r.amt)}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem'}}>
+            <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Job Status Breakdown</p>
+            {[
+              {label:'Completed', count:jobs.filter(j=>j.status==='completed').length, color:'#4ade80'},
+              {label:'In Progress', count:jobs.filter(j=>j.status==='in_progress').length, color:'#60a5fa'},
+              {label:'Scheduled', count:jobs.filter(j=>j.status==='scheduled').length, color:'#fbbf24'},
+              {label:'Cancelled', count:jobs.filter(j=>j.status==='cancelled').length, color:'#f87171'},
+            ].map(r=>(
+              <div key={r.label} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #1e293b'}}>
+                <div style={{display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{width:8,height:8,borderRadius:'50%',background:r.color}} />
+                  <span style={{fontSize:13,color:'#cbd5e1'}}>{r.label}</span>
+                </div>
+                <span style={{fontSize:13,fontWeight:600,color:r.color}}>{r.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === 'revenue' && (
+        <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',overflow:'hidden'}}>
+          <div style={{padding:'1rem 1.25rem',borderBottom:'1px solid #1e293b'}}>
+            <p style={{margin:0,fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Invoice History</p>
+          </div>
+          <table style={{width:'100%',borderCollapse:'collapse'}}>
+            <thead>
+              <tr style={{background:'#0a0f1a'}}>
+                {['Invoice #','Client','Amount','Status','Date'].map(h=>(
+                  <th key={h} style={{padding:'10px 16px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {invoices.length === 0 ? (
+                <tr><td colSpan={5} style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No invoices in this period</td></tr>
+              ) : invoices.slice(0,50).map((inv,i)=>(
+                <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
+                  <td style={{padding:'10px 16px',fontSize:13,color:'#f1f5f9'}}>{inv.invoice_number||'—'}</td>
+                  <td style={{padding:'10px 16px',fontSize:13,color:'#cbd5e1'}}>{inv.client_name||inv.client||'—'}</td>
+                  <td style={{padding:'10px 16px',fontSize:13,fontWeight:600,color:'#4ade80'}}>${(inv.amount||0).toLocaleString()}</td>
+                  <td style={{padding:'10px 16px'}}>
+                    <span style={{background:inv.status==='paid'?'rgba(74,222,128,0.15)':inv.status==='overdue'?'rgba(248,113,113,0.15)':'rgba(251,191,36,0.15)',color:inv.status==='paid'?'#4ade80':inv.status==='overdue'?'#f87171':'#fbbf24',padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:600}}>{inv.status}</span>
+                  </td>
+                  <td style={{padding:'10px 16px',fontSize:13,color:'#64748b'}}>{inv.created_at ? new Date(inv.created_at).toLocaleDateString() : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {tab === 'expenses' && (
+        <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',overflow:'hidden'}}>
+          <div style={{padding:'1rem 1.25rem',borderBottom:'1px solid #1e293b'}}>
+            <p style={{margin:0,fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Expense History</p>
+          </div>
+          <table style={{width:'100%',borderCollapse:'collapse'}}>
+            <thead>
+              <tr style={{background:'#0a0f1a'}}>
+                {['Category','Description','Amount','Date','Approved By'].map(h=>(
+                  <th key={h} style={{padding:'10px 16px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {expenses.length === 0 ? (
+                <tr><td colSpan={5} style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No expenses in this period</td></tr>
+              ) : expenses.slice(0,50).map((exp,i)=>(
+                <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
+                  <td style={{padding:'10px 16px',fontSize:13,color:'#f1f5f9'}}>{exp.category||'—'}</td>
+                  <td style={{padding:'10px 16px',fontSize:13,color:'#cbd5e1'}}>{exp.description||'—'}</td>
+                  <td style={{padding:'10px 16px',fontSize:13,fontWeight:600,color:'#f87171'}}>${(exp.amount||0).toLocaleString()}</td>
+                  <td style={{padding:'10px 16px',fontSize:13,color:'#64748b'}}>{exp.created_at ? new Date(exp.created_at).toLocaleDateString() : '—'}</td>
+                  <td style={{padding:'10px 16px',fontSize:13,color:'#64748b'}}>{exp.approved_by||'—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {tab === 'jobs' && (
+        <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',overflow:'hidden'}}>
+          <div style={{padding:'1rem 1.25rem',borderBottom:'1px solid #1e293b'}}>
+            <p style={{margin:0,fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Job History</p>
+          </div>
+          <table style={{width:'100%',borderCollapse:'collapse'}}>
+            <thead>
+              <tr style={{background:'#0a0f1a'}}>
+                {['Job Title','Client','Division','Status','Value','Date'].map(h=>(
+                  <th key={h} style={{padding:'10px 16px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {jobs.length === 0 ? (
+                <tr><td colSpan={6} style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No jobs in this period</td></tr>
+              ) : jobs.slice(0,50).map((job,i)=>(
+                <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
+                  <td style={{padding:'10px 16px',fontSize:13,color:'#f1f5f9'}}>{job.title||'—'}</td>
+                  <td style={{padding:'10px 16px',fontSize:13,color:'#cbd5e1'}}>{job.client_name||'—'}</td>
+                  <td style={{padding:'10px 16px',fontSize:13,color:'#64748b'}}>{job.division||'—'}</td>
+                  <td style={{padding:'10px 16px'}}>
+                    <span style={{background:job.status==='completed'?'rgba(74,222,128,0.15)':'rgba(100,116,139,0.15)',color:job.status==='completed'?'#4ade80':'#94a3b8',padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:600}}>{job.status}</span>
+                  </td>
+                  <td style={{padding:'10px 16px',fontSize:13,fontWeight:600,color:'#f1f5f9'}}>${(job.amount||0).toLocaleString()}</td>
+                  <td style={{padding:'10px 16px',fontSize:13,color:'#64748b'}}>{job.created_at ? new Date(job.created_at).toLocaleDateString() : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {tab === 'labor' && (
+        <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'2rem',textAlign:'center'}}>
+          <div style={{fontSize:48,marginBottom:16}}>⏱️</div>
+          <p style={{fontSize:18,fontWeight:700,color:'#f1f5f9',margin:'0 0 8px'}}>Labor Reports</p>
+          <p style={{fontSize:14,color:'#64748b',margin:0}}>Pulls from Time Clock data. Clock in some hours to see labor analytics here.</p>
+        </div>
+      )}
+    </div>
+  )
+}

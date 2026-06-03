@@ -11,6 +11,9 @@ import ExpensesPage from './ExpensesPage'
 import InventoryPage from './InventoryPage'
 import TeamPage from './TeamPage'
 import SettingsPage from './SettingsPage'
+import TeamChatPage from './TeamChatPage'
+import ReportsPage from './ReportsPage'
+import ProductsServicesPage from './ProductsServicesPage'
 
 type UserRole = 'superadmin' | 'manager' | 'dispatcher' | 'worker' | 'worker_limited'
 
@@ -178,6 +181,9 @@ export default function Dashboard() {
       case 'team':      return can(userRole,'view_team')      ? <TeamPage />      : <AccessDenied />
       case 'settings':  return can(userRole,'view_settings')  ? <SettingsPage />  : <AccessDenied />
       case 'timeclock': { window.open('https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html','_blank'); navigate('/'); return null; }
+      case 'teamchat':  return can(userRole,'manage_users')   ? <TeamChatPage />  : <AccessDenied />
+      case 'reports':   return can(userRole,'view_reports')   ? <ReportsPage />   : <AccessDenied />
+      case 'products':  return can(userRole,'view_quotes')    ? <ProductsServicesPage /> : <AccessDenied />
       default: return (
         <div style={{padding:'2rem',maxWidth:1400,margin:'0 auto'}}>
           <div style={{marginBottom:'1.75rem'}}>
@@ -335,10 +341,11 @@ export default function Dashboard() {
           {can(userRole,'view_payroll')   && <NavItem label="Payroll"     id="payroll"   icon="💵" />}
           {can(userRole,'view_team')      && <NavItem label="All Employees" id="team"    icon="👤" />}
           {can(userRole,'view_expenses')  && <NavItem label="Expenses"    id="expenses"  icon="🧾" />}
-          {can(userRole,'view_inventory') && <NavItem label="Inventory"   id="inventory" icon="📦" />}
-          {can(userRole,'view_reports')   && <NavItem label="Reports"     id="reports"   icon="📊" />}
-          {can(userRole,'view_settings')  && <NavItem label="Settings"    id="settings"  icon="⚙️" />}
-          {can(userRole,'manage_users')   && <NavItem label="Team Chat"   id="teamchat"  icon="💬" />}
+          {can(userRole,'view_inventory') && <NavItem label="Inventory"          id="inventory" icon="📦" />}
+          {can(userRole,'view_quotes')    && <NavItem label="Products & Services" id="products"  icon="🛒" />}
+          {can(userRole,'view_reports')   && <NavItem label="Reports"             id="reports"   icon="📊" />}
+          {can(userRole,'view_settings')  && <NavItem label="Settings"            id="settings"  icon="⚙️" />}
+          {can(userRole,'manage_users')   && <NavItem label="Team Chat"           id="teamchat"  icon="💬" />}
         </div>
         <div style={{padding:'10px 14px',borderTop:'1px solid #1e293b'}}>
           <button onClick={handleSignOut} style={{width:'100%',background:'rgba(255,255,255,0.05)',color:'#64748b',border:'1px solid #1e293b',borderRadius:8,padding:'7px',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>
