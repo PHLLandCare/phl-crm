@@ -209,16 +209,16 @@ export default function PayrollPage() {
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12, marginBottom: '1.5rem' }}>
         {[
-          { label: 'Employees', value: employees.length },
-          { label: 'Total Hrs', value: fmtH(totals.hours) },
-          { label: 'Overtime Hrs', value: fmtH(employees.reduce((a, e) => a + Math.max(totalHours(e) - 40, 0), 0)) },
-          { label: 'Gross Payroll', value: fmt(totals.gross) },
-          { label: 'Net Payroll', value: fmt(totals.net) },
-          { label: 'Employer Taxes', value: fmt(employees.filter(e => e.employee_type === 'W2').reduce((a, e) => { const g = calcPay(e).gross; return a + g * 0.062 + g * 0.0145 + g * 0.006 }, 0)) },
+          { label: 'Employees',     value: employees.length,                                                                                                                                                                                                                          color: '#60a5fa' },
+          { label: 'Total Hrs',      value: fmtH(totals.hours),                                                                                                                                                                                                                    color: '#4ade80' },
+          { label: 'Overtime Hrs',   value: fmtH(employees.reduce((a, e) => a + Math.max(totalHours(e) - 40, 0), 0)),                                                                                                                                                              color: '#fcd34d' },
+          { label: 'Gross Payroll',  value: fmt(totals.gross),                                                                                                                                                                                                                     color: '#a78bfa' },
+          { label: 'Net Payroll',    value: fmt(totals.net),                                                                                                                                                                                                                       color: '#4ade80' },
+          { label: 'Employer Taxes', value: fmt(employees.filter(e => e.employee_type === 'W2').reduce((a, e) => { const g = calcPay(e).gross; return a + g * 0.062 + g * 0.0145 + g * 0.006 }, 0)),                                                                              color: '#f87171' },
         ].map(s => (
-          <div key={s.label} style={{ background: '#0f172a', borderRadius: 12, padding: '1rem', border: '1px solid #e5e7eb' }}>
-            <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 4px' }}>{s.label}</p>
-            <p style={{ fontSize: 20, fontWeight: 700, color: '#f1f5f9', margin: 0 }}>{s.value}</p>
+          <div key={s.label} style={{ background: '#0f172a', borderRadius: 12, padding: '1rem', border: '1px solid #1e293b', borderTop: `3px solid ${s.color}` }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>{s.label}</p>
+            <p style={{ fontSize: 20, fontWeight: 800, color: s.color, margin: 0 }}>{s.value}</p>
           </div>
         ))}
       </div>
