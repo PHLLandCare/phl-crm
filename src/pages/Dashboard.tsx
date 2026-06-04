@@ -355,7 +355,7 @@ export default function Dashboard() {
           </div>
         </div>
         {/* CREATE BUTTON */}
-        <div style={{padding:'10px 14px',borderBottom:'1px solid #1e293b',position:'relative'}}>
+        <div style={{padding:'10px 14px',borderBottom:'1px solid #1e293b'}}>
           <button
             onClick={()=>setShowCreate(v=>!v)}
             style={{width:'100%',display:'flex',alignItems:'center',gap:8,padding:'9px 14px',background:showCreate?'#1e293b':'#052e16',border:`1px solid ${showCreate?'#334155':'#16a34a'}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
@@ -363,7 +363,7 @@ export default function Dashboard() {
             <span style={{fontSize:14,fontWeight:700,color:showCreate?'#94a3b8':'#4ade80'}}>Create</span>
           </button>
           {showCreate && (
-            <div style={{position:'absolute',left:'100%',top:0,marginLeft:8,background:'#0d1526',border:'1px solid #1e293b',borderRadius:14,padding:'10px 8px',display:'flex',flexDirection:'row',gap:4,zIndex:500,boxShadow:'0 8px 32px rgba(0,0,0,0.6)',whiteSpace:'nowrap'}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,marginTop:8}}>
               {[
                 {label:'Client',  icon:'👤', color:'#f59e0b', path:'clients'},
                 {label:'Request', icon:'📋', color:'#f59e0b', path:'requests'},
@@ -372,11 +372,11 @@ export default function Dashboard() {
                 {label:'Invoice', icon:'💰', color:'#3b82f6', path:'invoices'},
               ].map(item=>(
                 <button key={item.label} onClick={()=>{setShowCreate(false);navigate('/'+item.path,{state:{openCreate:true}})}}
-                  style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6,padding:'12px 14px',background:'transparent',border:'1px solid #1e293b',borderRadius:10,cursor:'pointer',fontFamily:'inherit',minWidth:68,transition:'all .15s'}}
+                  style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5,padding:'10px 6px',background:'#0f172a',border:`1px solid #1e293b`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}
                   onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='#1e293b';(e.currentTarget as HTMLElement).style.borderColor=item.color}}
-                  onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='transparent';(e.currentTarget as HTMLElement).style.borderColor='#1e293b'}}>
-                  <span style={{fontSize:22}}>{item.icon}</span>
-                  <span style={{fontSize:12,fontWeight:600,color:'#94a3b8'}}>{item.label}</span>
+                  onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='#0f172a';(e.currentTarget as HTMLElement).style.borderColor='#1e293b'}}>
+                  <span style={{fontSize:20}}>{item.icon}</span>
+                  <span style={{fontSize:11,fontWeight:600,color:'#94a3b8'}}>{item.label}</span>
                 </button>
               ))}
             </div>
