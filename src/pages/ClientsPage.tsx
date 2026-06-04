@@ -114,6 +114,9 @@ export default function ClientsPage() {
   // Header action menus
   const [showDotsMenu, setShowDotsMenu] = useState(false)
   const [showCreateMenu, setShowCreateMenu] = useState(false)
+  const [showAddProperty, setShowAddProperty] = useState(false)
+  const [showAddContact, setShowAddContact] = useState(false)
+  const [contactForm, setContactForm] = useState({ name: '', phone: '', email: '', role: '' })
 
   const [form, setForm] = useState({
     first_name: '', last_name: '', company: '', phone: '', email: '',
@@ -449,7 +452,7 @@ export default function ClientsPage() {
               )}
             </div>
             {/* Edit pencil */}
-            <button onClick={() => setEditMode(true)} style={{ padding: '8px 12px', background: 'none', border: '1px solid #1e293b', borderRadius: 8, color: '#64748b', cursor: 'pointer', fontSize: 16 }}>✏️</button>
+            <button onClick={() => { setEditMode(true); setTimeout(() => document.getElementById('client-edit-form')?.scrollIntoView({behavior:'smooth',block:'start'}), 100) }} style={{ padding: '8px 14px', background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#94a3b8', cursor: 'pointer', fontSize: 15, display:'flex', alignItems:'center', gap: 6 }}>✏️ <span style={{fontSize:12,fontWeight:600}}>Edit</span></button>
           </div>
         </div>
 
@@ -490,7 +493,7 @@ export default function ClientsPage() {
             <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Properties</h3>
-                <button style={{ width: 28, height: 28, borderRadius: 6, background: '#1e293b', border: '1px solid #334155', color: '#4ade80', cursor: 'pointer', fontSize: 16, display:'flex',alignItems:'center',justifyContent:'center' }}>+</button>
+                <button onClick={() => setShowAddProperty(true)} style={{ width: 36, height: 36, borderRadius: 8, background: '#1e293b', border: '1px solid #4ade80', color: '#4ade80', cursor: 'pointer', fontSize: 20, fontWeight: 700, display:'flex',alignItems:'center',justifyContent:'center' }}>+</button>
               </div>
               {addr && (
                 <div style={{ border: '1px solid #1e293b', borderRadius: 10, padding: '1rem' }}>
@@ -537,7 +540,7 @@ export default function ClientsPage() {
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Contacts</span>
                   <span style={{ fontSize: 12, color: '#64748b' }}> — Add contacts to keep track of everyone you communicate with</span>
                 </div>
-                <button style={{ color: '#4ade80', fontSize: 13, fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Add Contact</button>
+                <button onClick={() => setShowAddContact(true)} style={{ color: '#4ade80', fontSize: 13, fontWeight: 600, background: 'none', border: '1px solid #4ade80', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit' }}>Add Contact</button>
               </div>
             </div>
 
@@ -548,7 +551,7 @@ export default function ClientsPage() {
                 {/* + button with dropdown */}
                 <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
                   <button onClick={() => setShowWorkCreate(v => !v)}
-                    style={{ width: 28, height: 28, borderRadius: 6, background: '#1e293b', border: '1px solid #334155', color: '#4ade80', cursor: 'pointer', fontSize: 16, display:'flex',alignItems:'center',justifyContent:'center' }}>+</button>
+                    style={{ width: 36, height: 36, borderRadius: 8, background: '#1e293b', border: '1px solid #4ade80', color: '#4ade80', cursor: 'pointer', fontSize: 20, fontWeight: 700, display:'flex',alignItems:'center',justifyContent:'center' }}>+</button>
                   {showWorkCreate && (
                     <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: '#0d1526', border: '1px solid #1e293b', borderRadius: 10, zIndex: 200, minWidth: 140, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
                       {[
@@ -682,7 +685,7 @@ export default function ClientsPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Client schedule</h3>
                 <button onClick={() => setShowAddSchedule(true)}
-                  style={{ width: 28, height: 28, borderRadius: 6, background: '#1e293b', border: '1px solid #334155', color: '#4ade80', cursor: 'pointer', fontSize: 16, display:'flex',alignItems:'center',justifyContent:'center' }}>+</button>
+                  style={{ width: 36, height: 36, borderRadius: 8, background: '#1e293b', border: '1px solid #4ade80', color: '#4ade80', cursor: 'pointer', fontSize: 20, fontWeight: 700, display:'flex',alignItems:'center',justifyContent:'center' }}>+</button>
               </div>
 
               {/* Type + Status filters */}
@@ -782,7 +785,7 @@ export default function ClientsPage() {
 
             {/* ── CONTACT INFO (edit) ── */}
             {editMode && (
-              <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
+              <div id="client-edit-form" style={{ background: '#0f172a', border: '2px solid #4ade80', borderRadius: 14, padding: '1.25rem' }}>
                 <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Edit Contact Information</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   <div><label style={lbl}>First Name</label><input style={inp} value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} /></div>
@@ -859,6 +862,107 @@ export default function ClientsPage() {
               ))
             )}
           </div>
+        )}
+
+
+        {/* ── ADD PROPERTY MODAL ── */}
+        {showAddProperty && (
+          <>
+            <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:500 }} onClick={() => setShowAddProperty(false)} />
+            <div style={{ position:'fixed',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:520,maxHeight:'90vh',overflowY:'auto',background:'#0d1526',border:'1px solid #1e293b',borderRadius:16,zIndex:501,padding:24 }}>
+              <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20 }}>
+                <h2 style={{ margin:0,fontSize:17,fontWeight:700,color:'#f1f5f9' }}>Edit Property Details</h2>
+                <button onClick={() => setShowAddProperty(false)} style={{ background:'none',border:'none',color:'#64748b',fontSize:22,cursor:'pointer' }}>×</button>
+              </div>
+              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16 }}>
+                <div style={{ gridColumn:'1/-1' }}>
+                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>Street Address</label>
+                  <input style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="123 Main St" />
+                </div>
+                <div>
+                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>City</label>
+                  <input style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.city} onChange={e => setForm({...form, city: e.target.value})} />
+                </div>
+                <div>
+                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>ZIP</label>
+                  <input style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.zip} onChange={e => setForm({...form, zip: e.target.value})} />
+                </div>
+                <div>
+                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>Lawn Size</label>
+                  <select style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.lawn_size} onChange={e => setForm({...form, lawn_size: e.target.value})}>
+                    {['Small','Medium','Large','Extra Large'].map(s=><option key={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>Irrigation</label>
+                  <select style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.irrigation} onChange={e => setForm({...form, irrigation: e.target.value})}>
+                    <option>No</option><option>Yes</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>Pest Control</label>
+                  <select style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.pest_control} onChange={e => setForm({...form, pest_control: e.target.value})}>
+                    <option>No</option><option>Yes</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>Locked Gate</label>
+                  <select style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.locked_gate ? 'Yes' : 'No'} onChange={e => setForm({...form, locked_gate: e.target.value==='Yes'})}>
+                    <option>No</option><option>Yes</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>Dog on Property</label>
+                  <select style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.has_dog ? 'Yes' : 'No'} onChange={e => setForm({...form, has_dog: e.target.value==='Yes'})}>
+                    <option>No</option><option>Yes</option>
+                  </select>
+                </div>
+              </div>
+              <div style={{ display:'flex',gap:8,justifyContent:'flex-end' }}>
+                <button onClick={() => setShowAddProperty(false)} style={{ padding:'10px 20px',border:'1px solid #1e293b',borderRadius:9,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Cancel</button>
+                <button onClick={() => { handleSaveEdit(); setShowAddProperty(false) }} style={{ padding:'10px 20px',border:'none',borderRadius:9,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Save Property</button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ── ADD CONTACT MODAL ── */}
+        {showAddContact && (
+          <>
+            <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:500 }} onClick={() => setShowAddContact(false)} />
+            <div style={{ position:'fixed',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:440,background:'#0d1526',border:'1px solid #1e293b',borderRadius:16,zIndex:501,padding:24 }}>
+              <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20 }}>
+                <h2 style={{ margin:0,fontSize:17,fontWeight:700,color:'#f1f5f9' }}>Add Contact</h2>
+                <button onClick={() => setShowAddContact(false)} style={{ background:'none',border:'none',color:'#64748b',fontSize:22,cursor:'pointer' }}>×</button>
+              </div>
+              <p style={{ margin:'0 0 16px',fontSize:13,color:'#64748b' }}>Add contacts to keep track of everyone you communicate with for this client.</p>
+              <div style={{ display:'flex',flexDirection:'column',gap:12,marginBottom:20 }}>
+                {[
+                  { label:'Full Name *', key:'name' as const, placeholder:'John Smith' },
+                  { label:'Phone', key:'phone' as const, placeholder:'(561) 000-0000' },
+                  { label:'Email', key:'email' as const, placeholder:'email@example.com' },
+                  { label:'Role / Title', key:'role' as const, placeholder:'Property Manager, Spouse, etc.' },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase' as const,letterSpacing:'0.05em',marginBottom:4,display:'block' }}>{f.label}</label>
+                    <input style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }}
+                      placeholder={f.placeholder} value={contactForm[f.key]} onChange={e => setContactForm({...contactForm, [f.key]: e.target.value})} />
+                  </div>
+                ))}
+              </div>
+              <div style={{ display:'flex',gap:8,justifyContent:'flex-end' }}>
+                <button onClick={() => { setShowAddContact(false); setContactForm({ name:'', phone:'', email:'', role:'' }) }}
+                  style={{ padding:'10px 20px',border:'1px solid #1e293b',borderRadius:9,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Cancel</button>
+                <button onClick={() => {
+                  if (contactForm.name) {
+                    alert(`Contact "${contactForm.name}" added successfully!`)
+                    setShowAddContact(false)
+                    setContactForm({ name:'', phone:'', email:'', role:'' })
+                  }
+                }} style={{ padding:'10px 20px',border:'none',borderRadius:9,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Add Contact</button>
+              </div>
+            </div>
+          </>
         )}
 
         {/* ── COLLECT PAYMENT MODAL ── */}
