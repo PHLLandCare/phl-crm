@@ -69,10 +69,11 @@ function federalWithholding(weeklyGross: number): number {
 export default function PayrollPage() {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [clockEvents, setClockEvents] = useState<ClockEvent[]>([])
+  const [todayEvents, setTodayEvents] = useState<ClockEvent[]>([])
   const [manualHours, setManualHours] = useState<Record<string, Record<string, number>>>({})
   const [weekOffset, setWeekOffset] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'payroll' | 'stubs' | 'history'>('payroll')
+  const [tab, setTab] = useState<'today' | 'payroll' | 'stubs' | 'history'>('today')
   const [stubEmp, setStubEmp] = useState<Employee | null>(null)
   const printRef = useRef<HTMLDivElement>(null)
 
@@ -83,14 +84,19 @@ export default function PayrollPage() {
   useEffect(() => {
     const load = async () => {
       setLoading(true)
-      const [empRes, clockRes] = await Promise.all([
+      const today = new Date().toISOString().split('T')[0]
+      const [empRes, clockRes, todayRes] = await Promise.all([
         supabase.from('employees').select('*').eq('active', true).order('fname'),
         supabase.from('clock_events').select('*')
           .gte('clock_in', weekStart.toISOString())
           .lt('clock_in', new Date(weekStart.getTime() + 7 * 86400000).toISOString()),
+        supabase.from('clock_events').select('*')
+          .gte('clock_in', today + 'T00:00:00')
+          .order('created_at', { ascending: false }),
       ])
       setEmployees(empRes.data ?? [])
       setClockEvents(clockRes.data ?? [])
+      setTodayEvents(todayRes.data ?? [])
       setLoading(false)
     }
     load()
@@ -199,7 +205,7 @@ export default function PayrollPage() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: '1.5rem', borderBottom: '1px solid #e5e7eb' }}>
-        {[{id:'payroll',label:'Payroll'},{id:'stubs',label:'Pay Stubs'},{id:'history',label:'Punch History'}].map(t => (
+        {[{id:'today',label:"Today's Log"},{id:'payroll',label:'Payroll'},{id:'stubs',label:'Pay Stubs'},{id:'history',label:'Punch History'}].map(t => (
           <button key={t.id} onClick={() => setTab(t.id as any)} style={{ padding: '10px 20px', border: 'none', background: 'transparent', color: tab === t.id ? '#16a34a' : '#64748b', fontWeight: tab === t.id ? 700 : 400, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', borderBottom: tab === t.id ? '2px solid #16a34a' : '2px solid transparent', marginBottom: -1 }}>
             {t.label}
           </button>
@@ -222,6 +228,80 @@ export default function PayrollPage() {
           </div>
         ))}
       </div>
+
+
+      {/* TODAY'S LOG — mirrors TimeClock admin exactly */}
+      {tab === 'today' && (
+        <div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:16 }}>
+            {[
+              { label:'Clocked In',       value: todayEvents.filter(e => e.clock_in && !e.clock_out).length, color:'#4ade80' },
+              { label:'Clocked Out',      value: todayEvents.filter(e => !!e.clock_out).length, color:'#64748b' },
+              { label:'Security Flags',   value: 0, color:'#f87171' },
+              { label:'Active Employees', value: employees.length, color:'#60a5fa' },
+            ].map(s => (
+              <div key={s.label} style={{ background:'#0f172a', border:'1px solid #1e293b', borderTop:`3px solid ${s.color}`, borderRadius:12, padding:'12px 14px' }}>
+                <p style={{ margin:'0 0 2px', fontSize:10, fontWeight:700, color:s.color, textTransform:'uppercase', letterSpacing:'0.05em' }}>{s.label}</p>
+                <p style={{ margin:0, fontSize:24, fontWeight:800, color:'#f1f5f9' }}>{s.value === 0 ? '—' : s.value}</p>
+              </div>
+            ))}
+          </div>
+          <div style={{ background:'#0f172a', borderRadius:14, border:'1px solid #1e293b', overflow:'hidden' }}>
+            <div style={{ padding:'12px 16px', borderBottom:'1px solid #1e293b', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+              <p style={{ margin:0, fontSize:14, fontWeight:700, color:'#f1f5f9' }}>Clock events — {new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</p>
+              <button onClick={() => {
+                const rows = [['Employee','Employee ID','Division','Clock In','Clock Out','Hours','Method']]
+                todayEvents.forEach((e: ClockEvent) => {
+                  const hrs = e.clock_in && e.clock_out ? ((new Date(e.clock_out).getTime()-new Date(e.clock_in).getTime())/3600000).toFixed(2) : ''
+                  rows.push([e.employee_name||'',e.employee_id||'',e.division||'',e.clock_in?new Date(e.clock_in).toLocaleTimeString():'',e.clock_out?new Date(e.clock_out).toLocaleTimeString():'',hrs,e.method||''])
+                })
+                const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n')
+                const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=`timeclock-${new Date().toISOString().slice(0,10)}.csv`;a.click()
+              }} style={{ padding:'7px 14px', background:'#1e293b', border:'1px solid #334155', borderRadius:8, color:'#94a3b8', cursor:'pointer', fontSize:12, fontFamily:'inherit', fontWeight:600 }}>
+                📥 Export CSV
+              </button>
+            </div>
+            <table style={{ width:'100%', borderCollapse:'collapse' }}>
+              <thead>
+                <tr style={{ background:'#0a0f1a', borderBottom:'1px solid #1e293b' }}>
+                  {['Employee','Division','Clock In','Clock Out','Hours','Method','Status'].map(h => (
+                    <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:10, fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.05em' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {todayEvents.length === 0 ? (
+                  <tr><td colSpan={7} style={{ padding:'3rem', textAlign:'center', color:'#475569', fontSize:13 }}>
+                    <div style={{ fontSize:32, marginBottom:8 }}>⏰</div>
+                    <p style={{ margin:0 }}>No clock events today yet</p>
+                  </td></tr>
+                ) : todayEvents.map((e: ClockEvent) => {
+                  const hrs = e.clock_in && e.clock_out ? ((new Date(e.clock_out).getTime()-new Date(e.clock_in).getTime())/3600000).toFixed(1)+'h' : '—'
+                  const isIn = !!(e.clock_in && !e.clock_out)
+                  return (
+                    <tr key={e.id} style={{ borderBottom:'1px solid #1e293b' }}>
+                      <td style={{ padding:'11px 14px' }}>
+                        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                          <div style={{ width:28, height:28, borderRadius:'50%', background:'#16a34a', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'#fff', flexShrink:0 }}>
+                            {(e.employee_name||'?').split(' ').map((n: string)=>n[0]).slice(0,2).join('').toUpperCase()}
+                          </div>
+                          <span style={{ fontSize:13, fontWeight:600, color:'#f1f5f9' }}>{e.employee_name||'—'}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding:'11px 14px', fontSize:12, color:'#64748b' }}>{e.division||'—'}</td>
+                      <td style={{ padding:'11px 14px', fontSize:13, color:'#4ade80', fontWeight:600 }}>{e.clock_in?new Date(e.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'—'}</td>
+                      <td style={{ padding:'11px 14px', fontSize:13, color:'#f87171' }}>{e.clock_out?new Date(e.clock_out).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}):'—'}</td>
+                      <td style={{ padding:'11px 14px', fontSize:13, fontWeight:700, color:'#f1f5f9' }}>{hrs}</td>
+                      <td style={{ padding:'11px 14px' }}><span style={{ background:'rgba(96,165,250,0.15)',color:'#60a5fa',padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600 }}>{e.method||'QR'}</span></td>
+                      <td style={{ padding:'11px 14px' }}><span style={{ background:isIn?'rgba(74,222,128,0.15)':'rgba(100,116,139,0.15)',color:isIn?'#4ade80':'#94a3b8',padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600 }}>{isIn?'Clocked In':'Clocked Out'}</span></td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {tab === 'payroll' && !loading && (
         <div style={{ background: '#0f172a', borderRadius: 16, border: '1px solid #e5e7eb', overflow: 'auto' }}>
