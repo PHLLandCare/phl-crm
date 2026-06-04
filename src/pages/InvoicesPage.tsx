@@ -75,6 +75,8 @@ export default function InvoicesPage() {
   const [contractNote, setContractNote]   = useState('Thank you for your business. Please contact us with any questions regarding this invoice.')
   const [internalNote, setInternalNote]   = useState('')
   const [saving, setSaving]               = useState(false)
+  const [sending, setSending]             = useState<string|null>(null)
+  const [emailToast, setEmailToast]       = useState('')
   const location = useLocation()
 
   // Apply filter from dashboard navigation
@@ -146,6 +148,29 @@ export default function InvoicesPage() {
     loadInvoices()
   }
 
+  const sendInvoiceEmail = async (inv: Invoice) => {
+    if (!inv.client_name) { alert('No client on this invoice'); return }
+    setSending(inv.id)
+    try {
+      const { error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: inv.client_name,
+          subject: `Invoice #${inv.invoice_number} from PHL Land Care Inc.`,
+          html: `<h2>Invoice #${inv.invoice_number}</h2><p>Dear ${inv.client_name},</p><p>Please find your invoice for <strong>$${(inv.amount||0).toFixed(2)}</strong> due on ${inv.due_date||'receipt'}.</p><p>Subject: ${inv.subject||'Services Rendered'}</p><p>Thank you for your business!</p><br/><p>PHL Land Care Inc.<br/>Lake Park, FL</p>`,
+        }
+      })
+      if (error) throw error
+      setEmailToast(`✅ Invoice #${inv.invoice_number} sent!`)
+      await supabase.from('invoices').update({ status: 'sent' }).eq('id', inv.id)
+      loadInvoices()
+    } catch {
+      setEmailToast(`📧 Email queued — connect Resend in Settings to send`)
+    }
+    setSending(null)
+    setTimeout(() => setEmailToast(''), 4000)
+  }
+
+
   const resetForm = () => {
     setSubject('For Services Rendered'); setClientSearch(''); setSelectedClient('')
     setPaymentTerms('Net 7'); setIrrigation('No'); setPestControl('No')
@@ -179,6 +204,11 @@ export default function InvoicesPage() {
   return (
     <div style={{padding:'2rem',maxWidth:1300,margin:'0 auto',fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif'}}>
 
+      {emailToast && (
+        <div style={{position:'fixed',top:'1rem',right:'1rem',background:'#052e16',border:'1px solid #16a34a',borderRadius:10,padding:'10px 18px',fontSize:14,color:'#4ade80',fontWeight:600,zIndex:9999}}>
+          {emailToast}
+        </div>
+      )}
       {/* Header */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.5rem',flexWrap:'wrap',gap:12}}>
         <h1 style={{fontSize:26,fontWeight:700,color:'#f1f5f9',margin:0}}>Invoices</h1>
@@ -304,8 +334,12 @@ export default function InvoicesPage() {
                   <td style={{padding:'12px 14px'}}>{statusBadge(inv.status||'draft')}</td>
                   <td style={{padding:'12px 14px',fontSize:14,fontWeight:700,color:'#f1f5f9'}}>${(inv.amount||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
                   <td style={{padding:'12px 14px',fontSize:14,fontWeight:700,color:(inv.balance||inv.amount||0)>0?'#fca5a5':'#4ade80'}}>${(inv.balance||inv.amount||0).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
-                  <td style={{padding:'12px 14px'}}>
-                    <button onClick={()=>handleDelete(inv.id)} style={{background:'#450a0a',color:'#fca5a5',border:'none',borderRadius:6,padding:'4px 10px',fontSize:12,cursor:'pointer',fontWeight:600}}>Delete</button>
+                  <td style={{padding:'12px 14px',display:'flex',gap:6,alignItems:'center'}}>
+                    <button onClick={e=>{e.stopPropagation();sendInvoiceEmail(inv)}} disabled={sending===inv.id}
+                      style={{background:'#0c1a2e',color:'#7dd3fc',border:'1px solid #0ea5e9',borderRadius:6,padding:'4px 10px',fontSize:12,cursor:'pointer',fontWeight:600,opacity:sending===inv.id?0.6:1}}>
+                      {sending===inv.id?'Sending…':'📧 Send'}
+                    </button>
+                    <button onClick={e=>{e.stopPropagation();handleDelete(inv.id)}} style={{background:'#450a0a',color:'#fca5a5',border:'none',borderRadius:6,padding:'4px 10px',fontSize:12,cursor:'pointer',fontWeight:600}}>Delete</button>
                   </td>
                 </tr>
               ))}

@@ -12,6 +12,7 @@ import InventoryPage from './InventoryPage'
 import TeamPage from './TeamPage'
 import SettingsPage from './SettingsPage'
 import TeamChatPage from './TeamChatPage'
+import RoutePage from './RoutePage'
 import ReportsPage from './ReportsPage'
 import ProductsServicesPage from './ProductsServicesPage'
 
@@ -183,6 +184,7 @@ export default function Dashboard() {
       case 'settings':  return can(userRole,'view_settings')  ? <SettingsPage />  : <AccessDenied />
       case 'timeclock': { window.open('https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html','_blank'); navigate('/'); return null; }
       case 'teamchat':  return can(userRole,'manage_users')   ? <TeamChatPage />  : <AccessDenied />
+      case 'routes':    return can(userRole,'view_schedule')    ? <RoutePage />     : <AccessDenied />
       case 'reports':   return can(userRole,'view_reports')   ? <ReportsPage />   : <AccessDenied />
       case 'products':  return can(userRole,'view_quotes')    ? <ProductsServicesPage /> : <AccessDenied />
       default: return (
@@ -388,6 +390,7 @@ export default function Dashboard() {
           {can(userRole,'view_jobs')     && <NavItem label="Jobs"      id="jobs"      icon="🔧" count={counts.jobs} />}
           {can(userRole,'view_invoices') && <NavItem label="Invoices"  id="invoices"  icon="💰" count={counts.invoices} />}
           {can(userRole,'view_schedule') && <NavItem label="Schedule"  id="schedule"  icon="📅" />}
+          {can(userRole,'view_schedule') && <NavItem label="Routes"    id="routes"    icon="🗺️" />}
 
           <SectionLabel title="Divisions" />
           <NavItem label="Lawn & Tree"    id="div-lawn"          icon="🌿" />

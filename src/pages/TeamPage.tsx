@@ -178,6 +178,105 @@ const Section: React.FC<{
   </div>
 )
 
+
+function BulkImport({ onDone }: { onDone: () => void }) {
+  const [csv, setCsv]         = useState('')
+  const [preview, setPreview] = useState<any[]>([])
+  const [importing, setImporting] = useState(false)
+  const [result, setResult]   = useState('')
+
+  const parseCSV = (text: string) => {
+    const lines = text.trim().split('\n').filter(Boolean)
+    if (lines.length < 2) return []
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z_]/g,''))
+    return lines.slice(1).map(line => {
+      const vals = line.split(',').map(v => v.trim().replace(/^"|"$/g,''))
+      const row: any = {}
+      headers.forEach((h,i) => { row[h] = vals[i] || '' })
+      return row
+    })
+  }
+
+  const handleFile = (file: File) => {
+    const r = new FileReader()
+    r.onload = e => {
+      const text = e.target?.result as string
+      setCsv(text)
+      setPreview(parseCSV(text).slice(0,5))
+    }
+    r.readAsText(file)
+  }
+
+  const handleImport = async () => {
+    const rows = parseCSV(csv)
+    if (!rows.length) return
+    setImporting(true)
+    let success = 0, failed = 0
+    for (const row of rows) {
+      try {
+        const fname = row.fname || row.first_name || row.firstname || ''
+        const lname = row.lname || row.last_name || row.lastname || ''
+        const email = row.email || ''
+        const division = row.division || 'Lawn & Tree'
+        const hourly_rate = parseFloat(row.hourly_rate || row.rate || '15') || 15
+        const employee_type = (row.employee_type || row.type || 'W2').toUpperCase()
+        const employee_id = row.employee_id || row.id || `EMP-${Date.now()}-${Math.random().toString(36).slice(2,5)}`
+        if (!fname && !lname) { failed++; continue }
+        const { error } = await (await import('../lib/supabase')).supabase.from('employees').insert({
+          fname, lname, email, division, hourly_rate, employee_type, employee_id, active: true
+        })
+        if (error) { failed++ } else { success++ }
+      } catch { failed++ }
+    }
+    setImporting(false)
+    setResult(`✅ ${success} imported${failed > 0 ? `, ❌ ${failed} failed` : ''}`)
+    if (success > 0) setTimeout(onDone, 2000)
+  }
+
+  const TEMPLATE = 'fname,lname,email,employee_id,division,hourly_rate,employee_type\nJohn,Doe,john@phllandcare.com,EMP-007,Lawn & Tree,15,W2\nJane,Smith,jane@phllandcare.com,EMP-008,Irrigation,18,W2'
+
+  return (
+    <div>
+      <div style={{ marginBottom: 12 }}>
+        <a href={`data:text/csv;charset=utf-8,${encodeURIComponent(TEMPLATE)}`} download="phl_employees_template.csv"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#60a5fa', fontSize: 13, textDecoration: 'none', fontWeight: 600 }}>
+          ⬇️ Download CSV Template
+        </a>
+      </div>
+      <label style={{ display: 'block', cursor: 'pointer' }}
+        onDragOver={e=>e.preventDefault()}
+        onDrop={e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f)handleFile(f)}}>
+        <div style={{ border: '2px dashed #334155', borderRadius: 10, padding: '1.5rem', textAlign: 'center', color: '#64748b', fontSize: 14 }}>
+          📂 Drop CSV here or click to browse
+          <input type="file" accept=".csv" style={{ display: 'none' }} onChange={e=>{const f=e.target.files?.[0];if(f)handleFile(f)}} />
+        </div>
+      </label>
+      {preview.length > 0 && (
+        <div style={{ marginTop: 12 }}>
+          <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 6px' }}>Preview ({preview.length} of {parseCSV(csv).length} rows)</p>
+          <div style={{ background: '#0a0f1a', borderRadius: 8, border: '1px solid #1e293b', overflow: 'auto', maxHeight: 160 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead><tr style={{ borderBottom: '1px solid #1e293b' }}>
+                {Object.keys(preview[0]).map(k=><th key={k} style={{ padding: '6px 10px', color: '#64748b', textAlign: 'left', fontWeight: 600 }}>{k}</th>)}
+              </tr></thead>
+              <tbody>{preview.map((row,i)=>(
+                <tr key={i} style={{ borderBottom: '1px solid #1e293b' }}>
+                  {Object.values(row).map((v:any,j)=><td key={j} style={{ padding: '6px 10px', color: '#cbd5e1' }}>{v}</td>)}
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <button onClick={handleImport} disabled={importing}
+            style={{ marginTop: 12, width: '100%', padding: '10px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: importing ? 0.7 : 1 }}>
+            {importing ? 'Importing...' : `Import ${parseCSV(csv).length} Employees`}
+          </button>
+        </div>
+      )}
+      {result && <p style={{ marginTop: 10, fontSize: 13, color: '#4ade80', fontWeight: 600 }}>{result}</p>}
+    </div>
+  )
+}
+
 export default function TeamPage() {
   const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
@@ -433,7 +532,13 @@ export default function TeamPage() {
               <button onClick={() => setAddMode('manual')} style={{ flex: 1, padding: '8px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: addMode === 'manual' ? '#1e293b' : 'transparent', color: addMode === 'manual' ? '#f1f5f9' : '#64748b' }}>
                 🔑 Add manually
               </button>
+              <button onClick={() => setAddMode('bulk' as any)} style={{ flex: 1, padding: '8px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: addMode === ('bulk' as any) ? '#1e293b' : 'transparent', color: addMode === ('bulk' as any) ? '#f1f5f9' : '#64748b' }}>
+                📋 Bulk CSV
+              </button>
             </div>
+            {addMode === ('bulk' as any) && (
+              <BulkImport onDone={() => { setShowInvite(false); loadMembers() }} />
+            )}
             {error && <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#f87171', marginBottom: 14 }}>{error}</div>}
             <label style={lbl}>Full name *</label>
             <input style={{ ...inp, marginBottom: 12 }} value={inviteName} onChange={e => setInviteName(e.target.value)} placeholder="e.g. Brandon Ryan" />
