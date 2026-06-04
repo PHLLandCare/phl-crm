@@ -4,18 +4,53 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PHL Land Care - Time Clock</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/dist/tabler-icons.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<!-- fonts loaded from system stack -->
+<style>
+/* Inline icon replacements — no CDN needed */
+.ti::before { font-style: normal; }
+.ti-qrcode::before { content: "⊞"; }
+.ti-edit::before { content: "✎"; }
+.ti-archive::before { content: "▾"; }
+.ti-refresh::before { content: "↺"; }
+.ti-user-plus::before { content: "+"; }
+.ti-search::before { content: "⌕"; }
+.ti-download::before { content: "↓"; }
+.ti-arrow-left::before { content: "←"; }
+.ti-shield-check::before { content: "✓"; }
+.ti-map-pin::before { content: "📍"; }
+.ti-lock::before { content: "🔒"; }
+.ti-printer::before { content: "🖨"; }
+</style>
+<script>
+// Inline QR Code — no CDN needed, CSP-safe
+(function(g){
+  function QRCode(el,opts){
+    if(typeof opts==='string')opts={text:opts};
+    this.el=typeof el==='string'?document.getElementById(el):el;
+    this.opts=Object.assign({width:180,height:180,colorDark:'#0a2540',colorLight:'#fff'},opts);
+    this._draw();
+  }
+  QRCode.CorrectLevel={L:1,M:0,Q:3,H:2};
+  QRCode.prototype._draw=function(){
+    var img=document.createElement('img');
+    img.width=this.opts.width; img.height=this.opts.height;
+    img.style.borderRadius='8px';
+    img.src='https://api.qrserver.com/v1/create-qr-code/?size='+this.opts.width+'x'+this.opts.height+'&data='+encodeURIComponent(this.opts.text)+'&color=0a2540&bgcolor=ffffff&margin=2';
+    this.el.innerHTML=''; this.el.appendChild(img);
+  };
+  QRCode.prototype.clear=function(){this.el.innerHTML='';};
+  g.QRCode=QRCode;
+})(window);
+</script>
 <style>
 :root{--navy:#0a2540;--teal:#29b6d8;--teal2:#1d9bc0;--green:#1d9e75;--red:#c0392b;--amber:#ba7517;--purple:#7f77dd;--border:#e1e8ef;--bg:#f4f6f9;--surface:#fff;--text:#1a2332;--muted:#6b7a90}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text)}
 .page{display:none}.page.active{display:block}
 .topbar{height:52px;background:var(--navy);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:20}
 .topbar img{height:34px;object-fit:contain;background:#fff;border-radius:8px;padding:4px 10px}
 .topbar-title{color:rgba(255,255,255,.7);font-size:13px;font-weight:500;flex:1}
-.tb-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:5px;text-decoration:none}
+.tb-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;display:inline-flex;align-items:center;gap:5px;text-decoration:none}
 .tb-btn:hover{background:rgba(255,255,255,.2)}
 .tb-btn.teal{background:var(--teal);border-color:var(--teal)}
 .tab-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px}
@@ -42,7 +77,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .bg{background:#e1f5ee;color:#085041}.br{background:#fcebeb;color:#791f1f}
 .ba{background:#faeeda;color:#633806}.bm{background:#e6f1fb;color:#0c447c}
 .bs{background:#f1efe8;color:#444}.bp{background:#eeedfe;color:#3c3489}
-.btn{padding:7px 14px;border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-weight:500;border:1px solid var(--border);background:#fff;color:var(--text)}
+.btn{padding:7px 14px;border-radius:8px;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-weight:500;border:1px solid var(--border);background:#fff;color:var(--text)}
 .btn:hover{background:#f0f4f8}
 .btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
 .btn.primary:hover{background:var(--teal2)}
@@ -51,10 +86,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .btn.amber{background:var(--amber);color:#fff;border-color:var(--amber)}
 .filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
 .srch{position:relative;flex:1;min-width:180px}
-.srch input{width:100%;padding:7px 10px 7px 30px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none}
+.srch input{width:100%;padding:7px 10px 7px 30px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;outline:none}
 .srch input:focus{border-color:var(--teal)}
 .srch i{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px}
-.fsel{padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;background:#fff;cursor:pointer}
+.fsel{padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;outline:none;background:#fff;cursor:pointer}
 .spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty{text-align:center;padding:32px;color:var(--muted);font-size:13px}
@@ -77,10 +112,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .manual-toggle{font-size:11px;color:rgba(255,255,255,.35);cursor:pointer;text-decoration:underline;margin-bottom:14px;display:block}
 .manual-form{display:none;text-align:left}.manual-form.open{display:block}
 .mf-label{font-size:11px;color:rgba(255,255,255,.45);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
-.mf-input{width:100%;padding:10px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:10px}
+.mf-input{width:100%;padding:10px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;outline:none;margin-bottom:10px}
 .mf-input::placeholder{color:rgba(255,255,255,.25)}
 .mf-input:focus{border-color:var(--teal)}
-.mf-btn{width:100%;padding:11px;border-radius:9px;border:none;background:var(--teal);color:#fff;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;margin-bottom:10px}
+.mf-btn{width:100%;padding:11px;border-radius:9px;border:none;background:var(--teal);color:#fff;font-size:14px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;cursor:pointer;margin-bottom:10px}
 .recent-label{font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px;text-align:left}
 .r-row{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border-radius:8px;padding:7px 10px;margin-bottom:5px}
 .r-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0}
@@ -103,7 +138,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fg-full{grid-column:1/-1}
 .fl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
-.fi,.fs{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;color:var(--text)}
+.fi,.fs{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;outline:none;color:var(--text)}
 .fi:focus,.fs:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(41,182,216,.1)}
 
 /* QR MODAL */
@@ -121,6 +156,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;border-left:3px solid var(--teal);z-index:200;display:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3)}
 .toast.show{display:block}
 </style>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://api.qrserver.com https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; font-src 'self' data:; worker-src 'self' blob:; form-action 'self';">
 </head>
 <body>
 
@@ -152,7 +188,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
     <div class="recent-label">Recent clock events</div>
     <div id="kiosk-recent"><div style="text-align:center;color:rgba(255,255,255,.3);font-size:12px;padding:8px">Loading...</div></div>
     <div style="margin-top:16px;display:flex;gap:8px;justify-content:center">
-      <button onclick="showPage('admin-page')" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">Admin dashboard →</button>
+      <button onclick="showPage('admin-page')" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif">Admin dashboard →</button>
     </div>
   </div>
 </div>
@@ -190,7 +226,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
       <div class="tcard">
         <div class="tcard-hdr">
           <span class="tcard-title">Clock events</span>
-          <input type="text" id="log-search" placeholder="Search..." oninput="renderLog()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;width:180px">
+          <input type="text" id="log-search" placeholder="Search..." oninput="renderLog()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;outline:none;width:180px">
         </div>
         <table class="dt">
           <thead><tr><th>Employee</th><th>Division</th><th>Clock in</th><th>Clock out</th><th>Hours</th><th>Method</th><th>Status</th></tr></thead>
@@ -464,53 +500,21 @@ function renderEmps() {
   tb.innerHTML = '';
   list.forEach(function(e) {
     var tr = document.createElement('tr');
-
-    // Avatar cell
-    var td1 = document.createElement('td');
-    td1.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 12px';
-    var av = document.createElement('div');
-    av.className = 'av'; av.style.background = col(e); av.textContent = ini(e).toUpperCase();
-    var nameDiv = document.createElement('div');
-    var n1 = document.createElement('div'); n1.style.fontWeight = '600'; n1.textContent = fullName(e);
-    nameDiv.appendChild(n1);
-    if (e.phone) { var n2 = document.createElement('div'); n2.style.cssText = 'font-size:10px;color:var(--muted)'; n2.textContent = e.phone; nameDiv.appendChild(n2); }
-    td1.appendChild(av); td1.appendChild(nameDiv); tr.appendChild(td1);
-
-    // Simple text cells
-    ['employee_id','division','crew'].forEach(function(k,i) {
-      var td = document.createElement('td');
-      if (i === 0) td.style.cssText = 'font-size:11px;color:var(--muted)';
-      td.textContent = e[k] || '—';
-      tr.appendChild(td);
-    });
-
-    // Role badge
-    var tdRole = document.createElement('td');
-    var badge = document.createElement('span');
-    badge.className = 'b bs'; badge.textContent = e.role || '—';
-    tdRole.appendChild(badge); tr.appendChild(tdRole);
-
-    // Actions
-    var tdAct = document.createElement('td');
-    var wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;gap:4px';
-
-    var btnQR = document.createElement('button');
-    btnQR.className = 'btn'; btnQR.style.cssText = 'padding:4px 8px;font-size:11px';
-    btnQR.innerHTML = '<i class="ti ti-qrcode"></i> QR';
-    btnQR.addEventListener('click', (function(eid){ return function(){ showQR(eid); }; })(e.employee_id));
-
-    var btnEdit = document.createElement('button');
-    btnEdit.className = 'btn'; btnEdit.style.cssText = 'padding:4px 8px;font-size:11px';
-    btnEdit.innerHTML = '<i class="ti ti-edit"></i>';
-    btnEdit.addEventListener('click', (function(eid){ return function(){ editEmp(eid); }; })(e.employee_id));
-
-    var btnArch = document.createElement('button');
-    btnArch.className = 'btn amber'; btnArch.style.cssText = 'padding:4px 8px;font-size:11px';
-    btnArch.innerHTML = '<i class="ti ti-archive"></i>';
-    btnArch.addEventListener('click', (function(eid){ return function(){ archiveEmp(eid); }; })(e.employee_id));
-
-    wrap.appendChild(btnQR); wrap.appendChild(btnEdit); wrap.appendChild(btnArch);
-    tdAct.appendChild(wrap); tr.appendChild(tdAct);
+    tr.innerHTML =
+      '<td style="display:flex;align-items:center;gap:8px;padding:9px 12px">' +
+        '<div class="av" style="background:' + col(e) + '">' + ini(e).toUpperCase() + '</div>' +
+        '<div><div style="font-weight:600">' + fullName(e) + '</div>' +
+        (e.phone ? '<div style="font-size:10px;color:var(--muted)">' + e.phone + '</div>' : '') +
+        '</div></td>' +
+      '<td style="font-size:11px;color:var(--muted)">' + (e.employee_id||'—') + '</td>' +
+      '<td>' + (e.division||'—') + '</td>' +
+      '<td>' + (e.crew||'—') + '</td>' +
+      '<td><span class="b bs">' + (e.role||'—') + '</span></td>' +
+      '<td><div style="display:flex;gap:4px">' +
+        '<button class="btn" style="padding:4px 8px;font-size:11px" onclick="showQR(' + JSON.stringify(e.employee_id) + ')"><i class="ti ti-qrcode"></i> QR</button>' +
+        '<button class="btn" style="padding:4px 8px;font-size:11px" onclick="editEmp(' + JSON.stringify(e.employee_id) + ')"><i class="ti ti-edit"></i></button>' +
+        '<button class="btn amber" style="padding:4px 8px;font-size:11px" onclick="archiveEmp(' + JSON.stringify(e.employee_id) + ')"><i class="ti ti-archive"></i></button>' +
+      '</div></td>';
     tb.appendChild(tr);
   });
 }
@@ -524,17 +528,15 @@ function renderArch() {
   tb.innerHTML = '';
   list.forEach(function(e) {
     var tr = document.createElement('tr');
-    var td1 = document.createElement('td');
-    td1.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 12px';
-    var av = document.createElement('div'); av.className='av'; av.style.background='#aaa'; av.textContent=ini(e).toUpperCase();
-    var nm = document.createElement('div'); nm.style.cssText='font-weight:600;color:var(--muted)'; nm.textContent=fullName(e);
-    td1.appendChild(av); td1.appendChild(nm); tr.appendChild(td1);
-    ['employee_id','division'].forEach(function(k){var td=document.createElement('td');td.style.color='var(--muted)';if(k==='employee_id')td.style.fontSize='11px';td.textContent=e[k]||'—';tr.appendChild(td);});
-    var tdDate=document.createElement('td');tdDate.style.color='var(--muted)';tdDate.textContent=new Date(e.created_at).toLocaleDateString();tr.appendChild(tdDate);
-    var tdBtn=document.createElement('td');
-    var btn=document.createElement('button');btn.className='btn success';btn.style.cssText='padding:4px 8px;font-size:11px';btn.innerHTML='<i class="ti ti-refresh"></i> Restore';
-    btn.addEventListener('click',(function(eid){return function(){restoreEmp(eid);};})(e.employee_id));
-    tdBtn.appendChild(btn);tr.appendChild(tdBtn);
+    tr.innerHTML =
+      '<td style="display:flex;align-items:center;gap:8px;padding:9px 12px">' +
+        '<div class="av" style="background:#aaa">' + ini(e).toUpperCase() + '</div>' +
+        '<div style="font-weight:600;color:var(--muted)">' + fullName(e) + '</div>' +
+      '</td>' +
+      '<td style="font-size:11px;color:var(--muted)">' + (e.employee_id||'—') + '</td>' +
+      '<td style="color:var(--muted)">' + (e.division||'—') + '</td>' +
+      '<td style="color:var(--muted)">' + new Date(e.created_at).toLocaleDateString() + '</td>' +
+      '<td><button class="btn success" style="padding:4px 8px;font-size:11px" onclick="restoreEmp(' + JSON.stringify(e.employee_id) + ')"><i class="ti ti-refresh"></i> Restore</button></td>';
     tb.appendChild(tr);
   });
 }
@@ -749,44 +751,40 @@ function showQR(eid) {
 function closeQRModal() { document.getElementById('qr-modal').classList.remove('open'); document.getElementById('qr-display').innerHTML = ''; }
 
 function printCurrentBadge() {
-  var name = document.getElementById('qr-emp-name').textContent;
-  var empId = document.getElementById('qr-emp-id').textContent;
-  var qrUrl = 'https://phllandcare.github.io/phl-crm/#/clockin?emp=' + encodeURIComponent(empId.split(' · ')[0]);
+  var name = document.getElementById('qr-emp-name').textContent || 'Employee';
+  var empIdLine = document.getElementById('qr-emp-id').textContent || '';
+  var empId = empIdLine.split(' · ')[0].trim();
+  var qrUrl = 'https://phllandcare.github.io/phl-crm/#/clockin?emp=' + encodeURIComponent(empId);
+  var qrImg = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(qrUrl) + '&color=0a2540&bgcolor=ffffff&margin=2';
   var win = window.open('', '_blank', 'width=420,height=560');
-  if (!win) { toast('Pop-up blocked — allow pop-ups and try again'); return; }
+  if (!win) { toast('Pop-up blocked — allow pop-ups for this site and try again'); return; }
   win.document.write('<!DOCTYPE html><html><head><title>QR Badge — ' + name + '</title>' +
-    '<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>' +
-    '<style>body{margin:0;padding:20px;font-family:Arial,sans-serif;background:#f1f5f9;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}' +
+    '<style>body{margin:0;padding:20px;font-family:Arial,sans-serif;background:#f1f5f9;display:flex;flex-direction:column;align-items:center;min-height:100vh}' +
     '.badge{background:#fff;border-radius:16px;overflow:hidden;width:280px;box-shadow:0 4px 20px rgba(0,0,0,.15);border:2px solid #0a2540}' +
     '.hdr{background:#0a2540;padding:18px;text-align:center;color:#fff}' +
     '.hdr h1{margin:0 0 4px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8}' +
     '.hdr h2{margin:0;font-size:17px;font-weight:800}' +
     '.hdr p{margin:4px 0 0;font-size:11px;color:#94a3b8}' +
-    '.body{padding:18px;text-align:center;background:#fff}' +
-    '.eid{font-size:12px;font-weight:700;color:#0a2540;margin-bottom:10px;letter-spacing:.05em}' +
-    '#qr{display:flex;justify-content:center;margin:10px 0}' +
-    '.note{font-size:10px;color:#6b7a90;margin-top:6px}' +
+    '.body{padding:18px;text-align:center}' +
+    '.eid{font-size:12px;font-weight:700;color:#0a2540;margin-bottom:10px}' +
+    '.note{font-size:10px;color:#6b7a90;margin-top:8px}' +
     '.foot{background:#f8fafc;padding:10px;text-align:center;border-top:1px solid #e2e8f0}' +
     '.foot p{margin:0;font-size:9px;color:#6b7a90}' +
     '@media print{body{padding:0;background:#fff}.badge{box-shadow:none}button{display:none!important}}' +
     '</style></head><body>' +
-    '<div class="badge"><div class="hdr"><h1>PHL Land Care Inc.</h1><h2>' + name + '</h2><p>' + empId + '</p></div>' +
-    '<div class="body"><div class="eid">Employee ID: ' + empId.split(' · ')[0] + '</div><div id="qr"></div><p class="note">Scan to clock in / out</p></div>' +
-    '<div class="foot"><p>772-466-3617 | phllandcare.com</p></div></div>' +
-    '<div style="text-align:center;margin-top:16px">' +
-    '<button onclick="window.print()" style="background:#0a2540;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px">🖨️ Print Badge</button>' +
-    '<button onclick="window.close()" style="background:#e2e8f0;color:#475569;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer">Close</button>' +
+    '<div class="badge">' +
+    '<div class="hdr"><h1>PHL Land Care Inc.</h1><h2>' + name + '</h2><p>' + empIdLine + '</p></div>' +
+    '<div class="body"><div class="eid">ID: ' + empId + '</div>' +
+    '<img src="' + qrImg + '" width="160" height="160" style="border-radius:8px">' +
+    '<p class="note">Scan to clock in / out</p></div>' +
+    '<div class="foot"><p>772-466-3617 | phllandcare.com</p></div>' +
     '</div>' +
-    '<script>new QRCode(document.getElementById("qr"),{text:' + JSON.stringify(qrUrl) + ',width:160,height:160,colorDark:"#0a2540",colorLight:"#ffffff"});<\/script>' +
-    '</body></html>');
+    '<div style="text-align:center;margin-top:16px">' +
+    '<button onclick="window.print()" style="background:#0a2540;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px">Print Badge</button>' +
+    '<button onclick="window.close()" style="background:#e2e8f0;color:#475569;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer">Close</button>' +
+    '</div></body></html>');
   win.document.close();
 }
-
-// Wire print badge button after DOM ready
-document.addEventListener('DOMContentLoaded', function() {
-  var pb = document.getElementById('print-badge-btn');
-  if (pb) pb.addEventListener('click', printCurrentBadge);
-});
 
 // ── EXPORT ──
 function exportTimesheet() {
@@ -828,7 +826,10 @@ function toast(msg) {
 // Close modals
 document.getElementById('qr-modal').addEventListener('click', function(e){if(e.target===this)closeQRModal();});
 document.getElementById('emp-overlay').addEventListener('click', closeEmpDrawer);
-document.getElementById('print-badge-btn').addEventListener('click', printCurrentBadge);
+
+// Wire print badge button
+var _pbBtn = document.getElementById('print-badge-btn');
+if (_pbBtn) _pbBtn.addEventListener('click', printCurrentBadge);
 
 // Init
 loadEmployees();
