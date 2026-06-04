@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
@@ -39,6 +40,12 @@ export default function QuotesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
+  const location = useLocation()
+
+  useEffect(() => {
+    const f = (location.state as any)?.filter
+    if (f) setStatusFilter(f)
+  }, [location.state])
   const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
   const [lineItems, setLineItems] = useState<LineItem[]>([])
   const [showNew, setShowNew] = useState(false)

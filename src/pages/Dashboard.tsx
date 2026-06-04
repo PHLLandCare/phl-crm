@@ -192,56 +192,87 @@ export default function Dashboard() {
           </div>
           <p style={{fontSize:11,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.08em',margin:'0 0 10px'}}>Workflow</p>
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:1,marginBottom:'2rem',background:'#1e293b',borderRadius:14,overflow:'hidden',border:'1px solid #1e293b'}}>
-            <div style={{background:'#0f172a',padding:'1.25rem',borderRight:'1px solid #1e293b',borderTop:'3px solid #f59e0b'}}>
-              <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b',fontWeight:600}}>Requests</p>
+
+            {/* REQUESTS */}
+
+            <div onClick={()=>navigate('/requests')} style={{background:'#0f172a',padding:'1.25rem',borderRight:'1px solid #1e293b',borderTop:'3px solid #f59e0b',cursor:'pointer',transition:'background .15s'}}
+              onMouseEnter={e=>(e.currentTarget.style.background='#111c2d')} onMouseLeave={e=>(e.currentTarget.style.background='#0f172a')}>
+              <p style={{margin:'0 0 4px',fontSize:12,color:'#f59e0b',fontWeight:700,display:'flex',alignItems:'center',gap:5}}>📋 Requests</p>
               <p style={{margin:'0 0 2px',fontSize:30,fontWeight:800,color:'#f1f5f9',lineHeight:1}}>{counts.requests}</p>
-              <p style={{margin:0,fontSize:12,color:'#64748b'}}>New</p>
+              <p style={{margin:'0 0 12px',fontSize:12,color:'#64748b'}}>New</p>
+              <div style={{borderTop:'1px solid #1e293b',paddingTop:10}}>
+                <div onClick={e=>{e.stopPropagation();navigate('/requests',{state:{filter:'new'}})}} style={{display:'flex',justifyContent:'space-between',margin:'4px 0',padding:'3px 6px',borderRadius:6,cursor:'pointer'}} onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
+                  <span style={{fontSize:12,color:'#64748b'}}>New ({counts.requests})</span>
+                </div>
+                <div onClick={e=>{e.stopPropagation();navigate('/requests',{state:{filter:'overdue'}})}} style={{display:'flex',justifyContent:'space-between',margin:'4px 0',padding:'3px 6px',borderRadius:6,cursor:'pointer'}} onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
+                  <span style={{fontSize:12,color:'#e87171'}}>Overdue</span>
+                </div>
+              </div>
             </div>
+
+            {/* QUOTES */}
+
             {can(userRole,'view_quotes') && (
-              <div style={{background:'#0f172a',padding:'1.25rem',borderRight:'1px solid #1e293b',borderTop:'3px solid #a855f7'}}>
-                <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b',fontWeight:600}}>Quotes</p>
+              <div onClick={()=>navigate('/quotes')} style={{background:'#0f172a',padding:'1.25rem',borderRight:'1px solid #1e293b',borderTop:'3px solid #a855f7',cursor:'pointer',transition:'background .15s'}}
+                onMouseEnter={e=>(e.currentTarget.style.background='#111c2d')} onMouseLeave={e=>(e.currentTarget.style.background='#0f172a')}>
+                <p style={{margin:'0 0 4px',fontSize:12,color:'#a855f7',fontWeight:700,display:'flex',alignItems:'center',gap:5}}>📄 Quotes</p>
                 <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:2}}>
                   <p style={{margin:0,fontSize:30,fontWeight:800,color:'#f1f5f9',lineHeight:1}}>{quoteStats.approved}</p>
                   {can(userRole,'view_pricing') && <p style={{margin:0,fontSize:12,color:'#4ade80',fontWeight:600}}>{fmt(quoteStats.approvedValue)}</p>}
                 </div>
                 <p style={{margin:'0 0 12px',fontSize:12,color:'#64748b'}}>Approved</p>
                 <div style={{borderTop:'1px solid #1e293b',paddingTop:10}}>
-                  <div style={{display:'flex',justifyContent:'space-between',margin:'2px 0'}}>
+                  <div onClick={e=>{e.stopPropagation();navigate('/quotes',{state:{filter:'draft'}})}} style={{display:'flex',justifyContent:'space-between',margin:'4px 0',padding:'3px 6px',borderRadius:6,cursor:'pointer'}} onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
                     <span style={{fontSize:12,color:'#64748b'}}>Draft ({quoteStats.draft})</span>
                     {can(userRole,'view_pricing') && <span style={{fontSize:12,color:'#64748b'}}>{fmt(quoteStats.draftValue)}</span>}
+                  </div>
+                  <div onClick={e=>{e.stopPropagation();navigate('/quotes',{state:{filter:'changes_requested'}})}} style={{display:'flex',justifyContent:'space-between',margin:'4px 0',padding:'3px 6px',borderRadius:6,cursor:'pointer'}} onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
+                    <span style={{fontSize:12,color:'#fcd34d'}}>Changes requested</span>
                   </div>
                 </div>
               </div>
             )}
+
+            {/* JOBS */}
+
             {can(userRole,'view_jobs') && (
-              <div style={{background:'#0f172a',padding:'1.25rem',borderRight:'1px solid #1e293b',borderTop:'3px solid #3b82f6'}}>
-                <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b',fontWeight:600}}>Jobs</p>
+              <div onClick={()=>navigate('/jobs')} style={{background:'#0f172a',padding:'1.25rem',borderRight:'1px solid #1e293b',borderTop:'3px solid #3b82f6',cursor:'pointer',transition:'background .15s'}}
+                onMouseEnter={e=>(e.currentTarget.style.background='#111c2d')} onMouseLeave={e=>(e.currentTarget.style.background='#0f172a')}>
+                <p style={{margin:'0 0 4px',fontSize:12,color:'#3b82f6',fontWeight:700,display:'flex',alignItems:'center',gap:5}}>🔧 Jobs</p>
                 <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:2}}>
                   <p style={{margin:0,fontSize:30,fontWeight:800,color:'#f1f5f9',lineHeight:1}}>{jobStats.requiresInvoicing}</p>
                   {can(userRole,'view_pricing') && <p style={{margin:0,fontSize:12,color:'#4ade80',fontWeight:600}}>{fmt(jobStats.totalValue)}</p>}
                 </div>
                 <p style={{margin:'0 0 12px',fontSize:12,color:'#64748b'}}>Requires invoicing</p>
                 <div style={{borderTop:'1px solid #1e293b',paddingTop:10}}>
-                  <div style={{display:'flex',justifyContent:'space-between',margin:'2px 0'}}>
+                  <div onClick={e=>{e.stopPropagation();navigate('/jobs',{state:{filter:'in_progress'}})}} style={{display:'flex',justifyContent:'space-between',margin:'4px 0',padding:'3px 6px',borderRadius:6,cursor:'pointer'}} onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
                     <span style={{fontSize:12,color:'#64748b'}}>Active ({jobStats.active})</span>
+                    {can(userRole,'view_pricing') && <span style={{fontSize:12,color:'#64748b'}}>{fmt(jobStats.totalValue)}</span>}
+                  </div>
+                  <div onClick={e=>{e.stopPropagation();navigate('/jobs',{state:{filter:'action_required'}})}} style={{display:'flex',justifyContent:'space-between',margin:'4px 0',padding:'3px 6px',borderRadius:6,cursor:'pointer'}} onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
+                    <span style={{fontSize:12,color:'#fcd34d'}}>Action required ({jobStats.actionRequired})</span>
                   </div>
                 </div>
               </div>
             )}
+
+            {/* INVOICES */}
+
             {can(userRole,'view_invoices') && (
-              <div style={{background:'#0f172a',padding:'1.25rem',borderTop:'3px solid #22c55e'}}>
-                <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b',fontWeight:600}}>Invoices</p>
+              <div onClick={()=>navigate('/invoices')} style={{background:'#0f172a',padding:'1.25rem',borderTop:'3px solid #22c55e',cursor:'pointer',transition:'background .15s'}}
+                onMouseEnter={e=>(e.currentTarget.style.background='#111c2d')} onMouseLeave={e=>(e.currentTarget.style.background='#0f172a')}>
+                <p style={{margin:'0 0 4px',fontSize:12,color:'#22c55e',fontWeight:700,display:'flex',alignItems:'center',gap:5}}>💰 Invoices</p>
                 <div style={{display:'flex',alignItems:'baseline',gap:8,marginBottom:2}}>
                   <p style={{margin:0,fontSize:30,fontWeight:800,color:'#f1f5f9',lineHeight:1}}>{invoiceStats.awaitingPayment}</p>
                   <p style={{margin:0,fontSize:12,color:'#4ade80',fontWeight:600}}>{fmt(invoiceStats.totalValue)}</p>
                 </div>
                 <p style={{margin:'0 0 12px',fontSize:12,color:'#64748b'}}>Awaiting payment</p>
                 <div style={{borderTop:'1px solid #1e293b',paddingTop:10}}>
-                  <div style={{display:'flex',justifyContent:'space-between',margin:'2px 0'}}>
+                  <div onClick={e=>{e.stopPropagation();navigate('/invoices',{state:{filter:'draft'}})}} style={{display:'flex',justifyContent:'space-between',margin:'4px 0',padding:'3px 6px',borderRadius:6,cursor:'pointer'}} onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
                     <span style={{fontSize:12,color:'#64748b'}}>Draft ({invoiceStats.draft})</span>
                     <span style={{fontSize:12,color:'#64748b'}}>{fmt(invoiceStats.draftValue)}</span>
                   </div>
-                  <div style={{display:'flex',justifyContent:'space-between',margin:'2px 0'}}>
+                  <div onClick={e=>{e.stopPropagation();navigate('/invoices',{state:{filter:'Past due'}})}} style={{display:'flex',justifyContent:'space-between',margin:'4px 0',padding:'3px 6px',borderRadius:6,cursor:'pointer'}} onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
                     <span style={{fontSize:12,color:'#e87171'}}>Past due ({invoiceStats.pastDue})</span>
                     <span style={{fontSize:12,color:'#e87171'}}>{fmt(invoiceStats.pastDueValue)}</span>
                   </div>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 interface Invoice {
@@ -74,6 +75,13 @@ export default function InvoicesPage() {
   const [contractNote, setContractNote]   = useState('Thank you for your business. Please contact us with any questions regarding this invoice.')
   const [internalNote, setInternalNote]   = useState('')
   const [saving, setSaving]               = useState(false)
+  const location = useLocation()
+
+  // Apply filter from dashboard navigation
+  useEffect(() => {
+    const f = (location.state as any)?.filter
+    if (f) setStatusFilter(f)
+  }, [location.state])
 
   const loadInvoices = async () => {
     setLoading(true)
