@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
-type Tab = 'overview' | 'revenue' | 'labor' | 'expenses' | 'jobs'
+type Tab = 'overview' | 'revenue' | 'labor' | 'expenses' | 'jobs' | 'tags'
 type Range = '7d' | '30d' | '90d' | 'ytd'
 
-const DIVS = ['All Divisions','Lawn & Tree','Irrigation','Extermination','Nursery','Farm']
+const DIVS = ['All Divisions','Lawn & Tree','Irrigation','Extermination','Nursery','Farm','Hardscape']
 
 export default function ReportsPage() {
   const [tab, setTab] = useState<Tab>('overview')
@@ -15,6 +15,11 @@ export default function ReportsPage() {
   const [jobs, setJobs] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
   const [clockEvents, setClockEvents] = useState<any[]>([])
+  // Tags report state
+  const [allClients, setAllClients] = useState<any[]>([])
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [tagSearch, setTagSearch] = useState('')
+  const [tagLogic, setTagLogic] = useState<'AND'|'OR'>('OR')
 
   useEffect(() => {
     const load = async () => {
@@ -54,6 +59,12 @@ export default function ReportsPage() {
     load()
   }, [range, division])
 
+  // Load all clients for tag report
+  useEffect(() => {
+    supabase.from('clients').select('id,first_name,last_name,company,tags,status,divisions,email,phone,created_at').is('deleted_at',null)
+      .then(({ data }) => setAllClients(data ?? []))
+  }, [])
+
   const fmt = (n:number) => n >= 1000 ? `$${(n/1000).toFixed(1)}k` : `$${n.toFixed(0)}`
 
   const tabs: {id:Tab, label:string}[] = [
@@ -62,6 +73,7 @@ export default function ReportsPage() {
     {id:'labor',label:'Labor'},
     {id:'expenses',label:'Expenses'},
     {id:'jobs',label:'Jobs'},
+    {id:'tags',label:'🏷️ Tag Report'},
   ]
 
   return (
@@ -329,6 +341,131 @@ export default function ReportsPage() {
           </div>
         </div>
       )}
+
+      {tab === 'tags' && (() => {
+        // Gather all unique tags across all clients
+        const allTags = Array.from(new Set(
+          allClients.flatMap(c => (c.tags||'').split(',').map((t:string)=>t.trim()).filter(Boolean))
+        )).sort()
+
+        // Filter clients by selected tags
+        const taggedClients = selectedTags.length === 0 ? allClients : allClients.filter(c => {
+          const clientTags = (c.tags||'').split(',').map((t:string)=>t.trim()).filter(Boolean)
+          if (tagLogic === 'AND') return selectedTags.every(t => clientTags.includes(t))
+          return selectedTags.some(t => clientTags.includes(t))
+        })
+
+        const exportTagReport = () => {
+          const rows = [['Name','Company','Phone','Email','Tags','Status','Division','Joined']]
+          taggedClients.forEach(c => rows.push([
+            `${c.first_name} ${c.last_name}`, c.company||'', c.phone||'', c.email||'',
+            c.tags||'', c.status||'', c.divisions||'', c.created_at?.slice(0,10)||''
+          ]))
+          const csv = rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n')
+          const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='tag_report.csv'; a.click()
+        }
+
+        return (
+          <div>
+            {/* Tag selector */}
+            <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem',marginBottom:16}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12,flexWrap:'wrap',gap:8}}>
+                <h3 style={{margin:0,fontSize:14,fontWeight:700,color:'#f1f5f9'}}>Filter by Tags</h3>
+                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                  <span style={{fontSize:12,color:'#64748b'}}>Logic:</span>
+                  {(['OR','AND'] as const).map(l => (
+                    <button key={l} onClick={()=>setTagLogic(l)}
+                      style={{padding:'4px 12px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',
+                        background:tagLogic===l?'rgba(74,222,128,0.15)':'#1e293b',
+                        color:tagLogic===l?'#4ade80':'#64748b',
+                        border:tagLogic===l?'1px solid rgba(74,222,128,0.3)':'1px solid #334155'}}>
+                      {l} {l==='OR'?'(any tag)':'(all tags)'}
+                    </button>
+                  ))}
+                  {selectedTags.length > 0 && (
+                    <button onClick={()=>setSelectedTags([])} style={{padding:'4px 10px',borderRadius:8,fontSize:12,color:'#f87171',background:'rgba(248,113,113,0.1)',border:'1px solid rgba(248,113,113,0.2)',cursor:'pointer',fontFamily:'inherit'}}>Clear all</button>
+                  )}
+                </div>
+              </div>
+              <input placeholder="Search tags..." value={tagSearch} onChange={e=>setTagSearch(e.target.value)}
+                style={{width:'100%',padding:'8px 12px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,fontSize:13,color:'#f1f5f9',outline:'none',fontFamily:'inherit',boxSizing:'border-box',marginBottom:10}} />
+              <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+                {allTags.filter(t=>!tagSearch||t.toLowerCase().includes(tagSearch.toLowerCase())).map(t => {
+                  const active = selectedTags.includes(t)
+                  return (
+                    <button key={t} onClick={()=>setSelectedTags(prev=>active?prev.filter(x=>x!==t):[...prev,t])}
+                      style={{padding:'5px 12px',borderRadius:99,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',
+                        background:active?'rgba(74,222,128,0.2)':'#1e293b',
+                        color:active?'#4ade80':'#94a3b8',
+                        border:active?'1px solid rgba(74,222,128,0.4)':'1px solid #334155',
+                        transition:'all .15s'}}>
+                      {active ? '✓ ' : ''}{t}
+                    </button>
+                  )
+                })}
+                {allTags.length === 0 && <span style={{fontSize:13,color:'#475569'}}>No tags found — add tags to client records first</span>}
+              </div>
+            </div>
+
+            {/* Results */}
+            <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',overflow:'hidden'}}>
+              <div style={{padding:'1rem 1.25rem',borderBottom:'1px solid #1e293b',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div>
+                  <p style={{margin:'0 0 2px',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>
+                    {selectedTags.length === 0 ? 'All Clients' : `Clients with tag${selectedTags.length>1?'s':''}: ${selectedTags.join(tagLogic==='AND'?' + ':' or ')}`}
+                  </p>
+                  <p style={{margin:0,fontSize:12,color:'#64748b'}}>{taggedClients.length} client{taggedClients.length!==1?'s':''} found</p>
+                </div>
+                <button onClick={exportTagReport} style={{padding:'8px 14px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,color:'#f1f5f9',cursor:'pointer',fontSize:13,fontFamily:'inherit',fontWeight:600}}>
+                  📥 Export CSV
+                </button>
+              </div>
+              <table style={{width:'100%',borderCollapse:'collapse'}}>
+                <thead>
+                  <tr style={{background:'#0a0f1a'}}>
+                    {['Client','Division','Tags','Status','Phone','Email'].map(h=>(
+                      <th key={h} style={{padding:'10px 16px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {taggedClients.length === 0 ? (
+                    <tr><td colSpan={6} style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No clients match the selected tags</td></tr>
+                  ) : taggedClients.map((c,i)=>{
+                    const tags = (c.tags||'').split(',').map((t:string)=>t.trim()).filter(Boolean)
+                    return (
+                      <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
+                        <td style={{padding:'11px 16px'}}>
+                          <p style={{margin:'0 0 1px',fontSize:13,fontWeight:600,color:'#f1f5f9'}}>{c.first_name} {c.last_name}</p>
+                          {c.company && <p style={{margin:0,fontSize:11,color:'#64748b'}}>{c.company}</p>}
+                        </td>
+                        <td style={{padding:'11px 16px',fontSize:13,color:'#64748b'}}>{c.divisions||'—'}</td>
+                        <td style={{padding:'11px 16px'}}>
+                          <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
+                            {tags.map((t:string,j:number)=>(
+                              <span key={j} style={{
+                                padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600,
+                                background:selectedTags.includes(t)?'rgba(74,222,128,0.2)':'rgba(100,116,139,0.15)',
+                                color:selectedTags.includes(t)?'#4ade80':'#94a3b8',
+                                border:selectedTags.includes(t)?'1px solid rgba(74,222,128,0.3)':'none'
+                              }}>{t}</span>
+                            ))}
+                          </div>
+                        </td>
+                        <td style={{padding:'11px 16px'}}>
+                          <span style={{background:c.status==='active'?'rgba(74,222,128,0.15)':'rgba(100,116,139,0.15)',color:c.status==='active'?'#4ade80':'#94a3b8',padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600,textTransform:'capitalize'}}>{c.status}</span>
+                        </td>
+                        <td style={{padding:'11px 16px',fontSize:12,color:'#64748b'}}>{c.phone||'—'}</td>
+                        <td style={{padding:'11px 16px',fontSize:12,color:'#64748b'}}>{c.email||'—'}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

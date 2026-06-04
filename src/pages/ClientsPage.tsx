@@ -492,7 +492,9 @@ export default function ClientsPage() {
         </div>
 
         {activeTab === 'info' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+            {/* ── LEFT COLUMN — main content ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1, minWidth: 0 }}>
 
             {/* ── PROPERTIES ── */}
             <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
@@ -841,6 +843,11 @@ export default function ClientsPage() {
               <textarea value={newNote} onChange={e => setNewNote(e.target.value)} placeholder="Leave an internal note..." style={{ ...inp, height: 80, resize: 'vertical' } as React.CSSProperties} />
               <button onClick={handleSaveNote} style={{ marginTop: 8, padding: '8px 16px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Save Note</button>
             </div>
+
+            </div>{/* end left column */}
+
+            {/* ── RIGHT SIDEBAR (Jobber-style) ── */}
+            <ClientSidebar client={selectedClient} workItems={workItems} fmt={fmt} fmtDate={fmtDate} />
 
           </div>
         )}
@@ -1277,4 +1284,144 @@ function TagsEditor({ tags, onSave }: { tags: string[]; onSave: (tags: string[])
 function hexRgb(hex: string): string {
   const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16)
   return `${r},${g},${b}`
+}
+
+// ── ClientSidebar (Jobber-style right panel) ─────────────────────────────────
+function ClientSidebar({ client, workItems, fmt, fmtDate }: {
+  client: any; workItems: any[]; fmt: (n:number)=>string; fmtDate: (d:string)=>string
+}) {
+  const [showCommModal, setShowCommModal] = useState(false)
+  const [selectedComm, setSelectedComm] = useState<any>(null)
+
+  // Derive lifetime value from work items
+  const lifetimeValue = workItems.filter(w => w.type === 'invoice').reduce((a: number, w: any) => a + (w.amount || 0), 0)
+  const outstandingBalance = workItems.filter(w => w.type === 'invoice' && w.status !== 'paid').reduce((a: number, w: any) => a + (w.amount || 0), 0)
+  const totalJobs = workItems.filter(w => w.type === 'job').length
+
+  // Parse notes for last communication entries
+  const noteLines = (client.notes || '').split('\n\n').filter(Boolean)
+  const lastComm = noteLines.length > 0 ? noteLines[noteLines.length - 1] : null
+  const tagList = (client.tags || '').split(',').map((t: string) => t.trim()).filter(Boolean)
+
+  const TAG_COLORS = ['#4ade80','#60a5fa','#f59e0b','#a78bfa','#f87171','#34d399','#fb923c','#e879f9']
+  const tagColor = (t: string) => TAG_COLORS[t.charCodeAt(0) % TAG_COLORS.length]
+
+  return (
+    <>
+      <div style={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+        {/* Overview card */}
+        <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
+          <h3 style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Overview</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#64748b' }}>Lifetime value</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#4ade80' }}>{fmt(lifetimeValue)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#64748b' }}>Outstanding balance</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: outstandingBalance > 0 ? '#f87171' : '#94a3b8' }}>{fmt(outstandingBalance)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#64748b' }}>Total jobs</span>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>{totalJobs}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#64748b' }}>Client since</span>
+              <span style={{ fontSize: 12, color: '#94a3b8' }}>{fmtDate(client.created_at)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#64748b' }}>Division</span>
+              <span style={{ fontSize: 12, color: '#94a3b8' }}>{client.divisions || '—'}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#64748b' }}>Lead source</span>
+              <span style={{ fontSize: 12, color: '#94a3b8' }}>{client.lead_source || '—'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tags */}
+        <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Tags</h3>
+          {tagList.length === 0 ? (
+            <p style={{ margin: 0, fontSize: 12, color: '#475569' }}>No tags — add in client info below</p>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+              {tagList.map((t: string, i: number) => (
+                <span key={i} style={{ background: `rgba(${hexRgb(tagColor(t))},0.15)`, color: tagColor(t), border: `1px solid rgba(${hexRgb(tagColor(t))},0.3)`, padding: '3px 9px', borderRadius: 99, fontSize: 11, fontWeight: 600 }}>{t}</span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Last communication */}
+        <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Last Communication</h3>
+          {!lastComm ? (
+            <p style={{ margin: 0, fontSize: 12, color: '#475569' }}>No communications yet</p>
+          ) : (
+            <div>
+              <p style={{ margin: '0 0 6px', fontSize: 12, color: '#94a3b8', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden' }}>
+                {lastComm}
+              </p>
+              <button onClick={() => { setSelectedComm({ entries: noteLines }); setShowCommModal(true) }}
+                style={{ background: 'none', border: 'none', color: '#4ade80', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
+                Read more →
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Property quick view */}
+        <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Property</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {[
+              { label: 'Lawn size', value: client.lawn_size },
+              { label: 'Locked gate', value: client.locked_gate ? 'Yes 🔒' : 'No' },
+              { label: 'Dog', value: client.has_dog ? 'Yes 🐕' : 'No' },
+              { label: 'Irrigation', value: client.irrigation },
+              { label: 'Pest control', value: client.pest_control },
+            ].map(row => (
+              <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1e293b', paddingBottom: 5 }}>
+                <span style={{ fontSize: 12, color: '#64748b' }}>{row.label}</span>
+                <span style={{ fontSize: 12, color: row.value && row.value !== 'No' ? '#f1f5f9' : '#475569', fontWeight: row.value && row.value !== 'No' ? 600 : 400 }}>{row.value || '—'}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Last Communication Modal */}
+      {showCommModal && selectedComm && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 600 }} onClick={() => setShowCommModal(false)} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 520, maxHeight: '75vh', overflowY: 'auto', background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 601, padding: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>Communication History</h2>
+              <button onClick={() => setShowCommModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 22, cursor: 'pointer' }}>×</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {selectedComm.entries.map((entry: string, i: number) => {
+                const isPayment = entry.startsWith('PAYMENT:')
+                const isContact = entry.startsWith('CONTACT:')
+                const icon = isPayment ? '💳' : isContact ? '👤' : '📝'
+                const color = isPayment ? '#4ade80' : isContact ? '#60a5fa' : '#94a3b8'
+                return (
+                  <div key={i} style={{ background: '#1e293b', borderRadius: 10, padding: '12px 14px', borderLeft: `3px solid ${color}` }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>
+                      <p style={{ margin: 0, fontSize: 13, color: '#cbd5e1', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{entry}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </>
+  )
 }

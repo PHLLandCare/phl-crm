@@ -82,6 +82,8 @@ export default function QuotesPage() {
   const [showServicePicker, setShowServicePicker] = useState(false)
   const [quoteToast, setQuoteToast] = useState('')
   const [sendingQuote, setSendingQuote] = useState<number|null>(null)
+  const [duplicateQuotes, setDuplicateQuotes] = useState<Quote[]>([])
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false)
   const showQToast = (msg: string) => { setQuoteToast(msg); setTimeout(() => setQuoteToast(''), 4000) }
 
   const sendQuoteForApproval = async (q: Quote) => {
@@ -142,8 +144,24 @@ export default function QuotesPage() {
       const state = location.state as any
       if (state.clientName) {
         setForm(f => ({ ...f, client_name: state.clientName, client_id: state.clientId || '' }))
+        // Check for existing quotes for this client
+        supabase.from('quotes')
+          .select('*')
+          .eq('client_name', state.clientName)
+          .is('deleted_at', null)
+          .order('created_at', { ascending: false })
+          .limit(5)
+          .then(({ data }) => {
+            if (data && data.length > 0) {
+              setDuplicateQuotes(data)
+              setShowDuplicateModal(true)
+            } else {
+              setShowTemplateModal(true)
+            }
+          })
+      } else {
+        setShowTemplateModal(true)
       }
-      setShowTemplateModal(true)
     }
   }, [location.state])
 
@@ -527,6 +545,51 @@ export default function QuotesPage() {
       )}
 
       {/* ── TEMPLATE PICKER MODAL ── */}
+      {/* ── DUPLICATE QUOTE MODAL ── */}
+      {showDuplicateModal && duplicateQuotes.length > 0 && (
+        <>
+          <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:500 }} onClick={() => setShowDuplicateModal(false)} />
+          <div style={{ position:'fixed',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:520,maxHeight:'80vh',overflowY:'auto',background:'#0d1526',border:'1px solid #f59e0b',borderRadius:16,zIndex:501,padding:24,boxShadow:'0 20px 60px rgba(0,0,0,0.6)' }}>
+            <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:16 }}>
+              <span style={{ fontSize:24 }}>⚠️</span>
+              <div>
+                <h2 style={{ margin:0,fontSize:16,fontWeight:700,color:'#f1f5f9' }}>Existing Quote Found</h2>
+                <p style={{ margin:0,fontSize:12,color:'#94a3b8' }}>This client already has {duplicateQuotes.length} quote{duplicateQuotes.length>1?'s':''} on file</p>
+              </div>
+            </div>
+            <div style={{ border:'1px solid #1e293b',borderRadius:10,overflow:'hidden',marginBottom:16 }}>
+              {duplicateQuotes.map((q, i) => (
+                <div key={q.id} style={{ padding:'14px 16px',borderBottom:i<duplicateQuotes.length-1?'1px solid #1e293b':'none',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
+                  <div>
+                    <p style={{ margin:'0 0 2px',fontSize:13,fontWeight:700,color:'#f1f5f9' }}>
+                      Quote #{q.quote_number} — {q.title || 'Untitled'}
+                    </p>
+                    <p style={{ margin:0,fontSize:11,color:'#64748b' }}>
+                      Created {new Date(q.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} · 
+                      <span style={{ marginLeft:4,fontWeight:600, color: q.status==='approved'?'#4ade80':q.status==='sent'?'#fbbf24':'#94a3b8' }}>{q.status}</span>
+                      {q.amount ? ` · $${q.amount.toLocaleString()}` : ''}
+                    </p>
+                  </div>
+                  <button onClick={() => { setShowDuplicateModal(false); setSelectedQuote(q) }}
+                    style={{ padding:'6px 14px',background:'rgba(74,222,128,0.1)',border:'1px solid rgba(74,222,128,0.3)',borderRadius:8,color:'#4ade80',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap' }}>
+                    Load Quote →
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div style={{ display:'flex',gap:8,justifyContent:'flex-end' }}>
+              <button onClick={() => setShowDuplicateModal(false)} style={{ padding:'10px 16px',border:'1px solid #334155',borderRadius:9,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>
+                Cancel
+              </button>
+              <button onClick={() => { setShowDuplicateModal(false); setShowTemplateModal(true) }}
+                style={{ padding:'10px 20px',border:'none',borderRadius:9,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>
+                + Create New Quote Anyway
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       {showTemplateModal && (
         <>
           <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:500 }} onClick={() => setShowTemplateModal(false)} />

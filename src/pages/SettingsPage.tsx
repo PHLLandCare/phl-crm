@@ -14,7 +14,7 @@ const BUSINESS_HOURS_DEFAULT = [
   { day:'Saturday',  open:false, from:'8:00 AM', to:'4:00 PM' },
 ]
 
-type NavSection = 'company' | 'business-profile' | 'profile'
+type NavSection = 'company' | 'business-profile' | 'profile' | 'autobilling' | 'divisions'
 
 export default function SettingsPage() {
   const [toast, setToast]     = useState('')
@@ -31,6 +31,19 @@ export default function SettingsPage() {
   const [twilioToken, setTwilioToken] = useState('')
   const [twilioPhone, setTwilioPhone] = useState('')
   const [keysSaving, setKeysSaving] = useState(false)
+
+  // Autobilling state
+  const [autobillEnabled, setAutobillEnabled] = useState(false)
+  const [autobillDelay, setAutobillDelay] = useState('1') // days after job completion
+  const [autobillMethod, setAutobillMethod] = useState('invoice') // invoice | charge
+  const [autobillSend, setAutobillSend] = useState(true) // auto-send invoice email
+  const [autobillSaving, setAutobillSaving] = useState(false)
+
+  // Divisions state
+  const [customDivisions, setCustomDivisions] = useState<{label:string;icon:string;color:string}[]>([])
+  const [newDivLabel, setNewDivLabel] = useState('')
+  const [newDivIcon, setNewDivIcon] = useState('🏗️')
+  const [divSaving, setDivSaving] = useState(false)
 
   // Company details
   const [company, setCompany] = useState({
@@ -212,6 +225,8 @@ export default function SettingsPage() {
     { id:'company', label:'Company details' },
     { id:'business-profile', label:'Business profile' },
     { id:'profile', label:'My profile' },
+    { id:'autobilling', label:'Autobilling' },
+    { id:'divisions', label:'Divisions' },
   ]
 
   // ── INVOICE PREVIEW (used in doc settings modal) ──
@@ -723,6 +738,153 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
+
+        {/* ── AUTOBILLING ── */}
+        {activeNav === 'autobilling' && (
+          <div>
+            <div style={card}>
+              <h2 style={secTitle}>Autobilling</h2>
+              <p style={secSub}>Automatically generate and send invoices when jobs are marked complete</p>
+
+              <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 20px',background:'#1e293b',borderRadius:12,marginBottom:16 }}>
+                <div>
+                  <p style={{ margin:'0 0 2px',fontSize:14,fontWeight:700,color:'#f1f5f9' }}>Enable Autobilling</p>
+                  <p style={{ margin:0,fontSize:12,color:'#64748b' }}>When a job is marked completed, automatically create an invoice</p>
+                </div>
+                <button onClick={() => setAutobillEnabled(v => !v)}
+                  style={{ width:48,height:26,borderRadius:13,background:autobillEnabled?'#16a34a':'#334155',border:'none',cursor:'pointer',position:'relative',transition:'background .2s' }}>
+                  <span style={{ position:'absolute',top:3,left:autobillEnabled?24:4,width:20,height:20,borderRadius:'50%',background:'#fff',transition:'left .2s',display:'block' }} />
+                </button>
+              </div>
+
+              {autobillEnabled && (
+                <div style={{ display:'flex',flexDirection:'column',gap:16 }}>
+                  <div>
+                    <label style={lbl}>Invoice delay after job completion</label>
+                    <select style={inp} value={autobillDelay} onChange={e=>setAutobillDelay(e.target.value)}>
+                      <option value="0">Immediately (same day)</option>
+                      <option value="1">1 day after completion</option>
+                      <option value="2">2 days after completion</option>
+                      <option value="7">7 days after completion</option>
+                      <option value="14">14 days after completion</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={lbl}>Billing action</label>
+                    <select style={inp} value={autobillMethod} onChange={e=>setAutobillMethod(e.target.value)}>
+                      <option value="invoice">Create invoice only</option>
+                      <option value="invoice_send">Create invoice + send email to client</option>
+                    </select>
+                  </div>
+                  <div style={{ display:'flex',alignItems:'center',gap:10 }}>
+                    <input type="checkbox" id="autobill-send" checked={autobillSend} onChange={e=>setAutobillSend(e.target.checked)} style={{ accentColor:'#4ade80' }} />
+                    <label htmlFor="autobill-send" style={{ fontSize:13,color:'#f1f5f9',cursor:'pointer' }}>
+                      Automatically send invoice email to client when created
+                    </label>
+                  </div>
+
+                  <div style={{ background:'rgba(74,222,128,0.08)',border:'1px solid rgba(74,222,128,0.2)',borderRadius:10,padding:'14px 16px' }}>
+                    <p style={{ margin:'0 0 4px',fontSize:13,fontWeight:700,color:'#4ade80' }}>✅ How autobilling works</p>
+                    <p style={{ margin:'0 0 2px',fontSize:12,color:'#94a3b8' }}>1. A crew member marks a job as "Completed"</p>
+                    <p style={{ margin:'0 0 2px',fontSize:12,color:'#94a3b8' }}>2. After {autobillDelay === '0' ? 'immediately' : `${autobillDelay} day(s)`}, an invoice is created using the job's amount</p>
+                    <p style={{ margin:'0',fontSize:12,color:'#94a3b8' }}>3. {autobillSend ? 'The invoice is emailed to the client automatically' : 'The invoice sits as draft until you send it manually'}</p>
+                  </div>
+
+                  <div style={{ background:'rgba(251,191,36,0.08)',border:'1px solid rgba(251,191,36,0.2)',borderRadius:10,padding:'14px 16px' }}>
+                    <p style={{ margin:'0 0 4px',fontSize:13,fontWeight:700,color:'#fbbf24' }}>📋 Requirements</p>
+                    <p style={{ margin:'0 0 2px',fontSize:12,color:'#94a3b8' }}>• Jobs must have a client name and amount set</p>
+                    <p style={{ margin:'0 0 2px',fontSize:12,color:'#94a3b8' }}>• Client must have an email on file for auto-send</p>
+                    <p style={{ margin:'0',fontSize:12,color:'#94a3b8' }}>• Resend API key must be configured in integrations</p>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display:'flex',justifyContent:'flex-end',marginTop:16 }}>
+                <button onClick={async () => {
+                  setAutobillSaving(true)
+                  await supabase.from('org_settings').upsert({
+                    id: 1,
+                    autobill_enabled: autobillEnabled,
+                    autobill_delay_days: parseInt(autobillDelay),
+                    autobill_action: autobillMethod,
+                    autobill_send_email: autobillSend,
+                  })
+                  setAutobillSaving(false)
+                  showToast('✅ Autobilling settings saved!')
+                }} style={{ padding:'10px 24px',background:'#16a34a',border:'none',borderRadius:9,color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>
+                  {autobillSaving ? 'Saving...' : 'Save Autobilling Settings'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── DIVISIONS ── */}
+        {activeNav === 'divisions' && (
+          <div>
+            <div style={card}>
+              <h2 style={secTitle}>Divisions</h2>
+              <p style={secSub}>Manage the service divisions your company operates</p>
+
+              {/* Built-in divisions */}
+              <p style={{ fontSize:11,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.06em',margin:'0 0 10px' }}>Built-in Divisions</p>
+              <div style={{ display:'flex',flexDirection:'column',gap:8,marginBottom:24 }}>
+                {[
+                  { label:'Lawn & Tree',   icon:'🌿', color:'#4ade80' },
+                  { label:'Irrigation',    icon:'💧', color:'#60a5fa' },
+                  { label:'Extermination', icon:'🐛', color:'#f59e0b' },
+                  { label:'Nursery',       icon:'🌱', color:'#a78bfa' },
+                  { label:'Farm',          icon:'🚜', color:'#fb923c' },
+                  { label:'Hardscape',     icon:'🪨', color:'#94a3b8' },
+                ].map(d => (
+                  <div key={d.label} style={{ display:'flex',alignItems:'center',gap:12,padding:'12px 16px',background:'#1e293b',borderRadius:10,border:'1px solid #334155' }}>
+                    <span style={{ fontSize:20 }}>{d.icon}</span>
+                    <span style={{ fontSize:13,fontWeight:600,color:'#f1f5f9',flex:1 }}>{d.label}</span>
+                    <span style={{ fontSize:10,background:`rgba(74,222,128,0.15)`,color:'#4ade80',padding:'2px 8px',borderRadius:99,fontWeight:700 }}>Active</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Custom divisions */}
+              <p style={{ fontSize:11,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.06em',margin:'0 0 10px' }}>Add Custom Division</p>
+              <div style={{ display:'flex',gap:8,marginBottom:16 }}>
+                <select style={{ ...inp,width:'auto',padding:'9px 10px' }} value={newDivIcon} onChange={e=>setNewDivIcon(e.target.value)}>
+                  {['🏗️','🔨','🌊','🌴','🦟','🐝','🌾','🏡','🚿','⚡','🔧','🌿','🪴','🧹'].map(e=><option key={e}>{e}</option>)}
+                </select>
+                <input style={{ ...inp,flex:1 }} placeholder="Division name (e.g. Pool Service)" value={newDivLabel} onChange={e=>setNewDivLabel(e.target.value)}
+                  onKeyDown={e=>{ if(e.key==='Enter'&&newDivLabel.trim()){setCustomDivisions(d=>[...d,{label:newDivLabel.trim(),icon:newDivIcon,color:'#64748b'}]);setNewDivLabel('')}}} />
+                <button onClick={()=>{
+                  if(!newDivLabel.trim()) return
+                  setCustomDivisions(d=>[...d,{label:newDivLabel.trim(),icon:newDivIcon,color:'#64748b'}])
+                  setNewDivLabel('')
+                }} style={{ padding:'9px 16px',background:'#16a34a',border:'none',borderRadius:8,color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Add</button>
+              </div>
+
+              {customDivisions.length > 0 && (
+                <div style={{ display:'flex',flexDirection:'column',gap:8 }}>
+                  {customDivisions.map((d, i) => (
+                    <div key={i} style={{ display:'flex',alignItems:'center',gap:12,padding:'12px 16px',background:'#1e293b',borderRadius:10,border:'1px solid rgba(74,222,128,0.2)' }}>
+                      <span style={{ fontSize:20 }}>{d.icon}</span>
+                      <span style={{ fontSize:13,fontWeight:600,color:'#f1f5f9',flex:1 }}>{d.label}</span>
+                      <span style={{ fontSize:10,background:'rgba(96,165,250,0.15)',color:'#60a5fa',padding:'2px 8px',borderRadius:99,fontWeight:700 }}>Custom</span>
+                      <button onClick={()=>setCustomDivisions(divs=>divs.filter((_,j)=>j!==i))}
+                        style={{ background:'none',border:'none',color:'#f87171',cursor:'pointer',fontSize:16,padding:'0 4px' }}>×</button>
+                    </div>
+                  ))}
+                  <button onClick={async()=>{
+                    setDivSaving(true)
+                    await supabase.from('org_settings').upsert({ id:1, custom_divisions: JSON.stringify(customDivisions) })
+                    setDivSaving(false)
+                    showToast('✅ Divisions saved!')
+                  }} style={{ alignSelf:'flex-end',padding:'9px 20px',background:'#16a34a',border:'none',borderRadius:8,color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>
+                    {divSaving ? 'Saving...' : 'Save Divisions'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* ── CLIENT DOCUMENT SETTINGS MODAL ── */}
