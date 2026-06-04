@@ -80,6 +80,47 @@ export default function QuotesPage() {
   const [newNote, setNewNote] = useState('')
   const [serviceSearch, setServiceSearch] = useState('')
   const [showServicePicker, setShowServicePicker] = useState(false)
+  const [quoteToast, setQuoteToast] = useState('')
+  const [sendingQuote, setSendingQuote] = useState<number|null>(null)
+  const showQToast = (msg: string) => { setQuoteToast(msg); setTimeout(() => setQuoteToast(''), 4000) }
+
+  const sendQuoteForApproval = async (q: Quote) => {
+    if (!q.client_name) { showQToast('⚠️ No client on this quote'); return }
+    setSendingQuote(q.id)
+    try {
+      // Look up client email
+      const { data: client } = await supabase.from('clients')
+        .select('email,first_name,last_name')
+        .or(`first_name.ilike.%${q.client_name.split(' ')[0]}%,last_name.ilike.%${q.client_name.split(' ').pop()}%`)
+        .limit(1).single()
+      const recipientEmail = client?.email
+      if (!recipientEmail) {
+        showQToast(`⚠️ No email on file for ${q.client_name}. Add one in their client profile.`)
+        setSendingQuote(null); return
+      }
+      const portalUrl = `https://phllandcare.github.io/phl-crm/#/portal?quote=${q.id}`
+      const { error } = await supabase.functions.invoke('send-email', {
+        body: {
+          to: recipientEmail,
+          subject: `Quote #${q.quote_number} from PHL Land Care Inc. — Please Review`,
+          html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc"><div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1)"><div style="background:#1e3a5f;padding:24px;text-align:center"><h1 style="color:#fff;margin:0;font-size:20px">PHL Land Care Inc.</h1><p style="color:#94a3b8;margin:4px 0 0">Quote #${q.quote_number}</p></div><div style="padding:24px"><p>Dear ${q.client_name},</p><p>Your quote for <strong>${q.title || 'lawn care services'}</strong> is ready for your review.</p><p><strong>Total: $${(q.amount||0).toFixed(2)}</strong></p><div style="text-align:center;margin:24px 0"><a href="${portalUrl}" style="background:#16a34a;color:#fff;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block">Review &amp; Approve Quote →</a></div><p style="color:#64748b;font-size:12px">You can approve or decline the quote at the link above. Valid for 30 days.</p></div><div style="background:#1e3a5f;padding:16px;text-align:center"><p style="color:#94a3b8;margin:0;font-size:12px">PHL Land Care Inc. | 772-466-3617 | admin@phllandcare.com</p></div></div></body></html>`,
+        }
+      })
+      if (error) throw new Error(error.message)
+      await supabase.from('quotes').update({ status: 'sent', updated_at: new Date().toISOString() }).eq('id', q.id)
+      loadQuotes()
+      showQToast(`✅ Quote #${q.quote_number} sent to ${recipientEmail} for approval!`)
+      if (selectedQuote?.id === q.id) setSelectedQuote({ ...selectedQuote, status: 'sent' })
+    } catch {
+      // Email not connected yet — copy portal link
+      const portalUrl = `https://phllandcare.github.io/phl-crm/#/portal?quote=${q.id}`
+      navigator.clipboard.writeText(portalUrl).catch(() => {})
+      await supabase.from('quotes').update({ status: 'sent', updated_at: new Date().toISOString() }).eq('id', q.id)
+      loadQuotes()
+      showQToast(`📋 Portal link copied! Share with ${q.client_name}: ${portalUrl.slice(0, 60)}...`)
+    }
+    setSendingQuote(null)
+  }
   const [showCustomField, setShowCustomField] = useState(false)
   const [customFieldForm, setCustomFieldForm] = useState({ name: '', value: '' })
   const [customFields, setCustomFields] = useState<{name:string;value:string}[]>([])
@@ -266,6 +307,7 @@ export default function QuotesPage() {
     const sub = lineItems.reduce((s, i) => s + (i.qty * i.unit_price), 0)
     return (
       <div style={{ padding: '2rem', background: '#0a0f1a', minHeight: '100vh' }}>
+      {quoteToast && <div style={{ position:'fixed',top:'1rem',right:'1rem',background:quoteToast.startsWith('✅')?'#052e16':'#1a0a00',border:`1px solid ${quoteToast.startsWith('✅')?'#16a34a':'#d97706'}`,borderRadius:10,padding:'10px 18px',fontSize:14,color:quoteToast.startsWith('✅')?'#4ade80':'#fcd34d',fontWeight:600,zIndex:9999,maxWidth:400 }}>{quoteToast}</div>}
         <button onClick={() => setSelectedQuote(null)} style={{ background:'none',border:'none',color:'#64748b',fontSize:13,cursor:'pointer',fontFamily:'inherit',marginBottom:16 }}>
           ← Back to Quotes
         </button>
@@ -282,7 +324,20 @@ export default function QuotesPage() {
           </div>
           <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
             {selectedQuote.status === 'draft' && (
-              <button onClick={() => handleUpdateStatus('sent')} style={{ padding:'8px 16px',background:'#fbbf24',color:'#000',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Mark as Sent</button>
+              <>
+                <button onClick={() => handleUpdateStatus('sent')} style={{ padding:'8px 16px',background:'#fbbf24',color:'#000',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Mark as Sent</button>
+                <button onClick={() => sendQuoteForApproval(selectedQuote)} disabled={sendingQuote===selectedQuote.id} style={{ padding:'8px 16px',background:'#16a34a',color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',opacity:sendingQuote===selectedQuote.id?0.7:1 }}>
+                  {sendingQuote===selectedQuote.id?'Sending…':'📧 Send for Approval'}
+                </button>
+              </>
+            )}
+            {selectedQuote.status === 'sent' && (
+              <button onClick={() => {
+                const url = `https://phllandcare.github.io/phl-crm/#/portal?quote=${selectedQuote.id}`
+                navigator.clipboard.writeText(url).then(()=>showQToast('✅ Portal link copied!')).catch(()=>showQToast('Link: '+url))
+              }} style={{ padding:'8px 16px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit',color:'#94a3b8' }}>
+                🔗 Copy Approval Link
+              </button>
             )}
             {selectedQuote.status === 'sent' && (
               <>

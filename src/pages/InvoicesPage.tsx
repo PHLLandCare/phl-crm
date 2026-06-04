@@ -136,9 +136,20 @@ export default function InvoicesPage() {
     if (!inv.client_name) { showToast('⚠️ No client on this invoice'); return }
     setSending(inv.id)
     try {
+      // Look up client email
+      const { data: client } = await supabase.from('clients')
+        .select('email,first_name,last_name')
+        .or(`first_name.ilike.%${inv.client_name.split(' ')[0]}%,last_name.ilike.%${inv.client_name.split(' ').pop()}%`)
+        .limit(1).single()
+      const recipientEmail = client?.email
+      if (!recipientEmail) {
+        showToast(`⚠️ No email on file for ${inv.client_name}. Add one in their client profile.`)
+        setSending(null); return
+      }
+      const portalUrl = `https://phllandcare.github.io/phl-crm/#/portal?invoice=${inv.id}`
       const { error } = await supabase.functions.invoke('send-email', {
         body: {
-          to: inv.client_name,
+          to: recipientEmail,
           subject: `Invoice #${inv.invoice_number} from PHL Land Care Inc.`,
           html: `<!DOCTYPE html><html><body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;background:#f8fafc"><div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.1)"><div style="background:#1e3a5f;padding:24px;text-align:center"><h1 style="color:#fff;margin:0;font-size:20px">PHL Land Care Inc.</h1><p style="color:#94a3b8;margin:4px 0 0">Invoice #${inv.invoice_number}</p></div><div style="padding:24px"><p>Dear ${inv.client_name},</p><p>Please find your invoice for services rendered.</p><table style="width:100%;border-collapse:collapse;margin:16px 0"><tr style="background:#f1f5f9"><th style="padding:10px;text-align:left">Description</th><th style="padding:10px;text-align:right">Amount</th></tr><tr style="border-bottom:1px solid #e2e8f0"><td style="padding:10px">${inv.subject||'Services Rendered'}</td><td style="padding:10px;text-align:right;font-weight:bold">$${(inv.amount||0).toFixed(2)}</td></tr></table><div style="text-align:right;margin-top:16px;padding:12px;background:#f1f5f9;border-radius:8px"><strong>Total Due: $${(inv.amount||0).toFixed(2)}</strong><br><small>Due: ${inv.due_date||'Upon receipt'}</small></div><p style="margin-top:20px;color:#64748b;font-size:12px">To pay, please call (772) 466-3617 or mail a check to PHL Land Care Inc., PO Box 13767, Fort Pierce, FL 34979</p></div><div style="background:#1e3a5f;padding:16px;text-align:center"><p style="color:#94a3b8;margin:0;font-size:12px">PHL Land Care Inc. | 772-466-3617 | admin@phllandcare.com</p></div></div></body></html>`
         }

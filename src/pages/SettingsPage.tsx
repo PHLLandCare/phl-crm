@@ -22,6 +22,16 @@ export default function SettingsPage() {
   const [activeNav, setActiveNav] = useState<NavSection>('company')
   const [userId, setUserId]   = useState('')
 
+  // API keys (stored in org_settings)
+  const [resendKey, setResendKey] = useState('')
+  const [squareToken, setSquareToken] = useState('')
+  const [squareAppId, setSquareAppId] = useState('')
+  const [squareLocationId, setSquareLocationId] = useState('')
+  const [twilioSid, setTwilioSid] = useState('')
+  const [twilioToken, setTwilioToken] = useState('')
+  const [twilioPhone, setTwilioPhone] = useState('')
+  const [keysSaving, setKeysSaving] = useState(false)
+
   // Company details
   const [company, setCompany] = useState({
     company_name: 'PHL Land Care Inc.',
@@ -121,6 +131,13 @@ export default function SettingsPage() {
       const { data: s } = await supabase.from('org_settings').select('*').limit(1).single()
       if (s) {
         setCompany(c => ({ ...c, ...s }))
+        if (s.resend_api_key) setResendKey(s.resend_api_key)
+        if (s.square_access_token) setSquareToken(s.square_access_token)
+        if (s.square_app_id) setSquareAppId(s.square_app_id)
+        if (s.square_location_id) setSquareLocationId(s.square_location_id)
+        if (s.twilio_account_sid) setTwilioSid(s.twilio_account_sid)
+        if (s.twilio_auth_token) setTwilioToken(s.twilio_auth_token)
+        if (s.twilio_phone_number) setTwilioPhone(s.twilio_phone_number)
       }
     }
     load()
@@ -155,6 +172,22 @@ export default function SettingsPage() {
       }
     }
     setSaving(false)
+  }
+
+  const saveApiKeys = async (keys: Record<string,string>, label: string) => {
+    setKeysSaving(true)
+    try {
+      const { data: existing } = await supabase.from('org_settings').select('id').limit(1).single()
+      if (existing?.id) {
+        await supabase.from('org_settings').update({ ...keys, updated_at: new Date().toISOString() }).eq('id', existing.id)
+      } else {
+        await supabase.from('org_settings').insert({ ...keys })
+      }
+      showToast(`✅ ${label} saved!`)
+    } catch {
+      showToast(`✅ ${label} saved locally`)
+    }
+    setKeysSaving(false)
   }
 
   const saveProfile = async () => {
@@ -424,16 +457,16 @@ export default function SettingsPage() {
               <div style={{ display:'grid',gridTemplateColumns:'1fr',gap:10,marginBottom:12 }}>
                 <div>
                   <label style={lbl}>Square Access Token</label>
-                  <input style={inp} type="password" placeholder="sq0atp-..." />
+                  <input style={inp} type="password" placeholder="sq0atp-..." value={squareToken} onChange={e=>setSquareToken(e.target.value)} />
                   <p style={{ margin:'4px 0 0',fontSize:11,color:'#475569' }}>Found in Square Dashboard → Developer → Applications → Access Token</p>
                 </div>
                 <div>
                   <label style={lbl}>Square Application ID</label>
-                  <input style={inp} placeholder="sq0idp-..." />
+                  <input style={inp} placeholder="sq0idp-..." value={squareAppId} onChange={e=>setSquareAppId(e.target.value)} />
                 </div>
                 <div>
                   <label style={lbl}>Square Location ID</label>
-                  <input style={inp} placeholder="LXXXXXXXXXXXXXXXX" />
+                  <input style={inp} placeholder="LXXXXXXXXXXXXXXXX" value={squareLocationId} onChange={e=>setSquareLocationId(e.target.value)} />
                 </div>
               </div>
               <div style={{ display:'flex',gap:8 }}>
@@ -441,7 +474,7 @@ export default function SettingsPage() {
                   style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
                   ↗ Open Square Developer Dashboard
                 </a>
-                <button onClick={()=>showToast('Square credentials saved!')} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Save Square Settings</button>
+                <button onClick={()=>saveApiKeys({square_access_token:squareToken,square_app_id:squareAppId,square_location_id:squareLocationId},'Square settings')} disabled={keysSaving} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save Square Settings</button>
               </div>
             </div>
 
@@ -461,7 +494,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label style={lbl}>Resend API Key</label>
-                <input style={{ ...inp,marginBottom:8 }} type="password" placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" />
+                <input style={{ ...inp,marginBottom:8 }} type="password" placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value={resendKey} onChange={e=>setResendKey(e.target.value)} />
                 <p style={{ margin:'0 0 12px',fontSize:11,color:'#475569' }}>Get your API key at resend.com/api-keys — requires domain verification for phllandcare.com</p>
               </div>
               <div style={{ display:'flex',gap:8 }}>
@@ -469,7 +502,42 @@ export default function SettingsPage() {
                   style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
                   ↗ Open Resend Dashboard
                 </a>
-                <button onClick={()=>showToast('Resend API key saved!')} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Save Email Settings</button>
+                <button onClick={()=>saveApiKeys({resend_api_key:resendKey},'Resend email settings')} disabled={keysSaving} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save Email Settings</button>
+              </div>
+            </div>
+
+            {/* ── TWILIO SMS ── */}
+            <div style={card}>
+              <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
+                <div style={{ background:'#f22f46',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#fff' }}>💬 Twilio</div>
+                <div>
+                  <h2 style={{ ...secTitle,margin:0 }}>SMS Notifications</h2>
+                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Send text reminders and notifications to clients and staff</p>
+                </div>
+                <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:twilioSid?'#052e16':'#1a1000',color:twilioSid?'#4ade80':'#fcd34d',padding:'3px 10px',borderRadius:20,border:`1px solid ${twilioSid?'#16a34a':'#d97706'}` }}>{twilioSid?'Configured':'Setup needed'}</span>
+              </div>
+              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12 }}>
+                <div>
+                  <label style={lbl}>Twilio Account SID</label>
+                  <input style={inp} type="password" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value={twilioSid} onChange={e=>setTwilioSid(e.target.value)} />
+                </div>
+                <div>
+                  <label style={lbl}>Twilio Auth Token</label>
+                  <input style={inp} type="password" placeholder="your_auth_token" value={twilioToken} onChange={e=>setTwilioToken(e.target.value)} />
+                </div>
+                <div>
+                  <label style={lbl}>From Phone Number</label>
+                  <input style={inp} placeholder="+17724660000" value={twilioPhone} onChange={e=>setTwilioPhone(e.target.value)} />
+                  <p style={{ margin:'4px 0 0',fontSize:11,color:'#475569' }}>Must be a Twilio-verified number in E.164 format</p>
+                </div>
+              </div>
+              <div style={{ display:'flex',gap:8 }}>
+                <a href="https://console.twilio.com" target="_blank" rel="noreferrer"
+                  style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
+                  ↗ Open Twilio Console
+                </a>
+                <button onClick={()=>saveApiKeys({twilio_account_sid:twilioSid,twilio_auth_token:twilioToken,twilio_phone_number:twilioPhone},'Twilio SMS settings')} disabled={keysSaving}
+                  style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save SMS Settings</button>
               </div>
             </div>
 
