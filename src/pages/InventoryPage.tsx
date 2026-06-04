@@ -39,7 +39,14 @@ export default function InventoryPage() {
   const [items, setItems]     = useState<InventoryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch]   = useState('')
-  const [showAdd, setShowAdd] = useState(false)
+  const [showAdd, setShowAdd]   = useState(false)
+  const [editing, setEditing]   = useState<InventoryItem|null>(null)
+  const [toast, setToast]       = useState('')
+  const showToast = (msg: string) => { setToast(msg); setTimeout(()=>setToast(''), 3000) }
+  const [categoryFilter, setCategoryFilter] = useState('All')
+  const [showAdjust, setShowAdjust] = useState<InventoryItem|null>(null)
+  const [adjustQty, setAdjustQty] = useState('')
+  const [adjustReason, setAdjustReason] = useState('Restock')
   const [form, setForm]       = useState({
     name:'',category:'Equipment & Tools',sku:'',quantity:'',min_level:'',unit_cost:'',unit:'each',supplier:'',notes:'',
     year:'',make:'',model:'',mileage:'',last_serviced:'',car_payment:'',car_insurance:'',gps_system:''
@@ -62,14 +69,26 @@ export default function InventoryPage() {
 
   const handleAdd = async () => {
     if (!form.name) return
-    await supabase.from('inventory').insert({
-      ...form,
-      quantity:   parseFloat(form.quantity)||0,
-      min_level:  parseFloat(form.min_level)||0,
-      unit_cost:  parseFloat(form.unit_cost)||0,
-    })
+    const payload = { ...form, quantity: parseFloat(form.quantity)||0, min_level: parseFloat(form.min_level)||0, unit_cost: parseFloat(form.unit_cost)||0 }
+    if (editing) {
+      await supabase.from('inventory').update(payload).eq('id', editing.id)
+      showToast('✅ Item updated!')
+      setEditing(null)
+    } else {
+      await supabase.from('inventory').insert(payload)
+      showToast('✅ Item added!')
+    }
     setShowAdd(false)
     setForm({name:'',category:'Equipment & Tools',sku:'',quantity:'',min_level:'',unit_cost:'',unit:'each',supplier:'',notes:'',year:'',make:'',model:'',mileage:'',last_serviced:'',car_payment:'',car_insurance:'',gps_system:''})
+  }
+
+  const handleAdjust = async () => {
+    if (!showAdjust || !adjustQty) return
+    const newQty = Math.max(0, (showAdjust.quantity||0) + parseFloat(adjustQty))
+    await supabase.from('inventory').update({ quantity: newQty, updated_at: new Date().toISOString() }).eq('id', showAdjust.id)
+    showToast(`✅ Quantity adjusted to ${newQty}`)
+    setShowAdjust(null); setAdjustQty('')
+    loadItems()
   }
 
   const handleDelete = async (id:string) => {
@@ -77,10 +96,17 @@ export default function InventoryPage() {
     await supabase.from('inventory').update({deleted_at:new Date().toISOString()}).eq('id',id)
   }
 
-  const filtered   = items.filter(i => `${i.name} ${i.category} ${i.sku}`.toLowerCase().includes(search.toLowerCase()))
+  const filtered = items.filter(i => `${i.name} ${i.category} ${i.sku}`.toLowerCase().includes(search.toLowerCase()) && (categoryFilter === 'All' || i.category === categoryFilter))
   const totalValue = items.reduce((s,i) => s+(i.quantity*i.unit_cost),0)
   const lowStock   = items.filter(i => i.quantity<=i.min_level && i.quantity>0).length
   const outOfStock = items.filter(i => i.quantity<=0).length
+
+  const exportCSV = () => {
+    const rows = [['Name','Category','SKU','Quantity','Min Level','Unit Cost','Total Value','Supplier','Status']]
+    items.forEach(i => rows.push([i.name,i.category||'',i.sku||'',String(i.quantity||0),String(i.min_level||0),String(i.unit_cost||0),String((i.quantity||0)*(i.unit_cost||0)),i.supplier||'',statusBadge(i).label]))
+    const csv = rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n')
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='inventory.csv';a.click()
+  }
 
   const statusBadge = (i:InventoryItem) =>
     i.quantity<=0            ? {label:'Out of Stock',bg:'#450a0a',color:'#fca5a5'}
@@ -90,13 +116,18 @@ export default function InventoryPage() {
   return (
     <div style={{padding:'2rem',maxWidth:1300,margin:'0 auto',fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif'}}>
 
+      {toast && <div style={{position:'fixed',top:'1rem',right:'1rem',background:'#052e16',border:'1px solid #16a34a',borderRadius:10,padding:'10px 18px',fontSize:14,color:'#4ade80',fontWeight:600,zIndex:9999}}>{toast}</div>}
+
       {/* Header */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.5rem',flexWrap:'wrap',gap:12}}>
         <div>
           <h1 style={{fontSize:24,fontWeight:700,color:'#f1f5f9',margin:'0 0 4px'}}>Inventory</h1>
           <p style={{fontSize:14,color:'#64748b',margin:0}}>{items.length} items · Total value: ${totalValue.toLocaleString()}</p>
         </div>
-        <button onClick={()=>setShowAdd(true)} style={{background:'#16a34a',color:'#fff',border:'none',borderRadius:10,padding:'10px 20px',fontSize:14,fontWeight:600,cursor:'pointer'}}>+ Add Item</button>
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={exportCSV} style={{padding:'10px 16px',background:'#1e293b',border:'1px solid #334155',borderRadius:10,color:'#94a3b8',cursor:'pointer',fontSize:13,fontFamily:'inherit',fontWeight:600}}>📥 Export CSV</button>
+          <button onClick={()=>{setEditing(null);setShowAdd(true)}} style={{background:'#16a34a',color:'#fff',border:'none',borderRadius:10,padding:'10px 20px',fontSize:14,fontWeight:600,cursor:'pointer'}}>+ Add Item</button>
+        </div>
       </div>
 
       {/* KPI cards */}
@@ -148,8 +179,10 @@ export default function InventoryPage() {
                     <td style={{padding:'12px 14px'}}>
                       <span style={{background:s.bg,color:s.color,padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:700}}>{s.label}</span>
                     </td>
-                    <td style={{padding:'12px 14px'}}>
-                      <button onClick={()=>handleDelete(i.id)} style={{background:'#450a0a',color:'#fca5a5',border:'none',borderRadius:6,padding:'4px 10px',fontSize:12,cursor:'pointer',fontWeight:600}}>Delete</button>
+                    <td style={{padding:'12px 14px',display:'flex',gap:5}}>
+                      <button onClick={()=>{setShowAdjust(i);setAdjustQty('')}} style={{background:'rgba(96,165,250,0.1)',color:'#60a5fa',border:'1px solid rgba(96,165,250,0.2)',borderRadius:6,padding:'4px 9px',fontSize:11,cursor:'pointer',fontWeight:600}}>±</button>
+                      <button onClick={()=>{setEditing(i);setForm({name:i.name,category:i.category||'Equipment & Tools',sku:i.sku||'',quantity:String(i.quantity||0),min_level:String(i.min_level||0),unit_cost:String(i.unit_cost||0),unit:i.unit||'each',supplier:i.supplier||'',notes:i.notes||'',year:i.year||'',make:i.make||'',model:i.model||'',mileage:i.mileage||'',last_serviced:i.last_serviced||'',car_payment:i.car_payment||'',car_insurance:i.car_insurance||'',gps_system:i.gps_system||''});setShowAdd(true)}} style={{background:'rgba(74,222,128,0.1)',color:'#4ade80',border:'1px solid rgba(74,222,128,0.2)',borderRadius:6,padding:'4px 9px',fontSize:11,cursor:'pointer',fontWeight:600}}>Edit</button>
+                      <button onClick={()=>handleDelete(i.id)} style={{background:'#450a0a',color:'#fca5a5',border:'none',borderRadius:6,padding:'4px 9px',fontSize:11,cursor:'pointer',fontWeight:600}}>Del</button>
                     </td>
                   </tr>
                 )
@@ -164,7 +197,7 @@ export default function InventoryPage() {
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:'1rem'}}>
           <div style={{background:'#0f172a',border:'1px solid #1e293b',borderRadius:20,padding:'2rem',width:'100%',maxWidth:560,maxHeight:'90vh',overflowY:'auto'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.5rem'}}>
-              <h2 style={{fontSize:18,fontWeight:700,color:'#f1f5f9',margin:0}}>+ Add Inventory Item</h2>
+              <h2 style={{fontSize:18,fontWeight:700,color:'#f1f5f9',margin:0}}>{editing ? 'Edit Item' : '+ Add Inventory Item'}</h2>
               <button onClick={()=>setShowAdd(false)} style={{background:'none',border:'none',color:'#64748b',fontSize:22,cursor:'pointer',lineHeight:1}}>×</button>
             </div>
 
@@ -280,6 +313,30 @@ export default function InventoryPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Adjust Quantity Modal */}
+      {showAdjust && (
+        <>
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:500}} onClick={()=>setShowAdjust(null)} />
+          <div style={{position:'fixed',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:360,background:'#0d1526',border:'1px solid #1e293b',borderRadius:16,zIndex:501,padding:24}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}}>
+              <h2 style={{margin:0,fontSize:16,fontWeight:700,color:'#f1f5f9'}}>Adjust Quantity</h2>
+              <button onClick={()=>setShowAdjust(null)} style={{background:'none',border:'none',color:'#64748b',fontSize:22,cursor:'pointer'}}>×</button>
+            </div>
+            <p style={{margin:'0 0 12px',fontSize:13,color:'#64748b'}}>{showAdjust.name} — Current: <strong style={{color:'#f1f5f9'}}>{showAdjust.quantity} {showAdjust.unit}</strong></p>
+            <label style={lbl}>Adjustment (+ add / - remove)</label>
+            <input type="number" style={{...inp,marginBottom:12}} placeholder="+10 or -5" value={adjustQty} onChange={e=>setAdjustQty(e.target.value)} />
+            <label style={lbl}>Reason</label>
+            <select style={{...inp,padding:'0 10px',marginBottom:20}} value={adjustReason} onChange={e=>setAdjustReason(e.target.value)}>
+              {['Restock','Used on Job','Damaged','Inventory Count','Other'].map(r=><option key={r}>{r}</option>)}
+            </select>
+            <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
+              <button onClick={()=>setShowAdjust(null)} style={{padding:'9px 18px',border:'1px solid #1e293b',borderRadius:8,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit'}}>Cancel</button>
+              <button onClick={handleAdjust} style={{padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit'}}>Apply</button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

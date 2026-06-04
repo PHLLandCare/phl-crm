@@ -14,6 +14,7 @@ export default function ReportsPage() {
   const [invoices, setInvoices] = useState<any[]>([])
   const [jobs, setJobs] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
+  const [clockEvents, setClockEvents] = useState<any[]>([])
 
   useEffect(() => {
     const load = async () => {
@@ -21,11 +22,12 @@ export default function ReportsPage() {
       const days = range === '7d' ? 7 : range === '30d' ? 30 : range === '90d' ? 90 : Math.floor((now.getTime() - new Date(now.getFullYear(),0,1).getTime()) / 86400000)
       const since = new Date(now.getTime() - days * 86400000).toISOString()
 
-      const [invRes, jobRes, expRes, clientRes] = await Promise.all([
+      const [invRes, jobRes, expRes, clientRes, clockRes] = await Promise.all([
         supabase.from('invoices').select('*').gte('created_at', since),
         supabase.from('jobs').select('*').gte('created_at', since),
         supabase.from('expenses').select('*').gte('created_at', since),
         supabase.from('clients').select('id', {count:'exact',head:true}).is('deleted_at',null),
+        supabase.from('clock_events').select('*').gte('clock_in', since),
       ])
 
       const invData = invRes.data ?? []
@@ -35,16 +37,18 @@ export default function ReportsPage() {
       const filteredInv = division === 'All Divisions' ? invData : invData.filter(i => i.division === division)
       const filteredJob = division === 'All Divisions' ? jobData : jobData.filter(j => j.division === division)
 
+      const clockData = clockRes.data ?? []
       setInvoices(filteredInv)
       setJobs(filteredJob)
       setExpenses(expData)
+      setClockEvents(clockData)
       setStats({
         revenue: filteredInv.filter(i=>i.status==='paid').reduce((a,i)=>a+(i.amount||0),0),
         receivables: filteredInv.filter(i=>i.status==='sent'||i.status==='overdue').reduce((a,i)=>a+(i.amount||0),0),
         expenses: expData.reduce((a,e)=>a+(e.amount||0),0),
         jobs: filteredJob.length,
         clients: clientRes.count ?? 0,
-        labor: 0,
+        labor: (clockRes.data ?? []).reduce((a:number,c:any)=>{ if(c.clock_in&&c.clock_out){ const h=(new Date(c.clock_out).getTime()-new Date(c.clock_in).getTime())/3600000; return a+h } return a },0),
       })
     }
     load()
@@ -110,6 +114,7 @@ export default function ReportsPage() {
           {label:'Net',value:fmt(stats.revenue-stats.expenses),sub:'Revenue - Expenses',color:'#60a5fa'},
           {label:'Jobs',value:String(stats.jobs),sub:'Completed',color:'#a78bfa'},
           {label:'Active Clients',value:String(stats.clients),sub:'Total in CRM',color:'#34d399'},
+          {label:'Labor Hours',value:stats.labor.toFixed(1)+'h',sub:'Total clocked in',color:'#fb923c'},
         ].map(s=>(
           <div key={s.label} style={{background:'#0f172a',borderRadius:12,padding:'1.1rem 1rem',border:'1px solid #1e293b',borderTop:`3px solid ${s.color}`,minHeight:90}}>
             <p style={{margin:'0 0 4px',fontSize:12,color:'#64748b'}}>{s.label}</p>
@@ -256,10 +261,72 @@ export default function ReportsPage() {
       )}
 
       {tab === 'labor' && (
-        <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'2rem',textAlign:'center'}}>
-          <div style={{fontSize:48,marginBottom:16}}>⏱️</div>
-          <p style={{fontSize:18,fontWeight:700,color:'#f1f5f9',margin:'0 0 8px'}}>Labor Reports</p>
-          <p style={{fontSize:14,color:'#64748b',margin:0}}>Pulls from Time Clock data. Clock in some hours to see labor analytics here.</p>
+        <div>
+          {/* Labor by employee */}
+          <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',overflow:'hidden',marginBottom:16}}>
+            <div style={{padding:'1rem 1.25rem',borderBottom:'1px solid #1e293b',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <p style={{margin:0,fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Hours by Employee</p>
+              <p style={{margin:0,fontSize:13,color:'#64748b'}}>Total: {stats.labor.toFixed(1)}h clocked</p>
+            </div>
+            {clockEvents.length === 0 ? (
+              <div style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No clock events in this period</div>
+            ) : (() => {
+              const byEmp: Record<string,{name:string;hours:number;events:number}> = {}
+              clockEvents.forEach((c:any) => {
+                const k = c.employee_name || c.employee_id || 'Unknown'
+                if (!byEmp[k]) byEmp[k] = {name:k, hours:0, events:0}
+                byEmp[k].events++
+                if (c.clock_in && c.clock_out) {
+                  byEmp[k].hours += (new Date(c.clock_out).getTime()-new Date(c.clock_in).getTime())/3600000
+                }
+              })
+              const sorted = Object.values(byEmp).sort((a,b)=>b.hours-a.hours)
+              const maxH = sorted[0]?.hours || 1
+              return (
+                <table style={{width:'100%',borderCollapse:'collapse'}}>
+                  <thead><tr style={{background:'#0a0f1a'}}>{['Employee','Events','Hours','% of Total'].map(h=><th key={h} style={{padding:'10px 16px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {sorted.map((emp,i)=>(
+                      <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
+                        <td style={{padding:'12px 16px',fontSize:14,fontWeight:600,color:'#f1f5f9'}}>{emp.name}</td>
+                        <td style={{padding:'12px 16px',fontSize:13,color:'#64748b'}}>{emp.events}</td>
+                        <td style={{padding:'12px 16px',fontSize:14,fontWeight:700,color:'#fb923c'}}>{emp.hours.toFixed(1)}h</td>
+                        <td style={{padding:'12px 16px',minWidth:160}}>
+                          <div style={{display:'flex',alignItems:'center',gap:8}}>
+                            <div style={{flex:1,height:8,background:'#1e293b',borderRadius:4,overflow:'hidden'}}>
+                              <div style={{height:'100%',background:'#fb923c',borderRadius:4,width:`${(emp.hours/maxH)*100}%`,transition:'width .3s'}} />
+                            </div>
+                            <span style={{fontSize:11,color:'#64748b',minWidth:32}}>{((emp.hours/stats.labor)*100).toFixed(0)}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )
+            })()}
+          </div>
+          {/* Clock events table */}
+          <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',overflow:'hidden'}}>
+            <div style={{padding:'1rem 1.25rem',borderBottom:'1px solid #1e293b'}}><p style={{margin:0,fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Clock Event Log</p></div>
+            <table style={{width:'100%',borderCollapse:'collapse'}}>
+              <thead><tr style={{background:'#0a0f1a'}}>{['Employee','Clock In','Clock Out','Hours','Division'].map(h=><th key={h} style={{padding:'10px 16px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>)}</tr></thead>
+              <tbody>
+                {clockEvents.slice(0,50).map((c:any,i:number)=>{
+                  const hours = c.clock_in&&c.clock_out ? ((new Date(c.clock_out).getTime()-new Date(c.clock_in).getTime())/3600000).toFixed(1) : '—'
+                  return (
+                    <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
+                      <td style={{padding:'10px 16px',fontSize:13,color:'#f1f5f9',fontWeight:600}}>{c.employee_name||c.employee_id||'—'}</td>
+                      <td style={{padding:'10px 16px',fontSize:12,color:'#64748b'}}>{c.clock_in?new Date(c.clock_in).toLocaleString():'—'}</td>
+                      <td style={{padding:'10px 16px',fontSize:12,color:'#64748b'}}>{c.clock_out?new Date(c.clock_out).toLocaleString():'—'}</td>
+                      <td style={{padding:'10px 16px',fontSize:13,fontWeight:700,color:'#fb923c'}}>{hours === '—' ? hours : hours+'h'}</td>
+                      <td style={{padding:'10px 16px',fontSize:12,color:'#64748b'}}>{c.division||'—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

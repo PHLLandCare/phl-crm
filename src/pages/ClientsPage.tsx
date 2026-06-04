@@ -105,6 +105,9 @@ export default function ClientsPage() {
   const [showAddSchedule, setShowAddSchedule] = useState(false)
   const [schedForm, setSchedForm] = useState({ type: 'Task', title: '', description: '', scheduled_at: '', assigned_name: '' })
 
+  const [clientToast, setClientToast] = useState('')
+  const showClientToast = (msg: string) => { setClientToast(msg); setTimeout(() => setClientToast(''), 3000) }
+
   // Billing state
   const [showBillingMenu, setShowBillingMenu] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -375,6 +378,7 @@ export default function ClientsPage() {
 
     return (
       <div style={{ padding: '2rem', background: '#0a0f1a', minHeight: '100vh', position: 'relative' }} onClick={() => {
+        {clientToast && <div style={{ position:'fixed',top:'1rem',right:'1rem',background:'#052e16',border:'1px solid #16a34a',borderRadius:10,padding:'10px 18px',fontSize:14,color:'#4ade80',fontWeight:600,zIndex:9999 }}>{clientToast}</div>}
         setShowDotsMenu(false); setShowCreateMenu(false); setShowWorkCreate(false)
         setShowBillingMenu(false); setShowSchedTypeMenu(false); setShowSchedStatusMenu(false)
       }}>
@@ -953,9 +957,15 @@ export default function ClientsPage() {
               <div style={{ display:'flex',gap:8,justifyContent:'flex-end' }}>
                 <button onClick={() => { setShowAddContact(false); setContactForm({ name:'', phone:'', email:'', role:'' }) }}
                   style={{ padding:'10px 20px',border:'1px solid #1e293b',borderRadius:9,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Cancel</button>
-                <button onClick={() => {
+                <button onClick={async () => {
                   if (contactForm.name) {
-                    alert(`Contact "${contactForm.name}" added successfully!`)
+                    // Save contact to client notes
+                    const contactEntry = `CONTACT: ${contactForm.name}${contactForm.role ? ` (${contactForm.role})` : ''} | ${contactForm.phone || ''} | ${contactForm.email || ''}`
+                    const existing = selectedClient.notes || ''
+                    const updated = existing ? existing + '\n\n' + contactEntry : contactEntry
+                    await supabase.from('clients').update({ notes: updated }).eq('id', selectedClient.id)
+                    setSelectedClient({ ...selectedClient, notes: updated })
+                    showClientToast(`✅ Contact "${contactForm.name}" added!`)
                     setShowAddContact(false)
                     setContactForm({ name:'', phone:'', email:'', role:'' })
                   }
@@ -984,7 +994,7 @@ export default function ClientsPage() {
               <input style={{ ...inp, marginBottom: 20 }} placeholder="Payment note..." value={paymentForm.note} onChange={e => setPaymentForm({...paymentForm, note: e.target.value})} />
               <div style={{ display:'flex',gap:8,justifyContent:'flex-end' }}>
                 <button onClick={() => setShowPaymentModal(false)} style={{ padding:'10px 20px',border:'1px solid #1e293b',borderRadius:9,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Cancel</button>
-                <button onClick={() => { alert(`Payment of $${paymentForm.amount} recorded via ${paymentForm.method}`); setShowPaymentModal(false) }} style={{ padding:'10px 20px',border:'none',borderRadius:9,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Record Payment</button>
+                <button onClick={async () => { const note = `PAYMENT: $${paymentForm.amount} via ${paymentForm.method}${paymentForm.note ? ' — ' + paymentForm.note : ''} on ${new Date().toLocaleDateString()}`; const existing = selectedClient?.notes || ''; const updated = existing ? existing + '\n\n' + note : note; if(selectedClient) { await supabase.from('clients').update({ notes: updated }).eq('id', selectedClient.id); setSelectedClient({ ...selectedClient, notes: updated }); } showClientToast(`✅ Payment of $${paymentForm.amount} recorded!`); setShowPaymentModal(false) }} style={{ padding:'10px 20px',border:'none',borderRadius:9,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Record Payment</button>
               </div>
             </div>
           </>

@@ -235,6 +235,61 @@ function BulkImport({ onDone }: { onDone: () => void }) {
 
   const TEMPLATE = 'fname,lname,email,employee_id,division,hourly_rate,employee_type\nJohn,Doe,john@phllandcare.com,EMP-007,Lawn & Tree,15,W2\nJane,Smith,jane@phllandcare.com,EMP-008,Irrigation,18,W2'
 
+  const printQRBadge = (member: any) => {
+    const clockUrl = `https://phllandcare.github.io/phl-crm/#/clockin?emp=${encodeURIComponent(member.employee_id || member.id)}`
+    const win = window.open('', '_blank', 'width=400,height=550')
+    if (!win) return
+    win.document.write(`<!DOCTYPE html><html><head><title>ID Badge — ${member.full_name}</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+      body{margin:0;padding:20px;font-family:Arial,sans-serif;background:#f1f5f9;display:flex;align-items:center;justify-content:center;min-height:100vh}
+      .badge{background:#fff;border-radius:16px;overflow:hidden;width:300px;box-shadow:0 4px 20px rgba(0,0,0,0.15);border:2px solid #1e3a5f}
+      .badge-header{background:#1e3a5f;padding:20px;text-align:center;color:#fff}
+      .badge-header img{width:60px;height:60px;border-radius:8px;background:#fff;padding:4px;object-fit:contain}
+      .badge-header h1{margin:8px 0 4px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8}
+      .badge-header h2{margin:0;font-size:18px;font-weight:800}
+      .badge-header p{margin:4px 0 0;font-size:12px;color:#94a3b8}
+      .badge-body{padding:20px;text-align:center;background:#fff}
+      .emp-id{font-size:13px;font-weight:700;color:#1e3a5f;margin-bottom:12px;letter-spacing:.05em}
+      #qr{display:flex;justify-content:center;margin:12px 0}
+      .badge-footer{background:#f8fafc;padding:12px;text-align:center;border-top:1px solid #e2e8f0}
+      .badge-footer p{margin:0;font-size:10px;color:#64748b}
+      .instructions{font-size:11px;color:#475569;margin-top:8px;line-height:1.5}
+      @media print{body{padding:0;background:#fff}.badge{box-shadow:none;border-color:#333}button{display:none!important}}
+    </style></head><body>
+    <div>
+      <div class="badge">
+        <div class="badge-header">
+          <h1>PHL Land Care Inc.</h1>
+          <h2>${member.full_name}</h2>
+          <p>${member.role || 'Employee'}</p>
+        </div>
+        <div class="badge-body">
+          <div class="emp-id">ID: ${member.employee_id || member.id?.slice(0,8).toUpperCase()}</div>
+          <div id="qr"></div>
+          <p class="instructions">Scan QR code to clock in / out</p>
+        </div>
+        <div class="badge-footer">
+          <p>772-466-3617 | phllandcare.com</p>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:16px">
+        <button onclick="window.print()" style="background:#16a34a;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px">🖨️ Print Badge</button>
+        <button onclick="window.close()" style="background:#1e293b;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer">Close</button>
+      </div>
+    </div>
+    <script>
+      new QRCode(document.getElementById("qr"), {
+        text: "${clockUrl}",
+        width: 160, height: 160,
+        colorDark: "#1e3a5f", colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      })
+    </script>
+    </body></html>`)
+    win.document.close()
+  }
+
   return (
     <div>
       <div style={{ marginBottom: 12 }}>
@@ -468,6 +523,10 @@ export default function TeamPage() {
                         <button onClick={() => { setEditMember({ ...m, permissions: m.permissions || DEFAULT_PERMISSIONS[m.role] }); setShowEdit(true); setError(null) }}
                           style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
                           Edit permissions
+                        </button>
+                        <button onClick={() => printQRBadge(m)}
+                          style={{ background: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                          🔲 QR Badge
                         </button>
                         <button onClick={() => setDeactivateConfirm(m)}
                           style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>

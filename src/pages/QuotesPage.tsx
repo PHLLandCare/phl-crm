@@ -369,7 +369,13 @@ export default function QuotesPage() {
             <h3 style={{ margin:'0 0 12px',fontSize:14,fontWeight:700,color:'#f1f5f9' }}>Notes</h3>
             {selectedQuote.internal_notes && <p style={{ margin:'0 0 12px',fontSize:13,color:'#cbd5e1',background:'#1e293b',borderRadius:8,padding:'10px 12px' }}>{selectedQuote.internal_notes}</p>}
             <textarea value={newNote} onChange={e => setNewNote(e.target.value)} placeholder="Leave an internal note for yourself or a team member..." style={{ ...inp, height:80, resize:'vertical' } as React.CSSProperties} />
-            <button onClick={() => { if (newNote.trim()) { alert('Note saved'); setNewNote('') } }} style={{ marginTop:8,padding:'8px 16px',background:'#16a34a',color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Save Note</button>
+            <button onClick={async () => {
+              if (!newNote.trim() || !selectedQuote) return
+              const updated = (selectedQuote.internal_notes || '') + (selectedQuote.internal_notes ? '\n\n' : '') + new Date().toLocaleString() + '\n' + newNote
+              await supabase.from('quotes').update({ internal_notes: updated, updated_at: new Date().toISOString() }).eq('id', selectedQuote.id)
+              setSelectedQuote({ ...selectedQuote, internal_notes: updated })
+              setNewNote('')
+            }} style={{ marginTop:8,padding:'8px 16px',background:'#16a34a',color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Save Note</button>
           </div>
         </div>
       </div>

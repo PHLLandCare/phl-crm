@@ -91,7 +91,7 @@ const EMPTY_FORM = {
 }
 
 export default function JobsPage() {
-  const _navigate = useNavigate() // available if needed
+  const navigate = useNavigate()
   const [jobs, setJobs] = useState<Job[]>([])
   const [clients, setClients] = useState<any[]>([])
   const [employees, setEmployees] = useState<any[]>([])
@@ -126,6 +126,14 @@ export default function JobsPage() {
   const [lineItems, setLineItems] = useState<JobLineItem[]>([{ name:'', description:'', qty:1, unit_price:0 }])
   const [showCalendar, setShowCalendar] = useState(false)
 
+  const loadNextJobNum = async () => {
+    const { data } = await supabase.from('jobs').select('job_number').order('created_at', { ascending: false }).limit(1)
+    if (data?.[0]?.job_number) {
+      const last = parseInt((data[0].job_number || '0').replace(/\D/g, '')) || 3547
+      setNextJobNum(String(last + 1))
+    } else setNextJobNum('3548')
+  }
+
   const loadJobs = async () => {
     setLoading(true)
     const { data } = await supabase.from('jobs').select('*').is('deleted_at', null).order('created_at', { ascending: false })
@@ -144,7 +152,7 @@ export default function JobsPage() {
   }
 
   useEffect(() => {
-    loadJobs(); loadClients(); loadEmployees()
+    loadJobs(); loadClients(); loadEmployees(); loadNextJobNum()
     const channel = supabase.channel('jobs-page')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, loadJobs)
       .subscribe()
@@ -240,6 +248,7 @@ export default function JobsPage() {
       instructions: form.instructions?.trim() || null,
       customer_notes: form.customer_notes?.trim() || null,
       total_amount: lineTotal > 0 ? lineTotal : (parseFloat(form.total_amount) || 0),
+      job_number: nextJobNum,
       job_recurrence: jobType === 'recurring' ? form.job_recurrence : null,
       updated_at: new Date().toISOString(),
     }
@@ -251,6 +260,7 @@ export default function JobsPage() {
     setSaving(false)
     setShowModal(false)
     loadJobs()
+    loadNextJobNum()
   }
 
   const handleDelete = async (id: string) => {
@@ -484,7 +494,7 @@ export default function JobsPage() {
                 </div>
                 <div>
                   <label style={lbl}>Job #</label>
-                  <input style={inp} value={form.job_number || 'Auto-assigned'} readOnly />
+                  <input style={inp} value={nextJobNum} onChange={e => setNextJobNum(e.target.value)} />
                 </div>
                 <div>
                   <label style={lbl}>Salesperson</label>
