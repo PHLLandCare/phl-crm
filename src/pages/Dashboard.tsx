@@ -56,6 +56,7 @@ export default function Dashboard() {
   const [invoiceStats, setInvoiceStats] = useState({awaitingPayment:0,draft:0,pastDue:0,totalValue:0,draftValue:0,pastDueValue:0})
   const [quoteStats, setQuoteStats] = useState({approved:0,draft:0,changesRequested:0,approvedValue:0,draftValue:0,changesValue:0})
   const [revenue, setRevenue] = useState({monthly:0,receivables:0})
+  const [showCreate, setShowCreate] = useState(false)
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
@@ -351,9 +352,37 @@ export default function Dashboard() {
             <p style={{margin:0,fontSize:10,color:roleBadgeColor[userRole]}}>{roleLabel[userRole]}</p>
           </div>
         </div>
+        {/* CREATE BUTTON */}
+        <div style={{padding:'10px 14px',borderBottom:'1px solid #1e293b',position:'relative'}}>
+          <button
+            onClick={()=>setShowCreate(v=>!v)}
+            style={{width:'100%',display:'flex',alignItems:'center',gap:8,padding:'9px 14px',background:showCreate?'#1e293b':'#052e16',border:`1px solid ${showCreate?'#334155':'#16a34a'}`,borderRadius:10,cursor:'pointer',fontFamily:'inherit',transition:'all .15s'}}>
+            <span style={{fontSize:16,fontWeight:700,color:showCreate?'#94a3b8':'#4ade80',lineHeight:1}}>{showCreate?'✕':'+​'}</span>
+            <span style={{fontSize:14,fontWeight:700,color:showCreate?'#94a3b8':'#4ade80'}}>Create</span>
+          </button>
+          {showCreate && (
+            <div style={{position:'absolute',left:'100%',top:0,marginLeft:8,background:'#0d1526',border:'1px solid #1e293b',borderRadius:14,padding:'10px 8px',display:'flex',flexDirection:'row',gap:4,zIndex:500,boxShadow:'0 8px 32px rgba(0,0,0,0.6)',whiteSpace:'nowrap'}}>
+              {[
+                {label:'Client',  icon:'👤', color:'#f59e0b', path:'clients'},
+                {label:'Request', icon:'📋', color:'#f59e0b', path:'requests'},
+                {label:'Quote',   icon:'📄', color:'#a855f7', path:'quotes'},
+                {label:'Job',     icon:'🔧', color:'#4ade80', path:'jobs'},
+                {label:'Invoice', icon:'💰', color:'#3b82f6', path:'invoices'},
+              ].map(item=>(
+                <button key={item.label} onClick={()=>{setShowCreate(false);navigate('/'+item.path,{state:{openCreate:true}})}}
+                  style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6,padding:'12px 14px',background:'transparent',border:'1px solid #1e293b',borderRadius:10,cursor:'pointer',fontFamily:'inherit',minWidth:68,transition:'all .15s'}}
+                  onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.background='#1e293b';(e.currentTarget as HTMLElement).style.borderColor=item.color}}
+                  onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.background='transparent';(e.currentTarget as HTMLElement).style.borderColor='#1e293b'}}>
+                  <span style={{fontSize:22}}>{item.icon}</span>
+                  <span style={{fontSize:12,fontWeight:600,color:'#94a3b8'}}>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <div style={{flex:1,paddingTop:4}}>
           <SectionLabel title="Main" />
-          <NavItem label="Dashboard" id="dashboard" icon="🏠" />
+          <NavItem label="Home" id="dashboard" icon="🏠" />
           {can(userRole,'view_clients')  && <NavItem label="Clients"   id="clients"   icon="👥" count={counts.clients} />}
           {can(userRole,'view_quotes')   && <NavItem label="Quotes"    id="quotes"    icon="📋" count={counts.quotes} />}
           {can(userRole,'view_jobs')     && <NavItem label="Jobs"      id="jobs"      icon="🔧" count={counts.jobs} />}

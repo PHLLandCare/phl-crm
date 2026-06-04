@@ -79,6 +79,10 @@ export default function InvoicesPage() {
 
   // Apply filter from dashboard navigation
   useEffect(() => {
+    if ((location.state as any)?.openCreate) setShowNew(true)
+  }, [location.state])
+
+  useEffect(() => {
     const f = (location.state as any)?.filter
     if (f) setStatusFilter(f)
   }, [location.state])
