@@ -846,7 +846,76 @@ export default function SettingsPage() {
             <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 24px',borderTop:'1px solid #1e293b' }}>
               <button onClick={()=>setShowDocSettings(false)} style={{ padding:'9px 18px',border:'1px solid #1e293b',borderRadius:8,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Cancel</button>
               <div style={{ display:'flex',gap:8 }}>
-                <button style={{ padding:'9px 18px',border:'1px solid #334155',borderRadius:8,background:'transparent',color:'#94a3b8',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Preview PDF</button>
+                <button onClick={() => {
+                  const win = window.open('', '_blank')
+                  if (!win) return
+                  win.document.write(`<!DOCTYPE html><html><head><title>Document Preview — PHL Land Care Inc.</title><style>
+                    body{font-family:Arial,sans-serif;margin:0;padding:32px;color:#111;max-width:800px;margin:auto;background:#f8fafc}
+                    .page{background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.1);padding:40px;margin:auto}
+                    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:2px solid #1e3a5f}
+                    .logo-area h1{margin:0;color:#1e3a5f;font-size:${docSettings.header_style==='Modern'?'22':'20'}px;font-weight:800}
+                    .logo-area p{margin:2px 0;font-size:11px;color:#64748b}
+                    .invoice-box{background:#1e3a5f;color:#fff;padding:14px 18px;border-radius:8px;text-align:right;min-width:180px}
+                    .invoice-box h2{margin:0;font-size:16px;font-weight:700} .invoice-box p{margin:3px 0;font-size:11px;color:#94a3b8}
+                    .total-badge{background:#4ade80;color:#052e16;padding:5px 10px;border-radius:4px;font-weight:800;font-size:13px;display:inline-block;margin-top:6px}
+                    .section{margin-bottom:20px} .section h3{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin:0 0 8px;font-weight:700}
+                    table{width:100%;border-collapse:collapse;margin-bottom:16px}
+                    thead{background:#1e3a5f;color:#fff} th{padding:9px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+                    tbody tr{border-bottom:1px solid #e2e8f0} td{padding:10px 12px;font-size:13px}
+                    .totals{display:flex;justify-content:flex-end} .totals-inner{min-width:240px}
+                    .total-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;color:#475569;border-bottom:1px solid #f1f5f9}
+                    .grand-total{display:flex;justify-content:space-between;padding:10px 0;font-size:16px;font-weight:800;color:#1e3a5f;border-top:2px solid #1e3a5f;margin-top:4px}
+                    .contract{margin-top:20px;padding:12px;background:#f8fafc;border-radius:6px;font-size:11px;color:#64748b;line-height:1.5}
+                    .footer{margin-top:28px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center}
+                    .sig-line{display:flex;justify-content:flex-end;gap:40px;margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0}
+                    .sig-box{text-align:center;min-width:160px} .sig-box .line{border-bottom:1px solid #111;height:32px;margin-bottom:4px} .sig-box p{font-size:10px;color:#64748b;margin:0}
+                    @media print{body{padding:0;background:#fff}.page{box-shadow:none}button{display:none!important}}
+                  </style></head><body>
+                  <div class="page">
+                    <div class="header">
+                      <div class="logo-area">
+                        <h1>${docSettings.show_company_name ? company.company_name : ''}</h1>
+                        <p>${company.street1}${company.city ? ' | ' + company.city + ', ' + company.state + ' ' + company.zip : ''}</p>
+                        ${docSettings.show_company_phone ? `<p>${company.phone}` : ''} ${docSettings.show_company_email ? ` | ${company.email}` : ''} ${docSettings.show_company_website ? ` | ${company.website}` : ''}${docSettings.show_company_phone || docSettings.show_company_email || docSettings.show_company_website ? '</p>' : ''}
+                      </div>
+                      <div class="invoice-box">
+                        <h2>${docTab === 'Jobs' ? 'Work Order #3548' : docTab === 'Invoices' ? 'Invoice #16299' : 'Quote #15699'}</h2>
+                        <p>${docTab === 'Invoices' ? 'Issued: ' + new Date().toLocaleDateString() : 'Date: ' + new Date().toLocaleDateString()}</p>
+                        ${docTab === 'Invoices' ? `<p>Due: Net ${company.default_tax_rate ? '7' : '7'} days</p>` : ''}
+                        <div class="total-badge">Total: $150.00</div>
+                      </div>
+                    </div>
+                    <div style="display:flex;gap:40px;margin-bottom:20px">
+                      <div class="section"><h3>Recipient</h3><strong>Sample Client</strong><p style="margin:2px 0;font-size:12px;color:#475569">123 Main St.<br>Port St. Lucie, FL 34986</p></div>
+                      <div class="section"><h3>Service Address</h3><p style="margin:0;font-size:12px;color:#475569">123 Main St.<br>Port St. Lucie, FL 34986</p></div>
+                    </div>
+                    <div class="section">
+                      <h3>${docTab === 'Jobs' ? 'Work Order Details' : 'For Services Rendered'}</h3>
+                      <table>
+                        <thead><tr><th>Product/Service</th><th>Description</th>${docSettings.quote_show_qty||docSettings.inv_show_qty ? '<th>Qty</th>' : ''}${docSettings.inv_show_unit_price||docSettings.quote_show_unit_price ? '<th>Unit Price</th>' : ''}<th>Total</th></tr></thead>
+                        <tbody>
+                          <tr><td>Lawn Mowing</td><td>Weekly service</td>${docSettings.quote_show_qty||docSettings.inv_show_qty ? '<td>1</td>' : ''}${docSettings.inv_show_unit_price||docSettings.quote_show_unit_price ? '<td>$100.00</td>' : ''}<td>$100.00</td></tr>
+                          <tr><td>Edging</td><td>Trim and edge</td>${docSettings.quote_show_qty||docSettings.inv_show_qty ? '<td>2</td>' : ''}${docSettings.inv_show_unit_price||docSettings.quote_show_unit_price ? '<td>$25.00</td>' : ''}<td>$50.00</td></tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <div class="totals"><div class="totals-inner">
+                      <div class="total-row"><span>Subtotal</span><span>$150.00</span></div>
+                      ${company.default_tax_rate && parseFloat(company.default_tax_rate) > 0 ? `<div class="total-row"><span>${company.default_tax_name||'Tax'} (${company.default_tax_rate}%)</span><span>$9.00</span></div>` : ''}
+                      <div class="grand-total"><span>Total</span><span>$150.00</span></div>
+                    </div></div>
+                    ${(docTab==='Quotes'&&docSettings.quote_show_signature)||(docTab==='Jobs'&&docSettings.job_show_signature) ? '<div class="sig-line"><div class="sig-box"><div class="line"></div><p>Date</p></div><div class="sig-box"><div class="line"></div><p>Client Signature</p></div></div>' : ''}
+                    <div class="contract">${docTab==='Quotes' ? docSettings.quote_contract : docTab==='Jobs' ? docSettings.job_contract : docSettings.inv_contract}</div>
+                    ${docSettings.show_company_name||company.tax_id_number ? `<p style="font-size:10px;color:#94a3b8;margin-top:12px">${company.tax_id_name||''} ${company.tax_id_number ? '· ' + company.tax_id_number : ''}</p>` : ''}
+                    <div class="footer">${company.company_name} | ${company.street1}, ${company.city}, ${company.state} ${company.zip} | ${company.phone} | ${company.email}</div>
+                  </div>
+                  <div style="text-align:center;margin-top:16px">
+                    <button onclick="window.print()" style="background:#1e3a5f;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px">🖨️ Print / Save as PDF</button>
+                    <button onclick="window.close()" style="background:#e2e8f0;color:#475569;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer">Close</button>
+                  </div>
+                  </body></html>`)
+                  win.document.close()
+                }} style={{ padding:'9px 18px',border:'1px solid #334155',borderRadius:8,background:'transparent',color:'#94a3b8',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Preview PDF</button>
                 <button onClick={()=>{showToast('Document settings saved!');setShowDocSettings(false)}} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Save Changes</button>
               </div>
             </div>
