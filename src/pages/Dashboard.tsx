@@ -150,8 +150,11 @@ export default function Dashboard() {
     worker_limited: 'Worker (Limited)',
   }
 
+  const sidebarRef = React.useRef<HTMLDivElement>(null)
+  const sidebarScrollRef = React.useRef(0)
+
   const NavItem = ({label,id,icon,count,onClick}:{label:string,id:string,icon?:string,count?:number,onClick?:()=>void}) => (
-    <button onClick={onClick||(()=>navigate('/'+id))} style={{
+    <button onClick={()=>{ if(sidebarRef.current) sidebarScrollRef.current=sidebarRef.current.scrollTop; if(onClick) onClick(); else navigate('/'+id) }} style={{
       width:'100%',textAlign:'left',padding:'8px 16px',
       background:page===id || (id==='dashboard' && page==='')?'rgba(74,222,128,0.1)':'transparent',
       border:'none',borderLeft:page===id || (id==='dashboard' && page==='')?'2px solid #4ade80':'2px solid transparent',
@@ -342,7 +345,7 @@ export default function Dashboard() {
         .phl-sidebar::-webkit-scrollbar { display: none; }
         .phl-sidebar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
-      <div className="phl-sidebar" style={{width:220,flexShrink:0,background:'#0d1526',display:'flex',flexDirection:'column',position:'fixed',top:0,left:0,height:'100vh',overflowY:'auto',zIndex:200,borderRight:'1px solid #1e293b'}}>
+      <div ref={sidebarRef} onScroll={e=>{ sidebarScrollRef.current=(e.currentTarget as HTMLElement).scrollTop }} className="phl-sidebar" style={{width:220,flexShrink:0,background:'#0d1526',display:'flex',flexDirection:'column',position:'fixed',top:0,left:0,height:'100vh',overflowY:'auto',zIndex:200,borderRight:'1px solid #1e293b'}} ref={(el)=>{ if(el&&sidebarRef){(sidebarRef as any).current=el; el.scrollTop=sidebarScrollRef.current} }}>
         <div style={{padding:'12px 14px',borderBottom:'1px solid #1e293b',display:'flex',alignItems:'center',gap:10}}>
           <img src="https://phllandcare.github.io/phl-crm/phl_logo.jpg" alt="PHL" style={{width:36,height:36,borderRadius:8,objectFit:'cover',flexShrink:0,background:'#fff',padding:2}} />
           <div>
@@ -420,7 +423,7 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
-      <div style={{flex:1,marginLeft:220,minHeight:'100vh',background:'#0a0f1a'}}>
+      <div style={{flex:1,marginLeft:220,height:'100vh',overflowY:'auto',background:'#0a0f1a'}} key={page} ref={(el)=>{if(el)el.scrollTop=0}}>
         {renderPage()}
       </div>
     </div>
