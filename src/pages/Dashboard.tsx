@@ -160,7 +160,7 @@ export default function Dashboard() {
       fontWeight:page===id || (id==='dashboard' && page==='')?600:400,fontFamily:'inherit',
       transition:'all 0.1s',
     }}>
-      {icon && <span style={{fontSize:14,width:16,textAlign:'center'}}>{icon}</span>}
+      {icon && <span style={{fontSize:18,width:20,textAlign:'center'}}>{icon}</span>}
       <span style={{flex:1}}>{label}</span>
       {count!==undefined && count>0 && <span style={{fontSize:10,background:'rgba(255,255,255,0.1)',padding:'1px 7px',borderRadius:20,color:'#94a3b8'}}>{count}</span>}
     </button>

@@ -608,7 +608,7 @@ export default function ClientsPage() {
                         onClick={() => navigate(`/${w.type}s`, { state: { openItem: w.id } })}>
                         <td style={{ padding: '10px 12px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ color: workTypeColor[w.type], fontSize: 14 }}>{workTypeIcon[w.type]}</span>
+                            <span style={{ color: workTypeColor[w.type], fontSize: 20 }}>{workTypeIcon[w.type]}</span>
                             <div>
                               <p style={{ margin: '0 0 1px', fontSize: 13, color: '#f1f5f9', fontWeight: 600 }}>{w.type === 'quote' ? 'Quote' : w.type === 'job' ? 'Job' : 'Invoice'} #{w.number}</p>
                               <p style={{ margin: 0, fontSize: 11, color: '#64748b' }}>{w.title}</p>
