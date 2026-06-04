@@ -337,7 +337,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn" style="flex:1" onclick="closeQRModal()">Close</button>
-      <button class="btn primary" style="flex:1" onclick="toast('QR badge sent to printer!')"><i class="ti ti-printer"></i> Print badge</button>
+      <button class="btn primary" style="flex:1" id="print-badge-btn"><i class="ti ti-printer"></i> Print badge</button>
     </div>
   </div>
 </div>
@@ -464,21 +464,53 @@ function renderEmps() {
   tb.innerHTML = '';
   list.forEach(function(e) {
     var tr = document.createElement('tr');
-    tr.innerHTML =
-      '<td style="display:flex;align-items:center;gap:8px;padding:9px 12px">' +
-        '<div class="av" style="background:' + col(e) + '">' + ini(e).toUpperCase() + '</div>' +
-        '<div><div style="font-weight:600">' + fullName(e) + '</div>' +
-        (e.phone ? '<div style="font-size:10px;color:var(--muted)">' + e.phone + '</div>' : '') +
-        '</div></td>' +
-      '<td style="font-size:11px;color:var(--muted)">' + (e.employee_id||'—') + '</td>' +
-      '<td>' + (e.division||'—') + '</td>' +
-      '<td>' + (e.crew||'—') + '</td>' +
-      '<td><span class="b bs">' + (e.role||'—') + '</span></td>' +
-      '<td><div style="display:flex;gap:4px">' +
-        '<button class="btn" style="padding:4px 8px;font-size:11px" onclick="showQR(' + JSON.stringify(e.employee_id) + ')"><i class="ti ti-qrcode"></i> QR</button>' +
-        '<button class="btn" style="padding:4px 8px;font-size:11px" onclick="editEmp(' + JSON.stringify(e.employee_id) + ')"><i class="ti ti-edit"></i></button>' +
-        '<button class="btn amber" style="padding:4px 8px;font-size:11px" onclick="archiveEmp(' + JSON.stringify(e.employee_id) + ')"><i class="ti ti-archive"></i></button>' +
-      '</div></td>';
+
+    // Avatar cell
+    var td1 = document.createElement('td');
+    td1.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 12px';
+    var av = document.createElement('div');
+    av.className = 'av'; av.style.background = col(e); av.textContent = ini(e).toUpperCase();
+    var nameDiv = document.createElement('div');
+    var n1 = document.createElement('div'); n1.style.fontWeight = '600'; n1.textContent = fullName(e);
+    nameDiv.appendChild(n1);
+    if (e.phone) { var n2 = document.createElement('div'); n2.style.cssText = 'font-size:10px;color:var(--muted)'; n2.textContent = e.phone; nameDiv.appendChild(n2); }
+    td1.appendChild(av); td1.appendChild(nameDiv); tr.appendChild(td1);
+
+    // Simple text cells
+    ['employee_id','division','crew'].forEach(function(k,i) {
+      var td = document.createElement('td');
+      if (i === 0) td.style.cssText = 'font-size:11px;color:var(--muted)';
+      td.textContent = e[k] || '—';
+      tr.appendChild(td);
+    });
+
+    // Role badge
+    var tdRole = document.createElement('td');
+    var badge = document.createElement('span');
+    badge.className = 'b bs'; badge.textContent = e.role || '—';
+    tdRole.appendChild(badge); tr.appendChild(tdRole);
+
+    // Actions
+    var tdAct = document.createElement('td');
+    var wrap = document.createElement('div'); wrap.style.cssText = 'display:flex;gap:4px';
+
+    var btnQR = document.createElement('button');
+    btnQR.className = 'btn'; btnQR.style.cssText = 'padding:4px 8px;font-size:11px';
+    btnQR.innerHTML = '<i class="ti ti-qrcode"></i> QR';
+    btnQR.addEventListener('click', (function(eid){ return function(){ showQR(eid); }; })(e.employee_id));
+
+    var btnEdit = document.createElement('button');
+    btnEdit.className = 'btn'; btnEdit.style.cssText = 'padding:4px 8px;font-size:11px';
+    btnEdit.innerHTML = '<i class="ti ti-edit"></i>';
+    btnEdit.addEventListener('click', (function(eid){ return function(){ editEmp(eid); }; })(e.employee_id));
+
+    var btnArch = document.createElement('button');
+    btnArch.className = 'btn amber'; btnArch.style.cssText = 'padding:4px 8px;font-size:11px';
+    btnArch.innerHTML = '<i class="ti ti-archive"></i>';
+    btnArch.addEventListener('click', (function(eid){ return function(){ archiveEmp(eid); }; })(e.employee_id));
+
+    wrap.appendChild(btnQR); wrap.appendChild(btnEdit); wrap.appendChild(btnArch);
+    tdAct.appendChild(wrap); tr.appendChild(tdAct);
     tb.appendChild(tr);
   });
 }
@@ -492,15 +524,17 @@ function renderArch() {
   tb.innerHTML = '';
   list.forEach(function(e) {
     var tr = document.createElement('tr');
-    tr.innerHTML =
-      '<td style="display:flex;align-items:center;gap:8px;padding:9px 12px">' +
-        '<div class="av" style="background:#aaa">' + ini(e).toUpperCase() + '</div>' +
-        '<div style="font-weight:600;color:var(--muted)">' + fullName(e) + '</div>' +
-      '</td>' +
-      '<td style="font-size:11px;color:var(--muted)">' + (e.employee_id||'—') + '</td>' +
-      '<td style="color:var(--muted)">' + (e.division||'—') + '</td>' +
-      '<td style="color:var(--muted)">' + new Date(e.created_at).toLocaleDateString() + '</td>' +
-      '<td><button class="btn success" style="padding:4px 8px;font-size:11px" onclick="restoreEmp(' + JSON.stringify(e.employee_id) + ')"><i class="ti ti-refresh"></i> Restore</button></td>';
+    var td1 = document.createElement('td');
+    td1.style.cssText = 'display:flex;align-items:center;gap:8px;padding:9px 12px';
+    var av = document.createElement('div'); av.className='av'; av.style.background='#aaa'; av.textContent=ini(e).toUpperCase();
+    var nm = document.createElement('div'); nm.style.cssText='font-weight:600;color:var(--muted)'; nm.textContent=fullName(e);
+    td1.appendChild(av); td1.appendChild(nm); tr.appendChild(td1);
+    ['employee_id','division'].forEach(function(k){var td=document.createElement('td');td.style.color='var(--muted)';if(k==='employee_id')td.style.fontSize='11px';td.textContent=e[k]||'—';tr.appendChild(td);});
+    var tdDate=document.createElement('td');tdDate.style.color='var(--muted)';tdDate.textContent=new Date(e.created_at).toLocaleDateString();tr.appendChild(tdDate);
+    var tdBtn=document.createElement('td');
+    var btn=document.createElement('button');btn.className='btn success';btn.style.cssText='padding:4px 8px;font-size:11px';btn.innerHTML='<i class="ti ti-refresh"></i> Restore';
+    btn.addEventListener('click',(function(eid){return function(){restoreEmp(eid);};})(e.employee_id));
+    tdBtn.appendChild(btn);tr.appendChild(tdBtn);
     tb.appendChild(tr);
   });
 }
@@ -714,6 +748,46 @@ function showQR(eid) {
 
 function closeQRModal() { document.getElementById('qr-modal').classList.remove('open'); document.getElementById('qr-display').innerHTML = ''; }
 
+function printCurrentBadge() {
+  var name = document.getElementById('qr-emp-name').textContent;
+  var empId = document.getElementById('qr-emp-id').textContent;
+  var qrUrl = 'https://phllandcare.github.io/phl-crm/#/clockin?emp=' + encodeURIComponent(empId.split(' · ')[0]);
+  var win = window.open('', '_blank', 'width=420,height=560');
+  if (!win) { toast('Pop-up blocked — allow pop-ups and try again'); return; }
+  win.document.write('<!DOCTYPE html><html><head><title>QR Badge — ' + name + '</title>' +
+    '<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>' +
+    '<style>body{margin:0;padding:20px;font-family:Arial,sans-serif;background:#f1f5f9;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh}' +
+    '.badge{background:#fff;border-radius:16px;overflow:hidden;width:280px;box-shadow:0 4px 20px rgba(0,0,0,.15);border:2px solid #0a2540}' +
+    '.hdr{background:#0a2540;padding:18px;text-align:center;color:#fff}' +
+    '.hdr h1{margin:0 0 4px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8}' +
+    '.hdr h2{margin:0;font-size:17px;font-weight:800}' +
+    '.hdr p{margin:4px 0 0;font-size:11px;color:#94a3b8}' +
+    '.body{padding:18px;text-align:center;background:#fff}' +
+    '.eid{font-size:12px;font-weight:700;color:#0a2540;margin-bottom:10px;letter-spacing:.05em}' +
+    '#qr{display:flex;justify-content:center;margin:10px 0}' +
+    '.note{font-size:10px;color:#6b7a90;margin-top:6px}' +
+    '.foot{background:#f8fafc;padding:10px;text-align:center;border-top:1px solid #e2e8f0}' +
+    '.foot p{margin:0;font-size:9px;color:#6b7a90}' +
+    '@media print{body{padding:0;background:#fff}.badge{box-shadow:none}button{display:none!important}}' +
+    '</style></head><body>' +
+    '<div class="badge"><div class="hdr"><h1>PHL Land Care Inc.</h1><h2>' + name + '</h2><p>' + empId + '</p></div>' +
+    '<div class="body"><div class="eid">Employee ID: ' + empId.split(' · ')[0] + '</div><div id="qr"></div><p class="note">Scan to clock in / out</p></div>' +
+    '<div class="foot"><p>772-466-3617 | phllandcare.com</p></div></div>' +
+    '<div style="text-align:center;margin-top:16px">' +
+    '<button onclick="window.print()" style="background:#0a2540;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px">🖨️ Print Badge</button>' +
+    '<button onclick="window.close()" style="background:#e2e8f0;color:#475569;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer">Close</button>' +
+    '</div>' +
+    '<script>new QRCode(document.getElementById("qr"),{text:' + JSON.stringify(qrUrl) + ',width:160,height:160,colorDark:"#0a2540",colorLight:"#ffffff"});<\/script>' +
+    '</body></html>');
+  win.document.close();
+}
+
+// Wire print badge button after DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+  var pb = document.getElementById('print-badge-btn');
+  if (pb) pb.addEventListener('click', printCurrentBadge);
+});
+
 // ── EXPORT ──
 function exportTimesheet() {
   var rows = ['Employee,Employee ID,Division,Clock In,Clock Out,Hours,Method'];
@@ -754,6 +828,7 @@ function toast(msg) {
 // Close modals
 document.getElementById('qr-modal').addEventListener('click', function(e){if(e.target===this)closeQRModal();});
 document.getElementById('emp-overlay').addEventListener('click', closeEmpDrawer);
+document.getElementById('print-badge-btn').addEventListener('click', printCurrentBadge);
 
 // Init
 loadEmployees();
