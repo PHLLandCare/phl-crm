@@ -64,6 +64,8 @@ export default function SchedulePage() {
   const [showMoreActions, setShowMoreActions] = useState(false)
   const [noteText, setNoteText]   = useState('')
   const [savedNotes, setSavedNotes] = useState<{text:string; author:string; date:string}[]>([])
+  const [schedToast, setSchedToast] = useState('')
+  const showSchedToast = (msg: string) => { setSchedToast(msg); setTimeout(() => setSchedToast(''), 4000) }
 
   // Month/year mini-calendar
   const [showMiniCal, setShowMiniCal] = useState(false)
@@ -231,6 +233,13 @@ export default function SchedulePage() {
 
   return (
     <div style={{display:'flex',height:'100vh',overflow:'hidden',fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',background:'#0a0f1a',position:'relative'}}>
+
+      {/* Toast */}
+      {schedToast && (
+        <div style={{position:'fixed',top:'1rem',right:'1rem',background:'#052e16',border:'1px solid #16a34a',borderRadius:10,padding:'12px 20px',fontSize:13,color:'#4ade80',fontWeight:600,zIndex:9999,boxShadow:'0 4px 20px rgba(0,0,0,0.4)',maxWidth:360}}>
+          {schedToast}
+        </div>
+      )}
 
       {/* ── Main ── */}
       <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
@@ -545,8 +554,48 @@ export default function SchedulePage() {
                     {[
                       {icon:'✏️',label:'Edit',action:()=>{setShowMoreActions(false)}},
                       {icon:'🔄',label:'Update Future Visits',action:()=>{setShowMoreActions(false)}},
-                      {icon:'💬',label:'Text Reminder',action:()=>{setShowMoreActions(false);alert(`Text reminder sent to ${selected.client_name}`)}},
-                      {icon:'✉️',label:'Email Reminder',action:()=>{setShowMoreActions(false);alert(`Email reminder sent to ${selected.client_name}`)}},
+                      {icon:'💬',label:'Text Reminder',action:async()=>{
+                        setShowMoreActions(false)
+                        // Look up client phone from clients table
+                        const clientName = selected.client_name || ''
+                        const [firstName, ...rest] = clientName.trim().split(' ')
+                        const lastName = rest.join(' ')
+                        let phone = selected.phone || ''
+                        if (!phone && clientName) {
+                          const { data: cl } = await supabase.from('clients').select('phone').eq('first_name', firstName).eq('last_name', lastName).single()
+                          phone = cl?.phone || ''
+                        }
+                        if (!phone) { showSchedToast('⚠️ No phone number found for this client'); return }
+                        const dateStr = selected.scheduled_start ? new Date(selected.scheduled_start).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) : 'your upcoming visit'
+                        const msg = `Hi ${firstName || clientName}, this is PHL Land Care reminding you of your scheduled service on ${dateStr}. Please call us at (561) 000-0000 if you have any questions. Thank you!`
+                        try {
+                          const { error } = await supabase.functions.invoke('send-sms', { body: { to: phone, message: msg } })
+                          if (error) throw error
+                          showSchedToast(`✅ Text reminder sent to ${clientName} (${phone})`)
+                        } catch { showSchedToast(`⚠️ SMS failed — check Twilio settings`) }
+                      }},
+                      {icon:'✉️',label:'Email Reminder',action:async()=>{
+                        setShowMoreActions(false)
+                        const clientName = selected.client_name || ''
+                        const [firstName, ...rest] = clientName.trim().split(' ')
+                        const lastName = rest.join(' ')
+                        let email = selected.email || ''
+                        if (!email && clientName) {
+                          const { data: cl } = await supabase.from('clients').select('email').eq('first_name', firstName).eq('last_name', lastName).single()
+                          email = cl?.email || ''
+                        }
+                        if (!email) { showSchedToast('⚠️ No email found for this client'); return }
+                        const dateStr = selected.scheduled_start ? new Date(selected.scheduled_start).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}) : 'your upcoming visit'
+                        try {
+                          const { error } = await supabase.functions.invoke('send-email', { body: {
+                            to: email,
+                            subject: `PHL Land Care — Service Reminder for ${dateStr}`,
+                            html: `<div style="font-family:sans-serif;max-width:500px;margin:auto;padding:24px"><h2 style="color:#16a34a">PHL Land Care Inc.</h2><p>Hi ${firstName || clientName},</p><p>This is a friendly reminder that you have a scheduled service on <strong>${dateStr}</strong>.</p><p>If you need to reschedule or have any questions, please don't hesitate to reach out.</p><p style="margin-top:24px">📞 (561) 000-0000<br>✉️ info@phllandcare.com</p><p>Thank you for your business!<br><strong>The PHL Land Care Team</strong></p></div>`
+                          }})
+                          if (error) throw error
+                          showSchedToast(`✅ Email reminder sent to ${clientName} (${email})`)
+                        } catch { showSchedToast(`⚠️ Email failed — check Resend settings`) }
+                      }},
                       {icon:'🗑️',label:'Delete',action:()=>{setShowMoreActions(false);handleDelete(selected)},red:true},
                     ].map((item:any)=>(
                       <button key={item.label} onClick={item.action}

@@ -16,6 +16,7 @@ import TeamChatPage from './TeamChatPage'
 import RoutePage from './RoutePage'
 import ReportsPage from './ReportsPage'
 import ProductsServicesPage from './ProductsServicesPage'
+import DivisionPage from './DivisionPage'
 
 type UserRole = 'superadmin' | 'manager' | 'dispatcher' | 'worker' | 'worker_limited'
 
@@ -191,8 +192,14 @@ export default function Dashboard() {
       case 'teamchat':  return can(userRole,'manage_users')   ? <TeamChatPage />  : <AccessDenied />
       case 'routes':    return can(userRole,'view_schedule')    ? <RoutePage />     : <AccessDenied />
       case 'reports':   return can(userRole,'view_reports')   ? <ReportsPage />   : <AccessDenied />
-      case 'products':  return can(userRole,'view_quotes')    ? <ProductsServicesPage /> : <AccessDenied />
-      case 'portal':    return <ClientPortalPage />
+      case 'products':         return can(userRole,'view_quotes')    ? <ProductsServicesPage /> : <AccessDenied />
+      case 'div-lawn':         return <DivisionPage divisionId="div-lawn" />
+      case 'div-irrigation':   return <DivisionPage divisionId="div-irrigation" />
+      case 'div-extermination':return <DivisionPage divisionId="div-extermination" />
+      case 'div-nursery':      return <DivisionPage divisionId="div-nursery" />
+      case 'div-farm':         return <DivisionPage divisionId="div-farm" />
+      case 'div-hardscape':    return <DivisionPage divisionId="div-hardscape" />
+      case 'portal':           return <ClientPortalPage />
       default: return (
         <div style={{padding:'2rem',maxWidth:1400,margin:'0 auto'}}>
           <div style={{marginBottom:'1.75rem'}}>
@@ -406,6 +413,7 @@ export default function Dashboard() {
           <NavItem label="Extermination"  id="div-extermination" icon="🐛" />
           <NavItem label="Nursery"        id="div-nursery"       icon="🌱" />
           <NavItem label="Farm"           id="div-farm"          icon="🚜" />
+          <NavItem label="Hardscape"      id="div-hardscape"     icon="🪨" />
 
           <SectionLabel title="Tools" />
           <NavItem label="Time Clock"    id="timeclock"  icon="⏰" onClick={()=>window.open('https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html','_self')} />

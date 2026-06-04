@@ -401,10 +401,11 @@ export default function ClientsPage() {
           </div>
           {/* Action buttons */}
           <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
-            {/* Email button */}
-            <button onClick={() => { if (selectedClient.email) window.open(`mailto:${selectedClient.email}`) }}
-              style={{ padding: '8px 14px', background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, color: '#f1f5f9', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
-              ✉️
+            {/* Email button - bigger, with label */}
+            <button onClick={() => { if (selectedClient.email) window.open(`mailto:${selectedClient.email}?subject=PHL Land Care — Following Up`) }}
+              style={{ padding: '8px 16px', background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, color: '#f1f5f9', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8, opacity: selectedClient.email ? 1 : 0.4 }}>
+              <span style={{ fontSize: 16 }}>✉️</span>
+              <span style={{ fontWeight: 600 }}>Email</span>
             </button>
             {/* ... dots menu */}
             <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
@@ -816,12 +817,15 @@ export default function ClientsPage() {
             {/* ── TAGS ── */}
             <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
               <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Tags</h3>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {tagList.length === 0 ? <span style={{ color: '#475569', fontSize: 13 }}>No tags yet</span>
-                  : tagList.map((t, i) => (
-                    <span key={i} style={{ background: 'rgba(100,116,139,0.15)', color: '#94a3b8', padding: '4px 10px', borderRadius: 99, fontSize: 12, fontWeight: 600 }}>{t}</span>
-                  ))}
-              </div>
+              <TagsEditor
+                tags={(selectedClient.tags || '').split(',').map(t => t.trim()).filter(Boolean)}
+                onSave={async (newTags) => {
+                  const tagStr = newTags.join(', ')
+                  await supabase.from('clients').update({ tags: tagStr }).eq('id', selectedClient.id)
+                  setSelectedClient({ ...selectedClient, tags: tagStr })
+                  showClientToast('✅ Tags updated!')
+                }}
+              />
             </div>
 
             {/* ── NOTES ── */}
@@ -1186,4 +1190,91 @@ export default function ClientsPage() {
       )}
     </div>
   )
+}
+
+// ── TagsEditor component ─────────────────────────────────────────────────────
+const TAG_COLORS = [
+  '#4ade80','#60a5fa','#f59e0b','#a78bfa','#f87171','#34d399','#fb923c','#e879f9'
+]
+
+function TagsEditor({ tags, onSave }: { tags: string[]; onSave: (tags: string[]) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [localTags, setLocalTags] = useState<string[]>(tags)
+  const [newTag, setNewTag] = useState('')
+
+  useEffect(() => { setLocalTags(tags) }, [tags])
+
+  const addTag = () => {
+    const t = newTag.trim()
+    if (!t || localTags.includes(t)) return
+    const updated = [...localTags, t]
+    setLocalTags(updated)
+    setNewTag('')
+  }
+
+  const removeTag = (i: number) => {
+    setLocalTags(localTags.filter((_, idx) => idx !== i))
+  }
+
+  const tagColor = (t: string) => TAG_COLORS[t.charCodeAt(0) % TAG_COLORS.length]
+
+  if (!editing) {
+    return (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+        {localTags.length === 0
+          ? <span style={{ color: '#475569', fontSize: 13 }}>No tags — </span>
+          : localTags.map((t, i) => (
+            <span key={i} style={{ background: `rgba(${hexRgb(tagColor(t))},0.15)`, color: tagColor(t), border: `1px solid rgba(${hexRgb(tagColor(t))},0.3)`, padding: '4px 10px', borderRadius: 99, fontSize: 12, fontWeight: 600 }}>{t}</span>
+          ))}
+        <button onClick={() => setEditing(true)}
+          style={{ padding: '4px 12px', background: 'none', border: '1px dashed #334155', borderRadius: 99, fontSize: 12, color: '#64748b', cursor: 'pointer', fontFamily: 'inherit' }}>
+          {localTags.length === 0 ? 'Add tag' : '+ Edit'}
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+        {localTags.map((t, i) => (
+          <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, background: `rgba(${hexRgb(tagColor(t))},0.15)`, color: tagColor(t), border: `1px solid rgba(${hexRgb(tagColor(t))},0.3)`, padding: '4px 6px 4px 10px', borderRadius: 99, fontSize: 12, fontWeight: 600 }}>
+            {t}
+            <button onClick={() => removeTag(i)} style={{ background: 'none', border: 'none', color: tagColor(t), cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+          </span>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <input
+          value={newTag}
+          onChange={e => setNewTag(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') addTag() }}
+          placeholder="New tag..."
+          style={{ flex: 1, padding: '7px 10px', border: '1px solid #334155', borderRadius: 8, fontSize: 12, background: '#0f172a', color: '#f1f5f9', outline: 'none', fontFamily: 'inherit' }}
+        />
+        <button onClick={addTag} style={{ padding: '7px 12px', background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#4ade80', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>+</button>
+      </div>
+      <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+        <button onClick={() => setEditing(false)} style={{ padding: '6px 14px', background: 'none', border: '1px solid #334155', borderRadius: 8, color: '#64748b', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+        <button onClick={() => { onSave(localTags); setEditing(false) }} style={{ padding: '6px 14px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Save Tags</button>
+      </div>
+      {/* Common tag suggestions */}
+      <div style={{ marginTop: 10 }}>
+        <p style={{ fontSize: 10, color: '#475569', margin: '0 0 6px', fontWeight: 600, textTransform: 'uppercase' }}>Suggestions</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+          {['HOA','Monthly','Weekly','Bi-weekly','VIP','Residential','Commercial','PGA POA','Seasonal','Irrigation Contract','Pest Contract'].filter(s => !localTags.includes(s)).map(s => (
+            <button key={s} onClick={() => setLocalTags(prev => prev.includes(s) ? prev : [...prev, s])}
+              style={{ padding: '3px 8px', background: '#1e293b', border: '1px solid #334155', borderRadius: 99, fontSize: 11, color: '#94a3b8', cursor: 'pointer', fontFamily: 'inherit' }}>
+              + {s}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function hexRgb(hex: string): string {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16)
+  return `${r},${g},${b}`
 }
