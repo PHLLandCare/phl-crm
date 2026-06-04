@@ -1035,13 +1035,13 @@ export default function ClientsPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: '1.5rem' }}>
         {[
-          { label: 'New leads', sub: 'Past 30 days', val: newLeads },
-          { label: 'New clients', sub: 'Past 30 days', val: newClients },
-          { label: 'Total active clients', sub: 'Year to date', val: activeCount },
-          { label: 'Total leads', sub: 'All time', val: leadCount },
+          { label: 'New leads',           sub: 'Past 30 days',  val: newLeads,    color: '#fbbf24' },
+          { label: 'New clients',         sub: 'Past 30 days',  val: newClients,  color: '#4ade80' },
+          { label: 'Total active clients',sub: 'Year to date',  val: activeCount, color: '#60a5fa' },
+          { label: 'Total leads',         sub: 'All time',      val: leadCount,   color: '#a855f7' },
         ].map((s, i) => (
-          <div key={i} style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1rem 1.25rem' }}>
-            <p style={{ margin: '0 0 2px', fontSize: 12, color: '#64748b', fontWeight: 600 }}>{s.label}</p>
+          <div key={i} style={{ background: '#0f172a', border: '1px solid #1e293b', borderTop: `3px solid ${s.color}`, borderRadius: 14, padding: '1rem 1.25rem' }}>
+            <p style={{ margin: '0 0 2px', fontSize: 11, color: s.color, fontWeight: 700, textTransform: 'uppercase' }}>{s.label}</p>
             <p style={{ margin: '0 0 8px', fontSize: 11, color: '#475569' }}>{s.sub}</p>
             <span style={{ fontSize: 28, fontWeight: 800, color: '#f1f5f9' }}>{s.val}</span>
           </div>

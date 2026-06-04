@@ -245,15 +245,18 @@ export default function InvoicesPage() {
         <div style={{background:'#0f172a',border:'1px solid #1e293b',borderTop:'3px solid #f87171',borderRadius:14,padding:'1.1rem 1.25rem'}}>
           <p style={{fontSize:12,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'0.05em',margin:'0 0 8px'}}>Overview</p>
           <div style={{display:'flex',flexDirection:'column',gap:4}}>
-            <div style={{display:'flex',justifyContent:'space-between',fontSize:13}}>
+            <div onClick={()=>setStatusFilter('Past due')} style={{display:'flex',justifyContent:'space-between',fontSize:13,cursor:'pointer',padding:'4px 6px',borderRadius:6,transition:'background .1s'}}
+              onMouseEnter={e=>(e.currentTarget.style.background='rgba(239,68,68,0.1)')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
               <span style={{display:'flex',alignItems:'center',gap:6}}><span style={{width:8,height:8,borderRadius:'50%',background:'#ef4444',display:'inline-block'}}/>Past due ({pastDue.length})</span>
               <span style={{fontWeight:700,color:'#fca5a5'}}>${pastDueAmt.toLocaleString()}</span>
             </div>
-            <div style={{display:'flex',justifyContent:'space-between',fontSize:13}}>
+            <div onClick={()=>setStatusFilter('Sent')} style={{display:'flex',justifyContent:'space-between',fontSize:13,cursor:'pointer',padding:'4px 6px',borderRadius:6,transition:'background .1s'}}
+              onMouseEnter={e=>(e.currentTarget.style.background='rgba(245,158,11,0.1)')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
               <span style={{display:'flex',alignItems:'center',gap:6}}><span style={{width:8,height:8,borderRadius:'50%',background:'#f59e0b',display:'inline-block'}}/>Sent not due ({sentNotDue.length})</span>
               <span style={{fontWeight:700,color:'#fcd34d'}}>${sentAmt.toLocaleString()}</span>
             </div>
-            <div style={{display:'flex',justifyContent:'space-between',fontSize:13}}>
+            <div onClick={()=>setStatusFilter('Draft')} style={{display:'flex',justifyContent:'space-between',fontSize:13,cursor:'pointer',padding:'4px 6px',borderRadius:6,transition:'background .1s'}}
+              onMouseEnter={e=>(e.currentTarget.style.background='rgba(71,85,105,0.2)')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
               <span style={{display:'flex',alignItems:'center',gap:6}}><span style={{width:8,height:8,borderRadius:'50%',background:'#475569',display:'inline-block'}}/>Draft ({draftCount})</span>
               <span style={{fontWeight:700,color:'#94a3b8'}}></span>
             </div>
