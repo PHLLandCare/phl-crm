@@ -125,6 +125,7 @@ export default function JobsPage() {
   const [serviceSearch, setServiceSearch] = useState('')
   const [lineItems, setLineItems] = useState<JobLineItem[]>([{ name:'', description:'', qty:1, unit_price:0 }])
   const [showCalendar, setShowCalendar] = useState(false)
+  const [nextJobNum, setNextJobNum]     = useState('Auto-assigned')
 
   const loadNextJobNum = async () => {
     const { data } = await supabase.from('jobs').select('job_number').order('created_at', { ascending: false }).limit(1)
