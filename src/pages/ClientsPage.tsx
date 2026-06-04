@@ -102,7 +102,6 @@ export default function ClientsPage() {
     setSelectedClient(c)
     setEditMode(false)
     setActiveTab('info')
-    navigate('/clients/' + c.id)
     setForm({
       first_name: c.first_name || '', last_name: c.last_name || '',
       company: c.company || '', phone: c.phone || '', email: c.email || '',
