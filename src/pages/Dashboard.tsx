@@ -383,14 +383,14 @@ export default function Dashboard() {
           )}
         </div>
         <div style={{flex:1,paddingTop:4}}>
-          <SectionLabel title="Main" />
-          <NavItem label="Home" id="dashboard" icon="🏠" />
+          {/* Jobber order: Home, Schedule, Clients, Requests, Quotes, Jobs, Invoices */}
+          <NavItem label="Home"     id="dashboard" icon="🏠" />
+          {can(userRole,'view_schedule') && <NavItem label="Schedule"  id="schedule"  icon="📅" />}
           {can(userRole,'view_clients')  && <NavItem label="Clients"   id="clients"   icon="👥" count={counts.clients} />}
+          <NavItem label="Requests" id="requests"  icon="📬" count={counts.requests} />
           {can(userRole,'view_quotes')   && <NavItem label="Quotes"    id="quotes"    icon="📋" count={counts.quotes} />}
           {can(userRole,'view_jobs')     && <NavItem label="Jobs"      id="jobs"      icon="🔧" count={counts.jobs} />}
           {can(userRole,'view_invoices') && <NavItem label="Invoices"  id="invoices"  icon="💰" count={counts.invoices} />}
-          {can(userRole,'view_schedule') && <NavItem label="Schedule"  id="schedule"  icon="📅" />}
-          {can(userRole,'view_schedule') && <NavItem label="Routes"    id="routes"    icon="🗺️" />}
 
           <SectionLabel title="Divisions" />
           <NavItem label="Lawn & Tree"    id="div-lawn"          icon="🌿" />
@@ -409,6 +409,7 @@ export default function Dashboard() {
           {can(userRole,'view_quotes')    && <NavItem label="Products & Services" id="products" icon="🛒" />}
           {can(userRole,'view_reports')   && <NavItem label="Reports"           id="reports"   icon="📊" />}
           {can(userRole,'view_settings')  && <NavItem label="Settings"          id="settings"  icon="⚙️" />}
+          {can(userRole,'view_schedule') && <NavItem label="Routes"    id="routes"    icon="🗺️" />}
         </div>
         <div style={{padding:'10px 14px',borderTop:'1px solid #1e293b'}}>
           <button onClick={handleSignOut} style={{width:'100%',background:'rgba(255,255,255,0.05)',color:'#64748b',border:'1px solid #1e293b',borderRadius:8,padding:'7px',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>

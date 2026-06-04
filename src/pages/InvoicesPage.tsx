@@ -242,8 +242,8 @@ export default function InvoicesPage() {
 
       {/* KPI overview row — Jobber style */}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12,marginBottom:'1.5rem'}}>
-        <div style={{background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.1rem 1.25rem'}}>
-          <p style={{fontSize:12,fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.05em',margin:'0 0 8px'}}>Overview</p>
+        <div style={{background:'#0f172a',border:'1px solid #1e293b',borderTop:'3px solid #f87171',borderRadius:14,padding:'1.1rem 1.25rem'}}>
+          <p style={{fontSize:12,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'0.05em',margin:'0 0 8px'}}>Overview</p>
           <div style={{display:'flex',flexDirection:'column',gap:4}}>
             <div style={{display:'flex',justifyContent:'space-between',fontSize:13}}>
               <span style={{display:'flex',alignItems:'center',gap:6}}><span style={{width:8,height:8,borderRadius:'50%',background:'#ef4444',display:'inline-block'}}/>Past due ({pastDue.length})</span>
@@ -259,18 +259,18 @@ export default function InvoicesPage() {
             </div>
           </div>
         </div>
-        <div style={{background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.1rem 1.25rem'}}>
-          <p style={{fontSize:12,fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.05em',margin:'0 0 4px'}}>Issued (past 30 days)</p>
+        <div style={{background:'#0f172a',border:'1px solid #1e293b',borderTop:'3px solid #fbbf24',borderRadius:14,padding:'1.1rem 1.25rem'}}>
+          <p style={{fontSize:12,fontWeight:700,color:'#fbbf24',textTransform:'uppercase',letterSpacing:'0.05em',margin:'0 0 4px'}}>Issued (past 30 days)</p>
           <p style={{fontSize:28,fontWeight:800,color:'#f1f5f9',margin:0}}>{invoices.length}</p>
         </div>
-        <div style={{background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.1rem 1.25rem'}}>
-          <p style={{fontSize:12,fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.05em',margin:'0 0 4px'}}>Average invoice</p>
+        <div style={{background:'#0f172a',border:'1px solid #1e293b',borderTop:'3px solid #60a5fa',borderRadius:14,padding:'1.1rem 1.25rem'}}>
+          <p style={{fontSize:12,fontWeight:700,color:'#60a5fa',textTransform:'uppercase',letterSpacing:'0.05em',margin:'0 0 4px'}}>Average invoice</p>
           <p style={{fontSize:28,fontWeight:800,color:'#f1f5f9',margin:0}}>
             {invoices.length > 0 ? `$${(invoices.reduce((s,i)=>s+(i.amount||0),0)/invoices.length).toLocaleString('en-US',{maximumFractionDigits:0})}` : '$0'}
           </p>
         </div>
-        <div style={{background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.1rem 1.25rem'}}>
-          <p style={{fontSize:12,fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.05em',margin:'0 0 4px'}}>Total Outstanding</p>
+        <div style={{background:'#0f172a',border:'1px solid #1e293b',borderTop:'3px solid #4ade80',borderRadius:14,padding:'1.1rem 1.25rem'}}>
+          <p style={{fontSize:12,fontWeight:700,color:'#4ade80',textTransform:'uppercase',letterSpacing:'0.05em',margin:'0 0 4px'}}>Total Outstanding</p>
           <p style={{fontSize:28,fontWeight:800,color:'#4ade80',margin:0}}>
             ${invoices.filter(i=>i.status!=='paid'&&i.status!=='Paid').reduce((s,i)=>s+(i.balance||i.amount||0),0).toLocaleString()}
           </p>
