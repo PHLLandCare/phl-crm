@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import ClientsPage from './ClientsPage'
+import ClientPortalPage from './ClientPortalPage'
 import JobsPage from './JobsPage'
 import InvoicesPage from './InvoicesPage'
 import QuotesPage from './QuotesPage'
@@ -188,6 +189,7 @@ export default function Dashboard() {
       case 'routes':    return can(userRole,'view_schedule')    ? <RoutePage />     : <AccessDenied />
       case 'reports':   return can(userRole,'view_reports')   ? <ReportsPage />   : <AccessDenied />
       case 'products':  return can(userRole,'view_quotes')    ? <ProductsServicesPage /> : <AccessDenied />
+      case 'portal':    return <ClientPortalPage />
       default: return (
         <div style={{padding:'2rem',maxWidth:1400,margin:'0 auto'}}>
           <div style={{marginBottom:'1.75rem'}}>

@@ -58,6 +58,9 @@ export default function TeamChatPage() {
   const [huddleParticipants, setHuddleParticipants] = useState<{id:string;name:string}[]>([])
   const [incomingCaller, setIncomingCaller] = useState<{id:string;name:string}|null>(null)
   const [muted, setMuted]               = useState(false)
+  const [showInvite, setShowInvite]     = useState(false)
+  const [inviteSearch, setInviteSearch] = useState('')
+  const [notifications, setNotifications] = useState<{id:string;msg:string;time:string}[]>([])
 
   const bottomRef     = useRef<HTMLDivElement>(null)
   const fileRef       = useRef<HTMLInputElement>(null)
@@ -291,6 +294,31 @@ export default function TeamChatPage() {
     setIncomingCaller(null)
   }
 
+  const inviteToHuddle = async (emp: {id:string;full_name:string}) => {
+    // Send a huddle-invite message to the employee's DM channel
+    const dmCh = `dm_${[userId, emp.id].sort().join('_')}`
+    await supabase.from('team_messages').insert({
+      channel: dmCh, sender_id: userId, sender_name: userName,
+      sender_initials: userInitials,
+      body: `🎙️ ${userName} is inviting you to a Huddle! Click "Join Huddle" in Team Chat to join.`,
+    })
+    // Also broadcast on huddle channel so they get the incoming signal
+    if (huddleSignalRef.current) {
+      await huddleSignalRef.current.send({
+        type: 'broadcast', event: 'huddle',
+        payload: { type: 'join', from: userId, from_name: userName, channel: huddleChannel }
+      })
+    }
+    // Add notification
+    setNotifications(prev => [...prev, {
+      id: String(Date.now()),
+      msg: `Huddle invite sent to ${emp.full_name}`,
+      time: new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})
+    }])
+    setTimeout(() => setNotifications(prev => prev.slice(1)), 4000)
+    setShowInvite(false)
+  }
+
   const toggleMute = () => {
     localStream.current?.getAudioTracks().forEach(t => { t.enabled = muted })
     setMuted(!muted)
@@ -395,8 +423,8 @@ export default function TeamChatPage() {
             </div>
           )}
           {onThread && (msg.thread_count||0)>0 && (
-            <button onClick={()=>onThread(msg)} style={{ marginTop:4, background:'none', border:'none', color:'#60a5fa', fontSize:12, cursor:'pointer', padding:0, fontFamily:'inherit' }}>
-              💬 {msg.thread_count} {msg.thread_count===1?'reply':'replies'}
+            <button onClick={()=>onThread(msg)} style={{ marginTop:6, background:'rgba(96,165,250,0.1)', border:'1px solid rgba(96,165,250,0.3)', borderRadius:8, color:'#60a5fa', fontSize:12, cursor:'pointer', padding:'4px 10px', fontFamily:'inherit', display:'flex', alignItems:'center', gap:5, fontWeight:600 }}>
+              💬 {msg.thread_count} {msg.thread_count===1?'reply':'replies'} →
             </button>
           )}
         </div>
@@ -413,7 +441,7 @@ export default function TeamChatPage() {
             )}
           </div>
           {onThread && (
-            <button onClick={()=>onThread(msg)} style={{ padding:'4px 8px', background:'#1e293b', border:'1px solid #334155', borderRadius:6, cursor:'pointer', fontSize:14, color:'#94a3b8', fontFamily:'inherit' }}>💬</button>
+            <button onClick={()=>onThread(msg)} title="Reply in thread" style={{ padding:'4px 10px', background:'#1e293b', border:'1px solid #334155', borderRadius:6, cursor:'pointer', fontSize:12, color:'#94a3b8', fontFamily:'inherit', display:'flex', alignItems:'center', gap:4, fontWeight:600 }}>💬 Reply</button>
           )}
           {isMe && (
             <button onClick={()=>deleteMsg(msg.id)} style={{ padding:'4px 8px', background:'#1e293b', border:'1px solid #334155', borderRadius:6, cursor:'pointer', fontSize:14, color:'#f87171', fontFamily:'inherit' }}>🗑</button>
@@ -424,7 +452,13 @@ export default function TeamChatPage() {
   }
 
   return (
-    <div style={{ display:'flex', height:'100vh', fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', background:'#0a0f1a', overflow:'hidden' }}>
+    <div style={{ display:'flex', height:'100vh', fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif', background:'#0a0f1a', overflow:'hidden', position:'relative' }}>
+      {/* Notification toasts */}
+      {notifications.map(n=>(
+        <div key={n.id} style={{ position:'fixed', top:'1rem', right:'1rem', background:'#052e16', border:'1px solid #16a34a', borderRadius:10, padding:'10px 18px', fontSize:13, color:'#4ade80', fontWeight:600, zIndex:9999, display:'flex', alignItems:'center', gap:8 }}>
+          🎙️ {n.msg} <span style={{ fontSize:11, color:'#4ade80', opacity:.7 }}>{n.time}</span>
+        </div>
+      ))}
 
       {/* ── Sidebar ──────────────────────────────────────────────────────── */}
       <div style={{ width:220, background:'#0d1526', borderRight:'1px solid #1e293b', display:'flex', flexDirection:'column', flexShrink:0, overflowY:'auto' }}>
@@ -463,6 +497,28 @@ export default function TeamChatPage() {
                 style={{ width:'100%', padding:'5px 8px', background: muted?'#7f1d1d':'#1e293b', border:`1px solid ${muted?'#ef4444':'#334155'}`, borderRadius:6, color: muted?'#fca5a5':'#94a3b8', fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>
                 {muted ? '🔇 Unmute' : '🎙️ Mute'}
               </button>
+              <button onClick={()=>setShowInvite(v=>!v)}
+                style={{ width:'100%', padding:'5px 8px', background:'#1e293b', border:'1px solid #334155', borderRadius:6, color:'#94a3b8', fontSize:12, cursor:'pointer', fontFamily:'inherit', marginTop:4 }}>
+                👤+ Invite to Huddle
+              </button>
+              {showInvite && (
+                <div style={{ marginTop:6, background:'#0a0f1a', border:'1px solid #1e293b', borderRadius:8, padding:8 }}>
+                  <input value={inviteSearch} onChange={e=>setInviteSearch(e.target.value)} placeholder="Search..." style={{ width:'100%', padding:'4px 8px', background:'#1e293b', border:'1px solid #334155', borderRadius:6, color:'#f1f5f9', fontSize:11, fontFamily:'inherit', boxSizing:'border-box', outline:'none' }} />
+                  <div style={{ marginTop:4, maxHeight:120, overflowY:'auto' }}>
+                    {employees.filter(e=>e.id!==userId&&(!inviteSearch||e.full_name?.toLowerCase().includes(inviteSearch.toLowerCase()))).map(emp=>(
+                      <button key={emp.id} onClick={()=>inviteToHuddle(emp)}
+                        style={{ display:'flex', alignItems:'center', gap:6, width:'100%', padding:'5px 6px', background:'none', border:'none', color:'#f1f5f9', fontSize:11, cursor:'pointer', fontFamily:'inherit', textAlign:'left', borderRadius:4 }}
+                        onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='none')}>
+                        <div style={{ width:18, height:18, borderRadius:'50%', background:getColor(emp.full_name||''), display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, fontWeight:700, color:'#fff', flexShrink:0 }}>
+                          {emp.full_name?.split(' ').map((n:string)=>n[0]).join('').slice(0,2)}
+                        </div>
+                        <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{emp.full_name}</span>
+                        <span style={{ marginLeft:'auto', color:'#4ade80', fontSize:10, flexShrink:0 }}>Invite</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {huddle === 'incoming' && incomingCaller && (

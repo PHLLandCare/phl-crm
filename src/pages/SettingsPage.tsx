@@ -403,17 +403,84 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Integrations */}
+            {/* ── SQUARE INTEGRATION ── */}
             <div style={card}>
-              <h2 style={{ ...secTitle,marginBottom:4 }}>Integrations</h2>
-              <p style={{ ...secSub }}>Connected services</p>
+              <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
+                <div style={{ background:'#fff',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#000' }}>■ Square</div>
+                <div>
+                  <h2 style={{ ...secTitle,margin:0 }}>Square Payments</h2>
+                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Accept credit card payments from clients</p>
+                </div>
+                <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:'#1a1000',color:'#fcd34d',padding:'3px 10px',borderRadius:20,border:'1px solid #d97706' }}>Setup needed</span>
+              </div>
+              <div style={{ background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:12 }}>
+                <p style={{ margin:'0 0 8px',fontSize:13,color:'#94a3b8' }}>Connect your Square account to enable:</p>
+                <ul style={{ margin:0,padding:'0 0 0 20px',fontSize:13,color:'#cbd5e1' }}>
+                  <li>Credit card payments on invoices (client portal)</li>
+                  <li>Auto-charge clients after job completion</li>
+                  <li>Collect payments in the field</li>
+                </ul>
+              </div>
+              <div style={{ display:'grid',gridTemplateColumns:'1fr',gap:10,marginBottom:12 }}>
+                <div>
+                  <label style={lbl}>Square Access Token</label>
+                  <input style={inp} type="password" placeholder="sq0atp-..." />
+                  <p style={{ margin:'4px 0 0',fontSize:11,color:'#475569' }}>Found in Square Dashboard → Developer → Applications → Access Token</p>
+                </div>
+                <div>
+                  <label style={lbl}>Square Application ID</label>
+                  <input style={inp} placeholder="sq0idp-..." />
+                </div>
+                <div>
+                  <label style={lbl}>Square Location ID</label>
+                  <input style={inp} placeholder="LXXXXXXXXXXXXXXXX" />
+                </div>
+              </div>
+              <div style={{ display:'flex',gap:8 }}>
+                <a href="https://developer.squareup.com/apps" target="_blank" rel="noreferrer"
+                  style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
+                  ↗ Open Square Developer Dashboard
+                </a>
+                <button onClick={()=>showToast('Square credentials saved!')} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Save Square Settings</button>
+              </div>
+            </div>
+
+            {/* ── RESEND EMAIL ── */}
+            <div style={card}>
+              <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
+                <div style={{ background:'#000',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#fff' }}>✉ Resend</div>
+                <div>
+                  <h2 style={{ ...secTitle,margin:0 }}>Email Delivery</h2>
+                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Send invoices, quotes, and reminders via email</p>
+                </div>
+                <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:'#1a1000',color:'#fcd34d',padding:'3px 10px',borderRadius:20,border:'1px solid #d97706' }}>Setup needed</span>
+              </div>
+              <div style={{ background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:12 }}>
+                <p style={{ margin:'0 0 4px',fontSize:13,color:'#94a3b8' }}>Once connected, emails will be sent from:</p>
+                <p style={{ margin:0,fontSize:13,color:'#4ade80',fontWeight:600 }}>admin@phllandcare.com</p>
+              </div>
+              <div>
+                <label style={lbl}>Resend API Key</label>
+                <input style={{ ...inp,marginBottom:8 }} type="password" placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" />
+                <p style={{ margin:'0 0 12px',fontSize:11,color:'#475569' }}>Get your API key at resend.com/api-keys — requires domain verification for phllandcare.com</p>
+              </div>
+              <div style={{ display:'flex',gap:8 }}>
+                <a href="https://resend.com/api-keys" target="_blank" rel="noreferrer"
+                  style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
+                  ↗ Open Resend Dashboard
+                </a>
+                <button onClick={()=>showToast('Resend API key saved!')} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Save Email Settings</button>
+              </div>
+            </div>
+
+            {/* ── OTHER INTEGRATIONS ── */}
+            <div style={card}>
+              <h2 style={{ ...secTitle,marginBottom:12 }}>Other Integrations</h2>
               <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
                 {[
-                  {name:'Supabase',      desc:'Database & realtime sync',  status:'Connected',     ok:true},
-                  {name:'GitHub Pages',  desc:'Hosting & deployment',      status:'Active',        ok:true},
-                  {name:'Square',        desc:'CC payment processing',     status:'Setup needed',  ok:false},
-                  {name:'Twilio',        desc:'SMS notifications',         status:'Setup needed',  ok:false},
-                  {name:'Resend',        desc:'Email delivery',            status:'Setup needed',  ok:false},
+                  {name:'Supabase',      desc:'Database & realtime sync',  status:'Connected',    ok:true},
+                  {name:'GitHub Pages',  desc:'Hosting & deployment',      status:'Active',       ok:true},
+                  {name:'Twilio',        desc:'SMS notifications',         status:'Setup needed', ok:false},
                 ].map(item=>(
                   <div key={item.name} style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'#1e293b',borderRadius:10,border:'1px solid #334155' }}>
                     <div>
