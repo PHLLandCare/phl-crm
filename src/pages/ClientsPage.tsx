@@ -587,8 +587,10 @@ export default function ClientsPage() {
                     style={{ padding: '5px 12px', borderRadius: 99, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: workFilter === f ? 700 : 400,
                       background: workFilter === f ? 'rgba(74,222,128,0.15)' : 'transparent',
                       border: workFilter === f ? '1px solid rgba(74,222,128,0.3)' : '1px solid transparent',
-                      color: workFilter === f ? '#4ade80' : '#64748b' }}>
-                    {f === 'All' ? '' : { Requests:'📬 ', Quotes:'📋 ', Jobs:'🔧 ', Invoices:'💰 ' }[f]}{f}
+                      color: workFilter === f ? '#4ade80' : '#64748b',
+                      display: 'flex', alignItems: 'center', gap: 5 }}>
+                    {f !== 'All' && <span style={{ fontSize: 18 }}>{{ Requests:'📬', Quotes:'📋', Jobs:'🔧', Invoices:'💰' }[f]}</span>}
+                    {f}
                   </button>
                 ))}
               </div>
