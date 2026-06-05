@@ -511,9 +511,9 @@ function renderEmps() {
       '<td>' + (e.crew||'—') + '</td>' +
       '<td><span class="b bs">' + (e.role||'—') + '</span></td>' +
       '<td><div style="display:flex;gap:4px">' +
-        '<button class="btn" style="padding:4px 8px;font-size:11px" onclick="showQR(' + JSON.stringify(e.employee_id) + ')">⬛ QR QR</button>' +
-        '<button class="btn" style="padding:4px 8px;font-size:11px" onclick="editEmp(' + JSON.stringify(e.employee_id) + ')">✏️</button>' +
-        '<button class="btn amber" style="padding:4px 8px;font-size:11px" onclick="archiveEmp(' + JSON.stringify(e.employee_id) + ')">📦</button>' +
+        '<button class="btn btn-qr" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px">⬛ QR</button>' +
+        '<button class="btn btn-edit" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px">✏️</button>' +
+        '<button class="btn amber btn-arch" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px">📦</button>' +
       '</div></td>';
     tb.appendChild(tr);
   });
@@ -536,7 +536,7 @@ function renderArch() {
       '<td style="font-size:11px;color:var(--muted)">' + (e.employee_id||'—') + '</td>' +
       '<td style="color:var(--muted)">' + (e.division||'—') + '</td>' +
       '<td style="color:var(--muted)">' + new Date(e.created_at).toLocaleDateString() + '</td>' +
-      '<td><button class="btn success" style="padding:4px 8px;font-size:11px" onclick="restoreEmp(' + JSON.stringify(e.employee_id) + ')">↩️ Restore</button></td>';
+      '<td><button class="btn success btn-restore" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px">↩️ Restore</button></td>';
     tb.appendChild(tr);
   });
 }
@@ -830,6 +830,18 @@ document.getElementById('emp-overlay').addEventListener('click', closeEmpDrawer)
 // Wire print badge button
 var _pbBtn = document.getElementById('print-badge-btn');
 if (_pbBtn) _pbBtn.addEventListener('click', printCurrentBadge);
+
+// Event delegation for employee table buttons (avoids JSON.stringify quote-in-attr bugs)
+document.addEventListener('click', function(ev) {
+  var btn = ev.target.closest('button');
+  if (!btn) return;
+  var eid = btn.getAttribute('data-eid');
+  if (!eid) return;
+  if (btn.classList.contains('btn-qr'))      { ev.stopPropagation(); showQR(eid); }
+  else if (btn.classList.contains('btn-edit'))  { ev.stopPropagation(); editEmp(eid); }
+  else if (btn.classList.contains('btn-arch'))  { ev.stopPropagation(); archiveEmp(eid); }
+  else if (btn.classList.contains('btn-restore')){ ev.stopPropagation(); restoreEmp(eid); }
+});
 
 // Init
 loadEmployees();
