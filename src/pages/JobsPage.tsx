@@ -493,8 +493,12 @@ export default function JobsPage() {
           <table style={{ width:'100%',borderCollapse:'collapse' }}>
             <thead>
               <tr style={{ borderBottom:'1px solid #1e293b',background:'#0d1526' }}>
-                {['Job #','Title','Client','Division','Scheduled','Assigned','Amount','Status',''].map(h => (
-                  <th key={h} style={{ padding:'10px 14px',textAlign:'left',fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em' }}>{h}</th>
+                {[
+                  {h:'Job #',w:'8%'},{h:'Title',w:'26%'},{h:'Client',w:'16%'},
+                  {h:'Type',w:'10%'},{h:'Scheduled',w:'12%'},{h:'Assigned',w:'12%'},
+                  {h:'Amount',w:'8%'},{h:'Status',w:'10%'},{h:'',w:'4%'}
+                ].map(col => (
+                  <th key={col.h} style={{ padding:'11px 14px',textAlign:'left',fontSize:11,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',width:col.w }}>{col.h}</th>
                 ))}
               </tr>
             </thead>
@@ -508,24 +512,34 @@ export default function JobsPage() {
                 </td></tr>
               ) : filtered.map(j => (
                 <tr key={j.id} onClick={() => setSelectedJob(j)}
-                  style={{ borderBottom:'1px solid #1e293b',cursor:'pointer',transition:'background .1s' }}
+                  style={{ borderBottom:'1px solid #0d1526',cursor:'pointer' }}
                   onMouseEnter={e=>(e.currentTarget.style.background='rgba(255,255,255,0.03)')}
                   onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
-                  <td style={{ padding:'13px 14px',fontSize:12,color:'#64748b',fontFamily:'monospace',fontWeight:600 }}>{j.job_number}</td>
-                  <td style={{ padding:'13px 14px',fontSize:13,color:'#f1f5f9',fontWeight:600,maxWidth:220 }}>
-                    <p style={{ margin:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{j.title}</p>
-                    {(j as any).division && <p style={{ margin:'1px 0 0',fontSize:10,color:'#475569' }}>{(j as any).division}</p>}
+                  <td style={{ padding:'14px 14px',fontSize:12,color:'#475569',fontFamily:'monospace',fontWeight:700 }}>{j.job_number||'—'}</td>
+                  <td style={{ padding:'14px 14px',maxWidth:220 }}>
+                    <p style={{ margin:0,fontSize:13,fontWeight:700,color:'#f1f5f9',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{j.title}</p>
+                    {(j as any).division && <p style={{ margin:'2px 0 0',fontSize:11,color:'#475569' }}>{(j as any).division}</p>}
                   </td>
-                  <td style={{ padding:'13px 14px',fontSize:13,color:'#cbd5e1' }}>{j.client_name||'—'}</td>
-                  <td style={{ padding:'13px 14px',fontSize:11,color:'#64748b' }}>{(j as any).division||'—'}</td>
-                  <td style={{ padding:'13px 14px',fontSize:12,color:'#64748b' }}>{fmtDate(j.scheduled_start)}</td>
-                  <td style={{ padding:'13px 14px',fontSize:12,color:'#64748b' }}>{j.assigned_name||'—'}</td>
-                  <td style={{ padding:'13px 14px',fontSize:13,color:'#4ade80',fontWeight:700 }}>{j.total_amount>0?fmt(j.total_amount):'—'}</td>
-                  <td style={{ padding:'13px 14px' }}>
-                    <span style={{ background:sc(j.status).bg,color:sc(j.status).color,padding:'4px 10px',borderRadius:99,fontSize:11,fontWeight:700,whiteSpace:'nowrap' }}>{statusLabel(j.status)}</span>
+                  <td style={{ padding:'14px 14px',fontSize:13,color:'#cbd5e1' }}>{j.client_name||'—'}</td>
+                  <td style={{ padding:'14px 14px' }}>
+                    {j.job_type
+                      ? <span style={{ background:'rgba(96,165,250,0.1)',color:'#60a5fa',padding:'3px 8px',borderRadius:6,fontSize:11,fontWeight:600 }}>{JOB_TYPES.find(t=>t.value===j.job_type)?.label||j.job_type}</span>
+                      : <span style={{ color:'#334155',fontSize:12 }}>—</span>}
                   </td>
-                  <td style={{ padding:'13px 14px' }}>
-                    <button onClick={e=>{e.stopPropagation();openEdit(j)}} style={{ background:'rgba(74,222,128,0.1)',color:'#4ade80',border:'1px solid rgba(74,222,128,0.2)',borderRadius:6,padding:'5px 12px',fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>Edit</button>
+                  <td style={{ padding:'14px 14px',fontSize:12,color:'#64748b' }}>{fmtDate(j.scheduled_start)}</td>
+                  <td style={{ padding:'14px 14px',fontSize:12,color:'#64748b' }}>{j.assigned_name||'—'}</td>
+                  <td style={{ padding:'14px 14px',fontSize:13,fontWeight:700,color:j.total_amount>0?'#4ade80':'#334155' }}>{j.total_amount>0?fmt(j.total_amount):'—'}</td>
+                  <td style={{ padding:'14px 14px' }}>
+                    <span style={{ background:sc(j.status).bg,color:sc(j.status).color,padding:'4px 10px',borderRadius:99,fontSize:11,fontWeight:700,whiteSpace:'nowrap',display:'inline-flex',alignItems:'center',gap:5 }}>
+                      <span style={{ width:6,height:6,borderRadius:'50%',background:sc(j.status).color,flexShrink:0,display:'inline-block' }}/>
+                      {statusLabel(j.status)}
+                    </span>
+                  </td>
+                  <td style={{ padding:'14px 10px',textAlign:'right' }}>
+                    <button onClick={e=>{e.stopPropagation();openEdit(j)}}
+                      style={{ background:'rgba(74,222,128,0.08)',color:'#4ade80',border:'1px solid rgba(74,222,128,0.15)',borderRadius:6,padding:'5px 12px',fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>
+                      Edit
+                    </button>
                   </td>
                 </tr>
               ))}
