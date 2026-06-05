@@ -154,22 +154,39 @@ export default function Dashboard() {
   const sidebarRef = React.useRef<HTMLDivElement>(null)
   const sidebarScrollRef = React.useRef(0)
 
-  const NavItem = ({label,id,icon,count,onClick}:{label:string,id:string,icon?:string,count?:number,onClick?:()=>void}) => (
-    <button onClick={()=>{ if(sidebarRef.current) sidebarScrollRef.current=sidebarRef.current.scrollTop; if(onClick) onClick(); else navigate('/'+id) }} style={{
-      width:'100%',textAlign:'left',padding:'8px 16px',
-      background:page===id || (id==='dashboard' && page==='')?'rgba(74,222,128,0.1)':'transparent',
-      border:'none',borderLeft:page===id || (id==='dashboard' && page==='')?'2px solid #4ade80':'2px solid transparent',
-      cursor:'pointer',fontSize:13,
-      color:page===id || (id==='dashboard' && page==='')?'#f1f5f9':'#64748b',
-      display:'flex',alignItems:'center',gap:9,
-      fontWeight:page===id || (id==='dashboard' && page==='')?600:400,fontFamily:'inherit',
-      transition:'all 0.1s',
-    }}>
-      {icon && <span style={{fontSize:18,width:20,textAlign:'center'}}>{icon}</span>}
-      <span style={{flex:1}}>{label}</span>
-      {count!==undefined && count>0 && <span style={{fontSize:10,background:'rgba(255,255,255,0.1)',padding:'1px 7px',borderRadius:20,color:'#94a3b8'}}>{count}</span>}
-    </button>
-  )
+  const NavItem = ({label,id,icon,count,onClick}:{label:string,id:string,icon?:string,count?:number,onClick?:()=>void}) => {
+    const isActive = page===id || (id==='dashboard' && page==='')
+    const href = onClick ? undefined : `#/${id}`
+    const handleClick = (e: React.MouseEvent) => {
+      if (sidebarRef.current) sidebarScrollRef.current = sidebarRef.current.scrollTop
+      if (onClick) { e.preventDefault(); onClick() }
+      // else let the <a> handle navigation naturally (supports Ctrl+click, middle-click, right-click)
+    }
+    const style: React.CSSProperties = {
+      width:'100%', textAlign:'left', padding:'8px 16px',
+      background: isActive ? 'rgba(74,222,128,0.1)' : 'transparent',
+      borderLeft: isActive ? '2px solid #4ade80' : '2px solid transparent',
+      cursor:'pointer', fontSize:13,
+      color: isActive ? '#f1f5f9' : '#64748b',
+      display:'flex', alignItems:'center', gap:9,
+      fontWeight: isActive ? 600 : 400,
+      fontFamily:'inherit', transition:'all 0.1s',
+      textDecoration:'none', border:'none',
+    }
+    return href ? (
+      <a href={href} onClick={handleClick} style={style}>
+        {icon && <span style={{fontSize:18,width:20,textAlign:'center'}}>{icon}</span>}
+        <span style={{flex:1}}>{label}</span>
+        {count!==undefined && count>0 && <span style={{fontSize:10,background:'rgba(255,255,255,0.1)',padding:'1px 7px',borderRadius:20,color:'#94a3b8'}}>{count}</span>}
+      </a>
+    ) : (
+      <button onClick={handleClick} style={style}>
+        {icon && <span style={{fontSize:18,width:20,textAlign:'center'}}>{icon}</span>}
+        <span style={{flex:1}}>{label}</span>
+        {count!==undefined && count>0 && <span style={{fontSize:10,background:'rgba(255,255,255,0.1)',padding:'1px 7px',borderRadius:20,color:'#94a3b8'}}>{count}</span>}
+      </button>
+    )
+  }
 
   const SectionLabel = ({title}:{title:string}) => (
     <p style={{fontSize:10,fontWeight:700,color:'#334155',textTransform:'uppercase',letterSpacing:'0.1em',margin:'16px 16px 4px',fontFamily:'inherit'}}>{title}</p>
