@@ -167,7 +167,93 @@ export default function PayrollPage() {
     }, 100)
   }
 
-  const printAll = () => employees.forEach(e => printStub(e))
+  const printAll = () => {
+    if (!employees.length) return
+    const w = window.open('', '_blank')
+    if (!w) { alert('Pop-up blocked — please allow pop-ups for this site'); return }
+
+    const stubHTML = (emp: Employee) => {
+      const p = calcPay(emp)
+      const overtimeRow = p.overtime > 0 ? `
+        <tr><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#d97706">Overtime Pay</td>
+        <td style="padding:8px 12px;text-align:right;border-bottom:1px solid #f3f4f6">${p.overtime.toFixed(1)}</td>
+        <td style="padding:8px 12px;text-align:right;border-bottom:1px solid #f3f4f6">$${(p.rate * 1.5).toFixed(2)}</td>
+        <td style="padding:8px 12px;text-align:right;border-bottom:1px solid #f3f4f6;color:#d97706">$${(p.overtime * p.rate * 1.5).toFixed(2)}</td></tr>` : ''
+      const taxRows = emp.employee_type === 'W2' ? `
+        <tr><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#dc2626">Federal Income Tax</td><td colspan="2" style="padding:8px 12px;border-bottom:1px solid #f3f4f6"></td><td style="padding:8px 12px;text-align:right;border-bottom:1px solid #f3f4f6;color:#dc2626">-$${p.federal.toFixed(2)}</td></tr>
+        <tr><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#dc2626">Social Security (6.2%)</td><td colspan="2" style="padding:8px 12px;border-bottom:1px solid #f3f4f6"></td><td style="padding:8px 12px;text-align:right;border-bottom:1px solid #f3f4f6;color:#dc2626">-$${p.ss.toFixed(2)}</td></tr>
+        <tr><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6;color:#dc2626">Medicare (1.45%)</td><td colspan="2" style="padding:8px 12px;border-bottom:1px solid #f3f4f6"></td><td style="padding:8px 12px;text-align:right;border-bottom:1px solid #f3f4f6;color:#dc2626">-$${p.medicare.toFixed(2)}</td></tr>` : ''
+      return `
+        <div class="stub-page">
+          <div style="display:flex;align-items:center;gap:16px;border-bottom:2px solid #16a34a;padding-bottom:16px;margin-bottom:20px">
+            <img src="${COMPANY.logo}" style="width:60px;height:60px;border-radius:8px;object-fit:cover" />
+            <div>
+              <p style="margin:0;font-size:18px;font-weight:700">${COMPANY.name}</p>
+              <p style="margin:0;font-size:13px;color:#555">${COMPANY.address}</p>
+              <p style="margin:0;font-size:13px;color:#555">${COMPANY.cityStateZip}</p>
+              <p style="margin:0;font-size:13px;color:#555">${COMPANY.email}</p>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+            <div>
+              <p style="margin:0 0 4px;font-size:13px;color:#64748b">EMPLOYEE</p>
+              <p style="margin:0;font-size:18px;font-weight:700">${emp.fname} ${emp.lname}</p>
+              <p style="margin:0;font-size:12px;color:#64748b">${emp.employee_id} · ${emp.employee_type} · $${emp.hourly_rate || 15}/hr</p>
+            </div>
+            <div style="text-align:right">
+              <p style="margin:0 0 4px;font-size:13px;color:#64748b">PAY PERIOD</p>
+              <p style="margin:0;font-size:14px;font-weight:600">${weekLabel}</p>
+            </div>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:20px">
+            <thead>
+              <tr style="background:#f8fafc">
+                <th style="padding:8px 12px;text-align:left;border-bottom:1px solid #e5e7eb">Description</th>
+                <th style="padding:8px 12px;text-align:right;border-bottom:1px solid #e5e7eb">Hours</th>
+                <th style="padding:8px 12px;text-align:right;border-bottom:1px solid #e5e7eb">Rate</th>
+                <th style="padding:8px 12px;text-align:right;border-bottom:1px solid #e5e7eb">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td style="padding:8px 12px;border-bottom:1px solid #f3f4f6">Regular Pay</td><td style="padding:8px 12px;text-align:right;border-bottom:1px solid #f3f4f6">${p.regular.toFixed(1)}</td><td style="padding:8px 12px;text-align:right;border-bottom:1px solid #f3f4f6">$${p.rate.toFixed(2)}</td><td style="padding:8px 12px;text-align:right;border-bottom:1px solid #f3f4f6">$${(p.regular * p.rate).toFixed(2)}</td></tr>
+              ${overtimeRow}
+              <tr style="font-weight:700"><td colspan="3" style="padding:8px 12px;border-bottom:2px solid #e5e7eb">Gross Pay</td><td style="padding:8px 12px;text-align:right;border-bottom:2px solid #e5e7eb">$${p.gross.toFixed(2)}</td></tr>
+              ${taxRows}
+              <tr style="background:#dcfce7;font-weight:700"><td colspan="3" style="padding:10px 12px;font-size:16px">Net Pay</td><td style="padding:10px 12px;text-align:right;font-size:16px;color:#15803d">$${p.net.toFixed(2)}</td></tr>
+            </tbody>
+          </table>
+          <p style="margin:0;font-size:11px;color:#475569;text-align:center">This is an official pay statement from ${COMPANY.name} · ${COMPANY.cityStateZip} · ${COMPANY.email}</p>
+        </div>`
+    }
+
+    w.document.write(`<!DOCTYPE html><html><head><title>Pay Stubs — ${weekLabel}</title>
+      <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; color: #111; background: #fff; }
+        .stub-page { max-width: 640px; margin: 0 auto; padding: 32px; border: 1px solid #e5e7eb; }
+        @media print {
+          .stub-page { page-break-after: always; border: none; padding: 24px; }
+          .stub-page:last-child { page-break-after: avoid; }
+          .no-print { display: none !important; }
+        }
+        .print-header { text-align: center; padding: 20px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
+        .print-header h1 { font-size: 20px; color: #111; margin-bottom: 4px; }
+        .print-header p { font-size: 13px; color: #64748b; }
+        .print-btn { display: inline-block; margin: 16px 8px; padding: 10px 24px; background: #16a34a; color: #fff; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; }
+        .print-btn.close { background: #64748b; }
+      </style>
+    </head><body>
+      <div class="print-header no-print">
+        <h1>Pay Stubs — ${weekLabel}</h1>
+        <p>${employees.length} employee${employees.length !== 1 ? 's' : ''} · PHL Land Care Inc.</p>
+        <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+        <button class="print-btn close" onclick="window.close()">Close</button>
+      </div>
+      ${employees.map(emp => stubHTML(emp)).join('\n')}
+    </body></html>`)
+    w.document.close()
+    w.focus()
+  }
 
   const exportCSV = () => {
     const rows = [['Employee', 'Type', 'Rate', 'Regular Hrs', 'OT Hrs', 'Gross', 'Federal', 'SS', 'Medicare', 'Net']]
