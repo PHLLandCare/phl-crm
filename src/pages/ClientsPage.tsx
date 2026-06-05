@@ -854,7 +854,8 @@ export default function ClientsPage() {
 
             {/* ── RIGHT SIDEBAR (Jobber-style) ── */}
             <ClientSidebar client={selectedClient} workItems={workItems} fmt={fmt} fmtDate={fmtDate}
-              onTagsSaved={(newTags) => setSelectedClient({ ...selectedClient, tags: newTags })} />
+              onTagsSaved={(newTags) => setSelectedClient({ ...selectedClient, tags: newTags })}
+              onNoteSaved={(updatedNotes) => setSelectedClient({ ...selectedClient, notes: updatedNotes })} />
 
           </div>
         )}
@@ -1466,9 +1467,10 @@ function hexRgb(hex: string): string {
 }
 
 // ── ClientSidebar (Jobber-style right panel) ─────────────────────────────────
-function ClientSidebar({ client, workItems, fmt, fmtDate, onTagsSaved }: {
+function ClientSidebar({ client, workItems, fmt, fmtDate, onTagsSaved, onNoteSaved }: {
   client: any; workItems: any[]; fmt: (n:number)=>string; fmtDate: (d:string)=>string
   onTagsSaved?: (newTags: string) => void
+  onNoteSaved?: (updatedNotes: string) => void
 }) {
   const [showCommModal, setShowCommModal] = useState(false)
   const [selectedComm, setSelectedComm] = useState<any>(null)
@@ -1633,17 +1635,20 @@ function ClientSidebar({ client, workItems, fmt, fmtDate, onTagsSaved }: {
         {/* ── NOTES ── */}
         <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 12, padding: '1.25rem' }}>
           <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Notes</h3>
-          {noteLines.filter(n => !n.startsWith('COMM|') && !n.startsWith('PAYMENT:') && !n.startsWith('CONTACT:')).length === 0 ? (
-            <div style={{ border: '2px dashed #1e293b', borderRadius: 10, padding: '1.5rem', textAlign: 'center' }}>
-              <p style={{ margin: 0, fontSize: 12, color: '#475569' }}>Leave an internal note for yourself or a team member</p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* Existing plain notes */}
+          {noteLines.filter(n => !n.startsWith('COMM|') && !n.startsWith('PAYMENT:') && !n.startsWith('CONTACT:')).length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
               {noteLines.filter(n => !n.startsWith('COMM|') && !n.startsWith('PAYMENT:') && !n.startsWith('CONTACT:')).map((note, i) => (
                 <div key={i} style={{ background: '#1e293b', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#94a3b8', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{note}</div>
               ))}
             </div>
           )}
+          {/* Input area */}
+          <SidebarNoteInput
+            clientId={client.id}
+            currentNotes={client.notes || ''}
+            onSaved={(updatedNotes) => onNoteSaved?.(updatedNotes)}
+          />
         </div>
 
       </div>
@@ -1732,5 +1737,56 @@ function ClientSidebar({ client, workItems, fmt, fmtDate, onTagsSaved }: {
         </>
       )}
     </>
+  )
+}
+
+// ── SidebarNoteInput ──────────────────────────────────────────────────────────
+function SidebarNoteInput({ clientId, currentNotes, onSaved }: {
+  clientId: string
+  currentNotes: string
+  onSaved: (updatedNotes: string) => void
+}) {
+  const [text, setText] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  const save = async () => {
+    const trimmed = text.trim()
+    if (!trimmed) return
+    setSaving(true)
+    const timestamp = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
+    const entry = timestamp + '\n' + trimmed
+    const updated = currentNotes ? currentNotes + '\n\n' + entry : entry
+    await supabase.from('clients').update({ notes: updated }).eq('id', clientId)
+    onSaved(updated)
+    setText('')
+    setSaving(false)
+  }
+
+  return (
+    <div>
+      <textarea
+        value={text}
+        onChange={e => setText(e.target.value)}
+        placeholder="Leave an internal note for yourself or a team member"
+        onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) save() }}
+        style={{
+          width: '100%', padding: '10px 12px', background: '#1e293b', border: '1px solid #334155',
+          borderRadius: 8, fontSize: 12, color: '#f1f5f9', outline: 'none', resize: 'vertical',
+          minHeight: 72, fontFamily: 'inherit', lineHeight: 1.5, boxSizing: 'border-box',
+          placeholder: '#475569',
+        } as React.CSSProperties}
+      />
+      <button
+        onClick={save}
+        disabled={saving || !text.trim()}
+        style={{
+          marginTop: 8, width: '100%', padding: '8px', background: text.trim() ? '#16a34a' : '#1e293b',
+          border: 'none', borderRadius: 8, color: text.trim() ? '#fff' : '#475569',
+          fontSize: 12, fontWeight: 700, cursor: text.trim() ? 'pointer' : 'default',
+          fontFamily: 'inherit', transition: 'all .15s',
+        }}>
+        {saving ? 'Saving...' : '+ Add Note'}
+      </button>
+    </div>
   )
 }
