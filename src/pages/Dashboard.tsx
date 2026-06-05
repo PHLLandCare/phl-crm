@@ -84,7 +84,7 @@ export default function Dashboard() {
         supabase.from('quotes').select('*',{count:'exact',head:true}).is('deleted_at',null),
         supabase.from('jobs').select('*',{count:'exact',head:true}).is('deleted_at',null),
         supabase.from('invoices').select('*',{count:'exact',head:true}).is('deleted_at',null),
-        supabase.from('clients').select('first_name,last_name,divisions,status').is('deleted_at',null).order('created_at',{ascending:false}).limit(5),
+        supabase.from('clients').select('id,first_name,last_name,divisions,status').is('deleted_at',null).order('created_at',{ascending:false}).limit(5),
         supabase.from('jobs').select('status,amount').is('deleted_at',null),
         supabase.from('invoices').select('status,amount').is('deleted_at',null),
         supabase.from('quotes').select('status,amount').is('deleted_at',null),
@@ -333,7 +333,9 @@ export default function Dashboard() {
                     {recentClients.length===0 ? (
                       <tr><td colSpan={3} style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No clients yet</td></tr>
                     ) : recentClients.map((c,i)=>(
-                      <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
+                      <tr key={i} onClick={()=>navigate('/clients',{state:{openClient:c.id}})} style={{borderBottom:'1px solid #1e293b',cursor:'pointer'}}
+                        onMouseEnter={e=>(e.currentTarget.style.background='rgba(255,255,255,0.03)')}
+                        onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
                         <td style={{padding:'10px 12px',fontSize:13,color:'#f1f5f9'}}>{c.first_name} {c.last_name}</td>
                         <td style={{padding:'10px 12px',fontSize:13,color:'#64748b'}}>{c.divisions||'--'}</td>
                         <td style={{padding:'10px 12px'}}>

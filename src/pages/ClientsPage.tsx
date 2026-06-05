@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
 interface Client {
@@ -78,6 +78,7 @@ const SCHEDULE_STATUSES = ['All','Completed','Incomplete']
 
 export default function ClientsPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [clients, setClients] = useState<Client[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -184,6 +185,15 @@ export default function ClientsPage() {
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [])
+
+  // Auto-open a specific client when navigated from dashboard
+  useEffect(() => {
+    const clientId = (location.state as any)?.openClient
+    if (clientId && clients.length > 0) {
+      const c = clients.find(x => x.id === clientId)
+      if (c) setSelectedClient(c)
+    }
+  }, [location.state, clients])
 
   useEffect(() => {
     if (selectedClient) {
