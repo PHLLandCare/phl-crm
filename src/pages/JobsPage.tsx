@@ -303,6 +303,7 @@ export default function JobsPage() {
       instructions: form.instructions?.trim() || null,
       customer_notes: form.customer_notes?.trim() || null,
       total_amount: lineTotal > 0 ? lineTotal : (parseFloat(form.total_amount) || 0),
+      division: form.division || null,
       job_number: nextJobNum,
       job_recurrence: jobType === 'recurring' ? form.job_recurrence : null,
       updated_at: new Date().toISOString(),
@@ -492,31 +493,39 @@ export default function JobsPage() {
           <table style={{ width:'100%',borderCollapse:'collapse' }}>
             <thead>
               <tr style={{ borderBottom:'1px solid #1e293b',background:'#0d1526' }}>
-                {['Job #','Title','Client','Type','Scheduled','Assigned','Amount','Status',''].map(h => (
+                {['Job #','Title','Client','Division','Scheduled','Assigned','Amount','Status',''].map(h => (
                   <th key={h} style={{ padding:'10px 14px',textAlign:'left',fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={9} style={{ padding:'3rem',textAlign:'center',color:'#475569',fontSize:13 }}>No jobs found</td></tr>
+                <tr><td colSpan={9} style={{ padding:'3rem',textAlign:'center',color:'#475569',fontSize:13 }}>
+                  <div style={{ fontSize:36,marginBottom:12 }}>🔧</div>
+                  <p style={{ margin:'0 0 4px',fontWeight:600,color:'#64748b' }}>No jobs found</p>
+                  <p style={{ margin:'0 0 16px',fontSize:12 }}>Try adjusting filters or create a new job</p>
+                  <button onClick={openCreate} style={{ padding:'9px 20px',background:'#16a34a',border:'none',borderRadius:8,color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>+ New Job</button>
+                </td></tr>
               ) : filtered.map(j => (
                 <tr key={j.id} onClick={() => setSelectedJob(j)}
-                  style={{ borderBottom:'1px solid #1e293b',cursor:'pointer' }}
+                  style={{ borderBottom:'1px solid #1e293b',cursor:'pointer',transition:'background .1s' }}
                   onMouseEnter={e=>(e.currentTarget.style.background='rgba(255,255,255,0.03)')}
                   onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
-                  <td style={{ padding:'12px 14px',fontSize:12,color:'#64748b',fontFamily:'monospace' }}>{j.job_number}</td>
-                  <td style={{ padding:'12px 14px',fontSize:13,color:'#f1f5f9',fontWeight:600 }}>{j.title}</td>
-                  <td style={{ padding:'12px 14px',fontSize:13,color:'#cbd5e1' }}>{j.client_name||'—'}</td>
-                  <td style={{ padding:'12px 14px',fontSize:12,color:'#64748b' }}>{JOB_TYPES.find(t=>t.value===j.job_type)?.label||'—'}</td>
-                  <td style={{ padding:'12px 14px',fontSize:12,color:'#64748b' }}>{fmtDate(j.scheduled_start)}</td>
-                  <td style={{ padding:'12px 14px',fontSize:12,color:'#64748b' }}>{j.assigned_name||'—'}</td>
-                  <td style={{ padding:'12px 14px',fontSize:13,color:'#4ade80',fontWeight:700 }}>{j.total_amount>0?fmt(j.total_amount):'—'}</td>
-                  <td style={{ padding:'12px 14px' }}>
-                    <span style={{ background:sc(j.status).bg,color:sc(j.status).color,padding:'3px 10px',borderRadius:99,fontSize:11,fontWeight:700 }}>{statusLabel(j.status)}</span>
+                  <td style={{ padding:'13px 14px',fontSize:12,color:'#64748b',fontFamily:'monospace',fontWeight:600 }}>{j.job_number}</td>
+                  <td style={{ padding:'13px 14px',fontSize:13,color:'#f1f5f9',fontWeight:600,maxWidth:220 }}>
+                    <p style={{ margin:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{j.title}</p>
+                    {(j as any).division && <p style={{ margin:'1px 0 0',fontSize:10,color:'#475569' }}>{(j as any).division}</p>}
                   </td>
-                  <td style={{ padding:'12px 14px' }}>
-                    <button onClick={e=>{e.stopPropagation();openEdit(j)}} style={{ background:'rgba(74,222,128,0.1)',color:'#4ade80',border:'1px solid rgba(74,222,128,0.2)',borderRadius:6,padding:'4px 10px',fontSize:11,cursor:'pointer',fontFamily:'inherit' }}>Edit</button>
+                  <td style={{ padding:'13px 14px',fontSize:13,color:'#cbd5e1' }}>{j.client_name||'—'}</td>
+                  <td style={{ padding:'13px 14px',fontSize:11,color:'#64748b' }}>{(j as any).division||'—'}</td>
+                  <td style={{ padding:'13px 14px',fontSize:12,color:'#64748b' }}>{fmtDate(j.scheduled_start)}</td>
+                  <td style={{ padding:'13px 14px',fontSize:12,color:'#64748b' }}>{j.assigned_name||'—'}</td>
+                  <td style={{ padding:'13px 14px',fontSize:13,color:'#4ade80',fontWeight:700 }}>{j.total_amount>0?fmt(j.total_amount):'—'}</td>
+                  <td style={{ padding:'13px 14px' }}>
+                    <span style={{ background:sc(j.status).bg,color:sc(j.status).color,padding:'4px 10px',borderRadius:99,fontSize:11,fontWeight:700,whiteSpace:'nowrap' }}>{statusLabel(j.status)}</span>
+                  </td>
+                  <td style={{ padding:'13px 14px' }}>
+                    <button onClick={e=>{e.stopPropagation();openEdit(j)}} style={{ background:'rgba(74,222,128,0.1)',color:'#4ade80',border:'1px solid rgba(74,222,128,0.2)',borderRadius:6,padding:'5px 12px',fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>Edit</button>
                   </td>
                 </tr>
               ))}
@@ -589,6 +598,13 @@ export default function JobsPage() {
                 <div>
                   <label style={lbl}>Landscape</label>
                   <input style={inp} value={form.landscape} onChange={e => setForm({...form,landscape:e.target.value})} placeholder="Landscape" />
+                </div>
+                <div>
+                  <label style={lbl}>Division</label>
+                  <select style={inp} value={form.division||''} onChange={e => setForm({...form,division:e.target.value})}>
+                    <option value="">— Select division —</option>
+                    {['Lawn & Tree','Irrigation','Extermination','Nursery','Farm','Hardscape'].map(d=><option key={d}>{d}</option>)}
+                  </select>
                 </div>
                 <div>
                   <label style={lbl}>Job Type</label>

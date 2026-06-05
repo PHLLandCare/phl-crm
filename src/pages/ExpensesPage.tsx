@@ -228,17 +228,20 @@ export default function ExpensesPage() {
               </div>
 
               {/* Receipt */}
-              <div style={{marginBottom:'1.5rem'}}>
+              <div style={{marginBottom:"1.5rem"}}>
                 <label style={lbl}>Receipt</label>
-                <div style={{display:'flex',alignItems:'center',gap:10}}>
-                  <label style={{background:'#1e293b',color:'#cbd5e1',border:'1px solid #334155',borderRadius:6,padding:'6px 14px',fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>
-                    Choose File
-                    <input type="file" accept="image/*,.pdf" style={{display:'none'}} onChange={e=>{
-                      const file = e.target.files?.[0]
-                      if (file) setForm({...form,receipt_url:file.name})
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <label style={{background:"#1e293b",color:"#cbd5e1",border:"1px solid #334155",borderRadius:6,padding:"6px 14px",fontSize:13,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
+                    📎 {form.receipt_url ? "Change" : "Attach Receipt"}
+                    <input type="file" accept="image/*,.pdf" style={{display:"none"}} onChange={async e=>{
+                      const file = e.target.files?.[0]; if (!file) return
+                      const path = `receipts/${Date.now()}_${file.name.replace(/\s/g,"_")}`
+                      const { error } = await supabase.storage.from("expense-receipts").upload(path, file, {upsert:true})
+                      if (!error) { const { data: { publicUrl } } = supabase.storage.from("expense-receipts").getPublicUrl(path); setForm({...form,receipt_url:publicUrl}) }
+                      else setForm({...form,receipt_url:file.name})
                     }} />
                   </label>
-                  <span style={{fontSize:13,color:'#475569'}}>{form.receipt_url||'No file chosen'}</span>
+                  {form.receipt_url ? (<span style={{fontSize:13,color:"#4ade80"}}>✓ Receipt attached <button onClick={()=>setForm({...form,receipt_url:""})} style={{background:"none",border:"none",color:"#f87171",cursor:"pointer",fontSize:14,marginLeft:4}}>×</button></span>) : (<span style={{fontSize:13,color:"#475569"}}>No file chosen</span>)}
                 </div>
               </div>
 

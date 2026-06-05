@@ -31,6 +31,8 @@ const CHANNELS = [
   { id: 'extermination', label: 'extermination',  icon: '🐛' },
   { id: 'nursery',       label: 'nursery',        icon: '🌱' },
   { id: 'farm',          label: 'farm',           icon: '🚜' },
+  { id: 'hardscape',     label: 'hardscape',      icon: '🪨' },
+  { id: 'announcements', label: 'announcements',  icon: '📢' },
 ]
 
 const EMOJIS = ['👍','❤️','😂','🔥','✅','💪','👏','🌿']

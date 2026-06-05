@@ -512,12 +512,22 @@ export default function SettingsPage() {
                 <input style={{ ...inp,marginBottom:8 }} type="password" placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value={resendKey} onChange={e=>setResendKey(e.target.value)} />
                 <p style={{ margin:'0 0 12px',fontSize:11,color:'#475569' }}>Get your API key at resend.com/api-keys — requires domain verification for phllandcare.com</p>
               </div>
-              <div style={{ display:'flex',gap:8 }}>
+              <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
                 <a href="https://resend.com/api-keys" target="_blank" rel="noreferrer"
                   style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
                   ↗ Open Resend Dashboard
                 </a>
                 <button onClick={()=>saveApiKeys({resend_api_key:resendKey},'Resend email settings')} disabled={keysSaving} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save Email Settings</button>
+                <button onClick={async()=>{
+                  try {
+                    const user = (await supabase.auth.getUser()).data.user
+                    const to = user?.email || 'romy.cruz@live.com'
+                    await supabase.functions.invoke('send-email',{body:{to,subject:'PHL CRM — Test Email ✅',html:'<div style="font-family:sans-serif;padding:24px"><h2 style="color:#16a34a">PHL Land Care CRM</h2><p>Your email integration is working correctly! 🎉</p></div>'}})
+                    showToast('✅ Test email sent to ' + to)
+                  } catch { showToast('⚠️ Test failed — check API key') }
+                }} style={{ padding:'9px 18px',border:'1px solid #0ea5e9',borderRadius:8,background:'rgba(14,165,233,0.1)',color:'#7dd3fc',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>
+                  📧 Send Test Email
+                </button>
               </div>
             </div>
 
@@ -553,6 +563,16 @@ export default function SettingsPage() {
                 </a>
                 <button onClick={()=>saveApiKeys({twilio_account_sid:twilioSid,twilio_auth_token:twilioToken,twilio_phone_number:twilioPhone},'Twilio SMS settings')} disabled={keysSaving}
                   style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save SMS Settings</button>
+                <button onClick={async()=>{
+                  const to = prompt('Enter a phone number to test (e.g. +17725551234):')
+                  if (!to) return
+                  try {
+                    await supabase.functions.invoke('send-sms',{body:{to,message:'PHL Land Care CRM — SMS test successful! 🎉'}})
+                    showToast('✅ Test SMS sent to ' + to)
+                  } catch { showToast('⚠️ SMS test failed — check Twilio settings') }
+                }} style={{ padding:'9px 18px',border:'1px solid rgba(167,139,250,0.4)',borderRadius:8,background:'rgba(167,139,250,0.1)',color:'#a78bfa',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>
+                  💬 Send Test SMS
+                </button>
               </div>
             </div>
 

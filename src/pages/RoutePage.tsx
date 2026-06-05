@@ -34,6 +34,7 @@ export default function RoutePage() {
   const [employees, setEmployees] = useState<{fname:string;lname:string}[]>([])
   const [optimized, setOptimized] = useState(false)
   const [dragging, setDragging] = useState<number|null>(null)
+  const [shareToast, setShareToast] = useState('')
 
   const load = async () => {
     setLoading(true)
@@ -105,6 +106,11 @@ export default function RoutePage() {
 
   return (
     <div style={{padding:'2rem',maxWidth:1200,margin:'0 auto',fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif'}}>
+      {shareToast && (
+        <div style={{position:'fixed',top:'1rem',right:'1rem',background:'#052e16',border:'1px solid #16a34a',borderRadius:10,padding:'12px 20px',fontSize:13,color:'#4ade80',fontWeight:600,zIndex:9999,boxShadow:'0 4px 20px rgba(0,0,0,0.4)'}}>
+          {shareToast}
+        </div>
+      )}
 
       {/* Header */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.5rem',flexWrap:'wrap',gap:12}}>
@@ -121,10 +127,18 @@ export default function RoutePage() {
             style={{padding:'9px 18px',background:'#0c1a2e',border:'1px solid #0ea5e9',borderRadius:8,color:'#7dd3fc',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:6,opacity:filtered.length===0?0.5:1}}>
             🗺️ Open in Google Maps
           </button>
+          <button onClick={async()=>{
+            const lines = filtered.filter(s=>s.address).map((s,i)=>`${i+1}. ${s.client_name||s.title}: ${s.address}`)
+            const msg = `PHL Route ${new Date(date+'T00:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})} (${filtered.length} stops):\n${lines.join('\n')}`
+            try { await navigator.clipboard.writeText(msg); setShareToast('✅ Route copied — paste into SMS or WhatsApp!') }
+            catch { setShareToast('⚠️ Copy failed — try again') }
+            setTimeout(()=>setShareToast(''),4000)
+          }} disabled={filtered.length===0}
+            style={{padding:'9px 18px',background:'rgba(74,222,128,0.1)',border:'1px solid rgba(74,222,128,0.3)',borderRadius:8,color:'#4ade80',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',opacity:filtered.length===0?0.5:1}}>
+            📋 Copy Route for SMS
+          </button>
         </div>
       </div>
-
-      {/* Filters */}
       <div style={{display:'flex',gap:10,marginBottom:'1.5rem',flexWrap:'wrap',alignItems:'center'}}>
         <input type="date" value={date} onChange={e=>setDate(e.target.value)}
           style={{padding:'8px 12px',background:'#0f172a',border:'1.5px solid #1e293b',borderRadius:8,color:'#f1f5f9',fontSize:14,outline:'none',fontFamily:'inherit'}} />

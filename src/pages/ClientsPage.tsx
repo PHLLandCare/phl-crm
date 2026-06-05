@@ -415,6 +415,24 @@ export default function ClientsPage() {
               <span style={{ fontSize: 20 }}>✉️</span>
               <span style={{ fontWeight: 600 }}>Email</span>
             </button>
+            {/* SMS button */}
+            <button onClick={async (e) => {
+              e.stopPropagation()
+              if (!selectedClient.phone) { showClientToast('⚠️ No phone number on file for this client'); return }
+              const firstName = selectedClient.first_name || selectedClient.first_name + ' ' + selectedClient.last_name
+              const msg = `Hi ${firstName}, this is PHL Land Care reaching out. How can we help you today? Reply to this message or call us at 772-466-3617.`
+              try {
+                await supabase.functions.invoke('send-sms', { body: { to: selectedClient.phone, message: msg } })
+                showClientToast(`✅ SMS sent to ${selectedClient.phone}`)
+              } catch {
+                // Fallback: open sms: link
+                window.open(`sms:${selectedClient.phone}&body=${encodeURIComponent(msg)}`)
+              }
+            }}
+              style={{ padding: '8px 16px', background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, color: '#f1f5f9', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8, opacity: selectedClient.phone ? 1 : 0.4 }}>
+              <span style={{ fontSize: 20 }}>💬</span>
+              <span style={{ fontWeight: 600 }}>SMS</span>
+            </button>
             {/* ... dots menu */}
             <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
               <button onClick={() => { setShowDotsMenu(v => !v); setShowCreateMenu(false) }}

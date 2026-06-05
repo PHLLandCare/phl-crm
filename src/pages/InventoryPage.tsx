@@ -118,6 +118,28 @@ export default function InventoryPage() {
 
       {toast && <div style={{position:'fixed',top:'1rem',right:'1rem',background:'#052e16',border:'1px solid #16a34a',borderRadius:10,padding:'10px 18px',fontSize:14,color:'#4ade80',fontWeight:600,zIndex:9999}}>{toast}</div>}
 
+      {/* Reorder alerts */}
+      {lowStock > 0 && (
+        <div style={{background:'rgba(251,191,36,0.1)',border:'1px solid rgba(251,191,36,0.3)',borderRadius:12,padding:'12px 16px',marginBottom:16,display:'flex',alignItems:'center',gap:10}}>
+          <span style={{fontSize:20}}>⚠️</span>
+          <div style={{flex:1}}>
+            <p style={{margin:'0 0 2px',fontSize:13,fontWeight:700,color:'#fbbf24'}}>{lowStock} item{lowStock!==1?'s':''} below minimum stock level</p>
+            <p style={{margin:0,fontSize:12,color:'#92400e'}}>
+              {items.filter(i=>i.quantity<=i.min_level&&i.quantity>0).map(i=>`${i.name} (${i.quantity} left, min ${i.min_level})`).join(' · ')}
+            </p>
+          </div>
+        </div>
+      )}
+      {items.filter(i=>i.quantity<=0).length > 0 && (
+        <div style={{background:'rgba(248,113,113,0.1)',border:'1px solid rgba(248,113,113,0.3)',borderRadius:12,padding:'12px 16px',marginBottom:16,display:'flex',alignItems:'center',gap:10}}>
+          <span style={{fontSize:20}}>🚨</span>
+          <div>
+            <p style={{margin:'0 0 2px',fontSize:13,fontWeight:700,color:'#f87171'}}>{items.filter(i=>i.quantity<=0).length} item{items.filter(i=>i.quantity<=0).length!==1?'s':''} out of stock</p>
+            <p style={{margin:0,fontSize:12,color:'#7f1d1d'}}>{items.filter(i=>i.quantity<=0).map(i=>i.name).join(' · ')}</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.5rem',flexWrap:'wrap',gap:12}}>
         <div>

@@ -181,6 +181,32 @@ export default function ReportsPage() {
               </div>
             ))}
           </div>
+          {/* Division revenue breakdown */}
+          <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem',gridColumn:'1/-1'}}>
+            <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Revenue by Division</p>
+            {(() => {
+              const divColors: Record<string,string> = {'Lawn & Tree':'#4ade80','Irrigation':'#60a5fa','Extermination':'#f59e0b','Nursery':'#a78bfa','Farm':'#fb923c','Hardscape':'#94a3b8','Other':'#64748b'}
+              const divRevenue = ['Lawn & Tree','Irrigation','Extermination','Nursery','Farm','Hardscape'].map(div => {
+                const divJobs = jobs.filter((j:any)=>j.division===div)
+                const revenue = divJobs.filter((j:any)=>j.status==='completed').reduce((a:number,j:any)=>a+(j.total_amount||0),0)
+                return {div, revenue, jobs:divJobs.length, color:divColors[div]||'#64748b'}
+              }).filter(d=>d.jobs>0).sort((a,b)=>b.revenue-a.revenue)
+              const maxRev = Math.max(...divRevenue.map(d=>d.revenue),1)
+              return divRevenue.length === 0 ? (
+                <p style={{color:'#475569',fontSize:13}}>No division data yet — set division on jobs to see breakdown</p>
+              ) : divRevenue.map(d=>(
+                <div key={d.div} style={{marginBottom:12}}>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                    <span style={{fontSize:13,color:'#cbd5e1',fontWeight:600}}>{d.div}</span>
+                    <span style={{fontSize:13,color:d.color,fontWeight:700}}>{fmt(d.revenue)} <span style={{color:'#475569',fontWeight:400,fontSize:11}}>({d.jobs} jobs)</span></span>
+                  </div>
+                  <div style={{background:'#1e293b',borderRadius:4,height:8,overflow:'hidden'}}>
+                    <div style={{width:`${(d.revenue/maxRev)*100}%`,height:'100%',background:d.color,borderRadius:4,transition:'width .5s'}} />
+                  </div>
+                </div>
+              ))
+            })()}
+          </div>
         </div>
       )}
 
