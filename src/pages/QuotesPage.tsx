@@ -109,6 +109,15 @@ export default function QuotesPage() {
         }
       })
       if (error) throw new Error(error.message)
+      // Log structured communication to client notes for Last Communication panel
+      const sentAt = new Date().toISOString()
+      const commEntry = `COMM|type:email_quote|sent_at:${sentAt}|to:${recipientEmail}|subject:Quote #${q.quote_number} from PHL Land Care Inc. — Please Review|body:Hi ${q.client_name},\n\nYour quote for ${q.title || 'lawn care services'} is ready for review.\n\nTotal: $${(q.amount||0).toFixed(2)}\n\nPortal: ${portalUrl}|quote_num:${q.quote_number}|amount:${q.amount||0}`
+      const { data: clientRow } = await supabase.from('clients')
+        .select('id,notes').eq('first_name', q.client_name.split(' ')[0]).eq('last_name', q.client_name.split(' ').slice(1).join(' ')).single()
+      if (clientRow) {
+        const updatedNotes = (clientRow.notes || '') + (clientRow.notes ? '\n\n' : '') + commEntry
+        await supabase.from('clients').update({ notes: updatedNotes }).eq('id', clientRow.id)
+      }
       await supabase.from('quotes').update({ status: 'sent', updated_at: new Date().toISOString() }).eq('id', q.id)
       loadQuotes()
       showQToast(`✅ Quote #${q.quote_number} sent to ${recipientEmail} for approval!`)

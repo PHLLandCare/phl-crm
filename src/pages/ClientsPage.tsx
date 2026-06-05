@@ -847,7 +847,8 @@ export default function ClientsPage() {
             </div>{/* end left column */}
 
             {/* ── RIGHT SIDEBAR (Jobber-style) ── */}
-            <ClientSidebar client={selectedClient} workItems={workItems} fmt={fmt} fmtDate={fmtDate} />
+            <ClientSidebar client={selectedClient} workItems={workItems} fmt={fmt} fmtDate={fmtDate}
+              onTagsSaved={(newTags) => setSelectedClient({ ...selectedClient, tags: newTags })} />
 
           </div>
         )}
@@ -1287,138 +1288,268 @@ function hexRgb(hex: string): string {
 }
 
 // ── ClientSidebar (Jobber-style right panel) ─────────────────────────────────
-function ClientSidebar({ client, workItems, fmt, fmtDate }: {
+function ClientSidebar({ client, workItems, fmt, fmtDate, onTagsSaved }: {
   client: any; workItems: any[]; fmt: (n:number)=>string; fmtDate: (d:string)=>string
+  onTagsSaved?: (newTags: string) => void
 }) {
   const [showCommModal, setShowCommModal] = useState(false)
   const [selectedComm, setSelectedComm] = useState<any>(null)
+  const [editingTags, setEditingTags] = useState(false)
+  const [localTags, setLocalTags] = useState<string[]>([])
+  const [newTagInput, setNewTagInput] = useState('')
+  const [tagSaving, setTagSaving] = useState(false)
 
-  // Derive lifetime value from work items
-  const lifetimeValue = workItems.filter(w => w.type === 'invoice').reduce((a: number, w: any) => a + (w.amount || 0), 0)
-  const outstandingBalance = workItems.filter(w => w.type === 'invoice' && w.status !== 'paid').reduce((a: number, w: any) => a + (w.amount || 0), 0)
-  const totalJobs = workItems.filter(w => w.type === 'job').length
+  // Derive lifetime value from invoices paid
+  const lifetimeValue = workItems.filter(w => w.type === 'invoice' && w.status === 'paid').reduce((a: number, w: any) => a + (w.amount || 0), 0)
+  const currentBalance = workItems.filter(w => w.type === 'invoice' && w.status !== 'paid' && w.status !== 'draft').reduce((a: number, w: any) => a + (w.amount || 0), 0)
 
-  // Parse notes for last communication entries
+  // Parse notes — find COMM entries and plain notes
   const noteLines = (client.notes || '').split('\n\n').filter(Boolean)
-  const lastComm = noteLines.length > 0 ? noteLines[noteLines.length - 1] : null
-  const tagList = (client.tags || '').split(',').map((t: string) => t.trim()).filter(Boolean)
+  // Find last COMM entry (most recent communication)
+  const commEntries = noteLines.filter(n => n.startsWith('COMM|'))
+  const lastComm = commEntries.length > 0 ? commEntries[commEntries.length - 1] : null
+
+  // Parse a COMM entry into structured fields
+  const parseComm = (raw: string) => {
+    const fields: Record<string, string> = {}
+    raw.replace(/^COMM\|/, '').split('|').forEach(pair => {
+      const idx = pair.indexOf(':')
+      if (idx > 0) fields[pair.slice(0, idx)] = pair.slice(idx + 1)
+    })
+    return fields
+  }
+
+  const lastCommParsed = lastComm ? parseComm(lastComm) : null
 
   const TAG_COLORS = ['#4ade80','#60a5fa','#f59e0b','#a78bfa','#f87171','#34d399','#fb923c','#e879f9']
-  const tagColor = (t: string) => TAG_COLORS[t.charCodeAt(0) % TAG_COLORS.length]
+  const tagColor = (t: string) => TAG_COLORS[(t.charCodeAt(0) + t.length) % TAG_COLORS.length]
+  const tagList = (client.tags || '').split(',').map((t: string) => t.trim()).filter(Boolean)
+
+  const startEditTags = () => { setLocalTags(tagList); setEditingTags(true) }
+  const addTag = () => {
+    const t = newTagInput.trim()
+    if (t && !localTags.includes(t)) setLocalTags(prev => [...prev, t])
+    setNewTagInput('')
+  }
+  const saveTags = async () => {
+    setTagSaving(true)
+    const tagStr = localTags.join(', ')
+    await supabase.from('clients').update({ tags: tagStr }).eq('id', client.id)
+    onTagsSaved?.(tagStr)
+    setTagSaving(false)
+    setEditingTags(false)
+  }
+
+  const fmtCommDate = (iso: string) => {
+    if (!iso) return '—'
+    const d = new Date(iso)
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ', ' +
+      d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+  }
+
+  const TAG_SUGGESTIONS = ['HOA','Monthly','Weekly','Bi-weekly','VIP','Residential','Commercial','PGA POA','Seasonal','Irrigation Contract','Pest Contract','Bedford Park','Tradition POA']
 
   return (
     <>
-      <div style={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ width: 290, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-        {/* Overview card */}
-        <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
-          <h3 style={{ margin: '0 0 14px', fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Overview</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: '#64748b' }}>Lifetime value</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#4ade80' }}>{fmt(lifetimeValue)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: '#64748b' }}>Outstanding balance</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: outstandingBalance > 0 ? '#f87171' : '#94a3b8' }}>{fmt(outstandingBalance)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: '#64748b' }}>Total jobs</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>{totalJobs}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: '#64748b' }}>Client since</span>
-              <span style={{ fontSize: 12, color: '#94a3b8' }}>{fmtDate(client.created_at)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: '#64748b' }}>Division</span>
-              <span style={{ fontSize: 12, color: '#94a3b8' }}>{client.divisions || '—'}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, color: '#64748b' }}>Lead source</span>
-              <span style={{ fontSize: 12, color: '#94a3b8' }}>{client.lead_source || '—'}</span>
-            </div>
+        {/* ── OVERVIEW ── */}
+        <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 12, padding: '1.25rem' }}>
+          <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Overview</h3>
+          <div style={{ marginBottom: 12 }}>
+            <p style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 800, color: '#f1f5f9' }}>{fmt(lifetimeValue)}</p>
+            <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Lifetime value</p>
+          </div>
+          <div style={{ marginBottom: 4 }}>
+            <p style={{ margin: '0 0 2px', fontSize: 22, fontWeight: 800, color: currentBalance > 0 ? '#f87171' : '#f1f5f9' }}>{fmt(currentBalance)}</p>
+            <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Current balance</p>
           </div>
         </div>
 
-        {/* Tags */}
-        <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
-          <h3 style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Tags</h3>
-          {tagList.length === 0 ? (
-            <p style={{ margin: 0, fontSize: 12, color: '#475569' }}>No tags — add in client info below</p>
+        {/* ── TAGS ── */}
+        <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 12, padding: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Tags</h3>
+            {!editingTags && (
+              <button onClick={startEditTags} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#64748b', fontSize: 16, lineHeight: 1 }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.color='#4ade80'}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.color='#64748b'}>
+                ✏️
+              </button>
+            )}
+          </div>
+
+          {!editingTags ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {tagList.length === 0
+                ? <span style={{ fontSize: 12, color: '#475569' }}>No tags yet</span>
+                : tagList.map((t: string, i: number) => (
+                  <span key={i} style={{ background: '#1e293b', color: '#cbd5e1', border: '1px solid #334155', padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 500 }}>{t}</span>
+                ))
+              }
+            </div>
           ) : (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-              {tagList.map((t: string, i: number) => (
-                <span key={i} style={{ background: `rgba(${hexRgb(tagColor(t))},0.15)`, color: tagColor(t), border: `1px solid rgba(${hexRgb(tagColor(t))},0.3)`, padding: '3px 9px', borderRadius: 99, fontSize: 11, fontWeight: 600 }}>{t}</span>
-              ))}
+            <div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+                {localTags.map((t, i) => (
+                  <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 4, background: `rgba(${hexRgb(tagColor(t))},0.15)`, color: tagColor(t), border: `1px solid rgba(${hexRgb(tagColor(t))},0.3)`, padding: '3px 6px 3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600 }}>
+                    {t}
+                    <button onClick={() => setLocalTags(prev => prev.filter((_, j) => j !== i))}
+                      style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0, opacity: 0.7 }}>×</button>
+                  </span>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 5, marginBottom: 8 }}>
+                <input value={newTagInput} onChange={e => setNewTagInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag() } }}
+                  placeholder="Add tag..." style={{ flex: 1, padding: '6px 9px', background: '#1e293b', border: '1px solid #334155', borderRadius: 7, fontSize: 12, color: '#f1f5f9', outline: 'none', fontFamily: 'inherit' }} />
+                <button onClick={addTag} style={{ padding: '6px 10px', background: '#1e293b', border: '1px solid #334155', borderRadius: 7, color: '#4ade80', cursor: 'pointer', fontSize: 15, fontFamily: 'inherit' }}>+</button>
+              </div>
+              {/* Suggestions */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }}>
+                {TAG_SUGGESTIONS.filter(s => !localTags.includes(s)).slice(0, 8).map(s => (
+                  <button key={s} onClick={() => { if (!localTags.includes(s)) setLocalTags(p => [...p, s]) }}
+                    style={{ padding: '2px 8px', background: '#1e293b', border: '1px solid #334155', borderRadius: 99, fontSize: 10, color: '#64748b', cursor: 'pointer', fontFamily: 'inherit' }}>
+                    + {s}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button onClick={() => setEditingTags(false)} style={{ flex: 1, padding: '7px', background: 'none', border: '1px solid #334155', borderRadius: 7, color: '#64748b', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                <button onClick={saveTags} style={{ flex: 1, padding: '7px', background: '#16a34a', border: 'none', borderRadius: 7, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  {tagSaving ? 'Saving...' : 'Save Tags'}
+                </button>
+              </div>
             </div>
           )}
         </div>
 
-        {/* Last communication */}
-        <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
-          <h3 style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Last Communication</h3>
-          {!lastComm ? (
+        {/* ── LAST COMMUNICATION ── */}
+        <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 12, padding: '1.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Last communication</h3>
+            {commEntries.length > 0 && (
+              <button onClick={() => { setSelectedComm(commEntries); setShowCommModal(true) }}
+                style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', fontSize: 16, padding: 4 }}>›</button>
+            )}
+          </div>
+
+          {!lastCommParsed ? (
             <p style={{ margin: 0, fontSize: 12, color: '#475569' }}>No communications yet</p>
           ) : (
             <div>
-              <p style={{ margin: '0 0 6px', fontSize: 12, color: '#94a3b8', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden' }}>
-                {lastComm}
+              <p style={{ margin: '0 0 4px', fontSize: 11, color: '#475569' }}>
+                {fmtCommDate(lastCommParsed.sent_at)}
               </p>
-              <button onClick={() => { setSelectedComm({ entries: noteLines }); setShowCommModal(true) }}
+              <p style={{ margin: '0 0 6px', fontSize: 13, color: '#cbd5e1', lineHeight: 1.4 }}>
+                {lastCommParsed.subject || 'Email sent'}
+              </p>
+              <button onClick={() => { setSelectedComm(commEntries); setShowCommModal(true) }}
                 style={{ background: 'none', border: 'none', color: '#4ade80', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
-                Read more →
+                Read more...
               </button>
             </div>
           )}
         </div>
 
-        {/* Property quick view */}
-        <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
-          <h3 style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Property</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {[
-              { label: 'Lawn size', value: client.lawn_size },
-              { label: 'Locked gate', value: client.locked_gate ? 'Yes 🔒' : 'No' },
-              { label: 'Dog', value: client.has_dog ? 'Yes 🐕' : 'No' },
-              { label: 'Irrigation', value: client.irrigation },
-              { label: 'Pest control', value: client.pest_control },
-            ].map(row => (
-              <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1e293b', paddingBottom: 5 }}>
-                <span style={{ fontSize: 12, color: '#64748b' }}>{row.label}</span>
-                <span style={{ fontSize: 12, color: row.value && row.value !== 'No' ? '#f1f5f9' : '#475569', fontWeight: row.value && row.value !== 'No' ? 600 : 400 }}>{row.value || '—'}</span>
-              </div>
-            ))}
-          </div>
+        {/* ── NOTES ── */}
+        <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 12, padding: '1.25rem' }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Notes</h3>
+          {noteLines.filter(n => !n.startsWith('COMM|') && !n.startsWith('PAYMENT:') && !n.startsWith('CONTACT:')).length === 0 ? (
+            <div style={{ border: '2px dashed #1e293b', borderRadius: 10, padding: '1.5rem', textAlign: 'center' }}>
+              <p style={{ margin: 0, fontSize: 12, color: '#475569' }}>Leave an internal note for yourself or a team member</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {noteLines.filter(n => !n.startsWith('COMM|') && !n.startsWith('PAYMENT:') && !n.startsWith('CONTACT:')).map((note, i) => (
+                <div key={i} style={{ background: '#1e293b', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#94a3b8', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{note}</div>
+              ))}
+            </div>
+          )}
         </div>
 
       </div>
 
-      {/* Last Communication Modal */}
+      {/* ── COMMUNICATION DETAIL MODAL (Jobber-style) ── */}
       {showCommModal && selectedComm && (
         <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 600 }} onClick={() => setShowCommModal(false)} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 520, maxHeight: '75vh', overflowY: 'auto', background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 601, padding: 24 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>Communication History</h2>
-              <button onClick={() => setShowCommModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 22, cursor: 'pointer' }}>×</button>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 600 }} onClick={() => setShowCommModal(false)} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 560, maxHeight: '82vh', overflowY: 'auto', background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 601, padding: 0 }}>
+            {/* Modal header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #1e293b' }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>Email Communication</h2>
+              <button onClick={() => setShowCommModal(false)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>×</button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {selectedComm.entries.map((entry: string, i: number) => {
-                const isPayment = entry.startsWith('PAYMENT:')
-                const isContact = entry.startsWith('CONTACT:')
-                const icon = isPayment ? '💳' : isContact ? '👤' : '📝'
-                const color = isPayment ? '#4ade80' : isContact ? '#60a5fa' : '#94a3b8'
-                return (
-                  <div key={i} style={{ background: '#1e293b', borderRadius: 10, padding: '12px 14px', borderLeft: `3px solid ${color}` }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                      <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>
-                      <p style={{ margin: 0, fontSize: 13, color: '#cbd5e1', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{entry}</p>
+
+            {/* Show the most recent comm by default, list others */}
+            {(() => {
+              const entries = (selectedComm as string[]).map(parseComm)
+              const latest = entries[entries.length - 1]
+              return (
+                <div style={{ padding: '20px' }}>
+                  {/* Meta row */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 20, padding: '14px 16px', background: '#1e293b', borderRadius: 10 }}>
+                    <div>
+                      <p style={{ margin: '0 0 3px', fontSize: 10, color: '#475569', fontWeight: 700, textTransform: 'uppercase' }}>Sent on</p>
+                      <p style={{ margin: 0, fontSize: 13, color: '#f1f5f9', fontWeight: 600 }}>{fmtCommDate(latest.sent_at)}</p>
+                    </div>
+                    <div>
+                      <p style={{ margin: '0 0 3px', fontSize: 10, color: '#475569', fontWeight: 700, textTransform: 'uppercase' }}>Opened on</p>
+                      <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>—</p>
+                    </div>
+                    <div>
+                      <p style={{ margin: '0 0 3px', fontSize: 10, color: '#475569', fontWeight: 700, textTransform: 'uppercase' }}>Type</p>
+                      <p style={{ margin: 0, fontSize: 13, color: '#f1f5f9', fontWeight: 600 }}>Quote sent</p>
                     </div>
                   </div>
-                )
-              })}
-            </div>
+
+                  {/* Email fields */}
+                  {[
+                    { label: 'To:', value: latest.to || '—' },
+                    { label: 'Cc:', value: '— None —' },
+                    { label: 'BCc:', value: '— None —' },
+                    { label: 'Subject:', value: latest.subject || '—' },
+                  ].map(row => (
+                    <div key={row.label} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: '1px solid #1e293b' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', minWidth: 60 }}>{row.label}</span>
+                      <span style={{ fontSize: 13, color: '#94a3b8' }}>{row.value}</span>
+                    </div>
+                  ))}
+
+                  {/* Body */}
+                  <div style={{ margin: '16px 0', fontSize: 13, color: '#cbd5e1', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+                    {latest.body || '(No message body)'}
+                  </div>
+
+                  {/* Attachments */}
+                  {latest.quote_num && (
+                    <div>
+                      <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, color: '#64748b' }}>Attachments</p>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#1e293b', border: '1px solid #334155', borderRadius: 8, padding: '8px 12px' }}>
+                        <span style={{ fontSize: 18 }}>📄</span>
+                        <span style={{ fontSize: 12, color: '#94a3b8' }}>quote_{latest.quote_num}.pdf</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Older entries */}
+                  {entries.length > 1 && (
+                    <div style={{ marginTop: 20, borderTop: '1px solid #1e293b', paddingTop: 16 }}>
+                      <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Earlier communications ({entries.length - 1})</p>
+                      {entries.slice(0, -1).reverse().map((e, i) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 12px', background: '#1e293b', borderRadius: 8, marginBottom: 6 }}>
+                          <div>
+                            <p style={{ margin: '0 0 2px', fontSize: 13, color: '#f1f5f9', fontWeight: 600 }}>{e.subject}</p>
+                            <p style={{ margin: 0, fontSize: 11, color: '#475569' }}>To: {e.to}</p>
+                          </div>
+                          <p style={{ margin: 0, fontSize: 11, color: '#475569', textAlign: 'right', whiteSpace: 'nowrap' }}>{fmtCommDate(e.sent_at)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         </>
       )}
