@@ -63,6 +63,7 @@ const DIVISIONS = [
   { label: 'Extermination', icon: '🐛' },
   { label: 'Nursery', icon: '🌱' },
   { label: 'Farm', icon: '🚜' },
+  { label: 'Hardscape', icon: '🪨' },
 ]
 
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {

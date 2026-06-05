@@ -726,11 +726,12 @@ export default function SettingsPage() {
               <p style={{ ...secSub }}>Active service divisions</p>
               <div style={{ display:'flex',flexWrap:'wrap',gap:8 }}>
                 {[
-                  {label:'Lawn & Tree',color:'#16a34a'},
-                  {label:'Irrigation',color:'#0ea5e9'},
+                  {label:'Lawn & Tree',  color:'#16a34a'},
+                  {label:'Irrigation',   color:'#0ea5e9'},
                   {label:'Extermination',color:'#dc2626'},
-                  {label:'Nursery',color:'#d97706'},
-                  {label:'Farm',color:'#7c3aed'},
+                  {label:'Nursery',      color:'#d97706'},
+                  {label:'Farm',         color:'#7c3aed'},
+                  {label:'Hardscape',    color:'#64748b'},
                 ].map(d=>(
                   <span key={d.label} style={{ background:`${d.color}22`,color:d.color,border:`1px solid ${d.color}55`,borderRadius:20,padding:'5px 14px',fontSize:13,fontWeight:600 }}>{d.label}</span>
                 ))}

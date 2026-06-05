@@ -28,7 +28,7 @@ const STATUS_STYLE = {
   completed:   { bg:'#052e16', color:'#4ade80', dot:'#16a34a' },
   missed:      { bg:'#450a0a', color:'#fca5a5', dot:'#ef4444' },
 }
-const DIVS  = ['Lawn & Tree','Irrigation','Extermination','Nursery','Farm']
+const DIVS  = ['Lawn & Tree','Irrigation','Extermination','Nursery','Farm','Hardscape']
 const VIEWS = ['Day','Week','Month','List']
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 

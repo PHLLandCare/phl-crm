@@ -15,7 +15,7 @@ interface Stop {
   lng?: number
 }
 
-const DIVS = ['All','Lawn & Tree','Irrigation','Extermination','Nursery','Farm']
+const DIVS = ['All','Lawn & Tree','Irrigation','Extermination','Nursery','Farm','Hardscape']
 
 const STATUS_COLOR: Record<string,{bg:string;color:string}> = {
   scheduled:   {bg:'#0c1a2e', color:'#7dd3fc'},
