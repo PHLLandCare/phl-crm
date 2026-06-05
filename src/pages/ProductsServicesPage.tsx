@@ -35,6 +35,7 @@ export default function ProductsServicesPage() {
   const [editing, setEditing] = useState<Partial<Item> | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [typeFilter, setTypeFilter] = useState<'All' | 'Product' | 'Service'>('All')
 
   const load = async () => {
     setLoading(true)
@@ -46,12 +47,17 @@ export default function ProductsServicesPage() {
   useEffect(() => { load() }, [])
 
   const filtered = items
-    .filter(i => !search || i.name?.toLowerCase().includes(search.toLowerCase()) || i.description?.toLowerCase().includes(search.toLowerCase()))
+    .filter(i => {
+      const matchSearch = !search || i.name?.toLowerCase().includes(search.toLowerCase()) || i.description?.toLowerCase().includes(search.toLowerCase())
+      const matchType = typeFilter === 'All' || i.type === typeFilter
+      return matchSearch && matchType
+    })
     .sort((a, b) => {
       const av = sort === 'name' ? (a.name || '') : (a.type || '')
       const bv = sort === 'name' ? (b.name || '') : (b.type || '')
       return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av)
     })
+
 
   const toggleSort = (col: 'name' | 'type') => {
     if (sort === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
@@ -127,6 +133,18 @@ export default function ProductsServicesPage() {
         <button onClick={openNew} style={{ padding: '10px 18px', background: '#16a34a', border: 'none', borderRadius: 10, color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
           + Add Item
         </button>
+      </div>
+
+      {/* Type filter tabs */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
+        {(['All','Service','Product'] as const).map(t => (
+          <button key={t} onClick={() => setTypeFilter(t)}
+            style={{ padding: '6px 16px', border: 'none', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: typeFilter === t ? 700 : 400,
+              background: typeFilter === t ? (t === 'Product' ? 'rgba(96,165,250,0.15)' : t === 'Service' ? 'rgba(74,222,128,0.15)' : '#1e293b') : 'transparent',
+              color: typeFilter === t ? (t === 'Product' ? '#60a5fa' : t === 'Service' ? '#4ade80' : '#f1f5f9') : '#64748b' }}>
+            {t === 'All' ? `All (${items.length})` : t === 'Service' ? `Services (${items.filter(i => i.type === 'Service').length})` : `Products (${items.filter(i => i.type === 'Product').length})`}
+          </button>
+        ))}
       </div>
 
       {/* Table */}
@@ -261,16 +279,27 @@ export default function ProductsServicesPage() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: '#1e293b', borderRadius: 10, border: '1px solid #334155' }}>
                     <img src={editing.image_url} alt="" style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover' }} />
                     <div style={{ flex: 1 }}>
-                      <p style={{ margin: 0, fontSize: 13, color: '#f1f5f9' }}>{editing.image_url.split('/').pop()}</p>
+                      <p style={{ margin: 0, fontSize: 13, color: '#f1f5f9' }}>{editing.image_url.split('/').pop()?.slice(0,40)}</p>
                     </div>
                     <button onClick={removeImage} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: 18, fontFamily: 'inherit' }}>🗑</button>
                   </div>
                 ) : (
-                  <label style={{ display: 'block', border: '2px dashed #334155', borderRadius: 10, padding: '1.5rem', textAlign: 'center', cursor: 'pointer', background: '#0a0f1a' }}>
-                    <p style={{ margin: '0 0 6px', fontWeight: 600, color: '#4ade80', fontSize: 14 }}>{uploading ? 'Uploading...' : 'Upload Image'}</p>
-                    <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Select or drag an image here to upload</p>
-                    <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]) }} />
-                  </label>
+                  <div
+                    style={{ display: 'block', border: '2px dashed #334155', borderRadius: 10, padding: '1.5rem', textAlign: 'center', cursor: 'pointer', background: '#0a0f1a' }}
+                    onClick={() => document.getElementById('img-upload-input')?.click()}
+                    onDragOver={e => { e.preventDefault(); (e.currentTarget as HTMLElement).style.borderColor = '#4ade80' }}
+                    onDragLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#334155' }}
+                    onDrop={e => {
+                      e.preventDefault();
+                      (e.currentTarget as HTMLElement).style.borderColor = '#334155'
+                      const file = e.dataTransfer.files?.[0]
+                      if (file && file.type.startsWith('image/')) handleImageUpload(file)
+                    }}
+                  >
+                    <p style={{ margin: '0 0 6px', fontWeight: 600, color: '#4ade80', fontSize: 14 }}>{uploading ? 'Uploading...' : '📷 Upload Image'}</p>
+                    <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Click to select or drag & drop an image here</p>
+                    <input id="img-upload-input" type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]) }} />
+                  </div>
                 )}
               </div>
 

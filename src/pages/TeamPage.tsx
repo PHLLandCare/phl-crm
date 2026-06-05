@@ -524,10 +524,6 @@ export default function TeamPage() {
                           style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
                           Edit permissions
                         </button>
-                        <button onClick={() => printQRBadge(m)}
-                          style={{ background: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.2)', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
-                          🔲 QR Badge
-                        </button>
                         <button onClick={() => setDeactivateConfirm(m)}
                           style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
                           Deactivate
@@ -602,7 +598,44 @@ export default function TeamPage() {
             <label style={lbl}>Full name *</label>
             <input style={{ ...inp, marginBottom: 12 }} value={inviteName} onChange={e => setInviteName(e.target.value)} placeholder="e.g. Brandon Ryan" />
             <label style={lbl}>Email address *</label>
-            <input style={{ ...inp, marginBottom: 16 }} type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="e.g. brandon@phllandcare.com" />
+            <input style={{ ...inp, marginBottom: 12 }} type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="e.g. brandon@phllandcare.com" />
+            <label style={lbl}>Personal email (if different)</label>
+            <input style={{ ...inp, marginBottom: 12 }} type="email" placeholder="Personal email address" />
+            <label style={lbl}>Phone number</label>
+            <input style={{ ...inp, marginBottom: 12 }} type="tel" placeholder="(772) 000-0000" />
+            <label style={lbl}>Home address</label>
+            <input style={{ ...inp, marginBottom: 8 }} placeholder="Street address" />
+            <div style={{ display:'grid',gridTemplateColumns:'1fr 80px 100px',gap:8,marginBottom:12 }}>
+              <input style={inp} placeholder="City" />
+              <input style={inp} placeholder="State" maxLength={2} />
+              <input style={inp} placeholder="Zip" maxLength={10} />
+            </div>
+            <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12 }}>
+              <div>
+                <label style={lbl}>Social Security # <span style={{ fontSize:10,color:'#475569' }}>(stored securely)</span></label>
+                <input style={inp} type="password" placeholder="XXX-XX-XXXX" maxLength={11} autoComplete="off" />
+              </div>
+              <div>
+                <label style={lbl}>Tax filing status</label>
+                <select style={inp}>
+                  <option value="">— Select —</option>
+                  <option>Single</option>
+                  <option>Married Filing Jointly</option>
+                  <option>Married Filing Separately</option>
+                  <option>Head of Household</option>
+                  <option>Qualifying Widow(er)</option>
+                </select>
+              </div>
+            </div>
+            <label style={lbl}>Employee type</label>
+            <div style={{ display:'flex',gap:8,marginBottom:16 }}>
+              <div style={{ flex:1,padding:'8px 12px',background:'rgba(74,222,128,0.1)',border:'1px solid rgba(74,222,128,0.3)',borderRadius:8,cursor:'pointer',textAlign:'center' }}>
+                <span style={{ fontSize:12,fontWeight:700,color:'#4ade80' }}>W2 — Employee</span>
+              </div>
+              <div style={{ flex:1,padding:'8px 12px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,cursor:'pointer',textAlign:'center' }}>
+                <span style={{ fontSize:12,fontWeight:600,color:'#94a3b8' }}>1099 — Contractor</span>
+              </div>
+            </div>
             {addMode === 'manual' && (
               <>
                 <label style={lbl}>Temporary password *</label>

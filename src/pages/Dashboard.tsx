@@ -78,7 +78,7 @@ export default function Dashboard() {
         if (profile?.role) setUserRole(profile.role as UserRole)
       }
 
-      const [c,q,j,i,rc,allJobs,allInvoices,allQuotes] = await Promise.all([
+      const [c,q,j,i,rc,allJobs,allInvoices,allQuotes,newReq,pendingQ,activeJ,overdueI] = await Promise.all([
         supabase.from('clients').select('*',{count:'exact',head:true}).is('deleted_at',null),
         supabase.from('quotes').select('*',{count:'exact',head:true}).is('deleted_at',null),
         supabase.from('jobs').select('*',{count:'exact',head:true}).is('deleted_at',null),
@@ -87,9 +87,17 @@ export default function Dashboard() {
         supabase.from('jobs').select('status,amount').is('deleted_at',null),
         supabase.from('invoices').select('status,amount').is('deleted_at',null),
         supabase.from('quotes').select('status,amount').is('deleted_at',null),
+        supabase.from('requests').select('*',{count:'exact',head:true}).eq('status','New'),
+        supabase.from('quotes').select('*',{count:'exact',head:true}).eq('status','draft').is('deleted_at',null),
+        supabase.from('jobs').select('*',{count:'exact',head:true}).eq('status','in_progress').is('deleted_at',null),
+        supabase.from('invoices').select('*',{count:'exact',head:true}).eq('status','overdue').is('deleted_at',null),
       ])
+      const newReqCount = newReq.count ?? 0
+      const pendingQuoteCount = pendingQ.count ?? 0
+      const activeJobCount = activeJ.count ?? 0
+      const overdueInvCount = overdueI.count ?? 0
 
-      setCounts({clients:c.count??0,requests:0,quotes:q.count??0,jobs:j.count??0,invoices:i.count??0})
+      setCounts({clients:0, requests: newReqCount, quotes: pendingQuoteCount, jobs: activeJobCount, invoices: overdueInvCount})
       setRecentClients(rc.data??[])
 
       const jobs = allJobs.data ?? []
@@ -177,13 +185,13 @@ export default function Dashboard() {
       <a href={href} onClick={handleClick} style={style}>
         {icon && <span style={{fontSize:18,width:20,textAlign:'center'}}>{icon}</span>}
         <span style={{flex:1}}>{label}</span>
-        {count!==undefined && count>0 && <span style={{fontSize:10,background:'rgba(255,255,255,0.1)',padding:'1px 7px',borderRadius:20,color:'#94a3b8'}}>{count}</span>}
+        {count!==undefined && count>0 && <span style={{fontSize:10,background:'#dc2626',padding:'1px 7px',borderRadius:20,color:'#fff',fontWeight:700,minWidth:18,textAlign:'center' as 'center'}}>{count}</span>}
       </a>
     ) : (
       <button onClick={handleClick} style={style}>
         {icon && <span style={{fontSize:18,width:20,textAlign:'center'}}>{icon}</span>}
         <span style={{flex:1}}>{label}</span>
-        {count!==undefined && count>0 && <span style={{fontSize:10,background:'rgba(255,255,255,0.1)',padding:'1px 7px',borderRadius:20,color:'#94a3b8'}}>{count}</span>}
+        {count!==undefined && count>0 && <span style={{fontSize:10,background:'#dc2626',padding:'1px 7px',borderRadius:20,color:'#fff',fontWeight:700,minWidth:18,textAlign:'center' as 'center'}}>{count}</span>}
       </button>
     )
   }
@@ -205,7 +213,7 @@ export default function Dashboard() {
       case 'inventory': return can(userRole,'view_inventory') ? <InventoryPage /> : <AccessDenied />
       case 'team':      return can(userRole,'view_team')      ? <TeamPage />      : <AccessDenied />
       case 'settings':  return can(userRole,'view_settings')  ? <SettingsPage />  : <AccessDenied />
-      case 'timeclock': { window.open('https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html','_blank'); navigate('/'); return null; }
+      case 'timeclock': { window.open('https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html','_blank'); navigate(-1); return null; }
       case 'teamchat':  return can(userRole,'manage_users')   ? <TeamChatPage />  : <AccessDenied />
       case 'routes':    return can(userRole,'view_schedule')    ? <RoutePage />     : <AccessDenied />
       case 'reports':   return can(userRole,'view_reports')   ? <ReportsPage />   : <AccessDenied />

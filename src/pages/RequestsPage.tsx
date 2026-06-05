@@ -4,12 +4,21 @@ import { supabase } from '../lib/supabase'
 
 interface Request {
   id: string
+  title: string
   client_name: string
+  client_id: string
   phone: string
   email: string
+  property_address: string
   service: string
   notes: string
   status: string
+  salesperson: string
+  requested_on: string
+  availability_date1: string
+  availability_date2: string
+  arrival_times: string[]
+  line_items: string
   created_at: string
   updated_at: string
 }
@@ -32,7 +41,8 @@ export default function RequestsPage() {
   const [statusFilter, setStatusFilter] = useState('All')
   const [toast, setToast] = useState('')
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ client_name:'', phone:'', email:'', service:'', notes:'', status:'New' })
+  const [form, setForm] = useState<any>({ title:'', client_name:'', client_id:'', phone:'', email:'', property_address:'', service:'', notes:'', status:'New', availability_date1:'', availability_date2:'', arrival_times:[] as string[] })
+  const [clients, setClients] = useState<any[]>([])
 
   const inp: React.CSSProperties = { width:'100%', padding:'9px 11px', border:'1px solid #1e293b', borderRadius:8, fontSize:13, fontFamily:'inherit', outline:'none', background:'#0f172a', color:'#f1f5f9', boxSizing:'border-box' }
   const lbl: React.CSSProperties = { fontSize:10, fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4, display:'block' }
@@ -57,6 +67,7 @@ export default function RequestsPage() {
 
   useEffect(() => {
     loadRequests()
+    supabase.from('clients').select('id,first_name,last_name,company,phone,email,address,city,state,zip').is('deleted_at',null).order('first_name').then(({data})=>setClients(data??[]))
     // Apply filter from dashboard navigation
     const state = location.state as any
     if (state?.filter === 'new') setStatusFilter('New')
@@ -78,7 +89,7 @@ export default function RequestsPage() {
       if (error) throw error
       showToast('Request saved!')
       setShowNew(false)
-      setForm({ client_name:'', phone:'', email:'', service:'', notes:'', status:'New' })
+      setForm({ title:'', client_name:'', client_id:'', phone:'', email:'', property_address:'', service:'', notes:'', status:'New', availability_date1:'', availability_date2:'', arrival_times:[] })
       loadRequests()
     } catch {
       // If table doesn't exist, create it first
@@ -232,43 +243,132 @@ export default function RequestsPage() {
         </div>
       )}
 
-      {/* New Request Modal */}
+      {/* New Request Modal — Jobber style */}
       {showNew && (
         <>
-          <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:500 }} onClick={() => setShowNew(false)} />
-          <div style={{ position:'fixed',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:520,maxHeight:'90vh',overflowY:'auto',background:'#0d1526',border:'1px solid #1e293b',borderRadius:16,zIndex:501,padding:24 }}>
-            <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20 }}>
-              <h2 style={{ margin:0,fontSize:17,fontWeight:700,color:'#f1f5f9' }}>📬 New Request</h2>
-              <button onClick={() => setShowNew(false)} style={{ background:'none',border:'none',color:'#64748b',fontSize:22,cursor:'pointer' }}>×</button>
+          <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:500 }} onClick={() => setShowNew(false)} />
+          <div style={{ position:'fixed',inset:0,zIndex:501,display:'flex',flexDirection:'column',background:'#0d1526',overflow:'hidden' }} onClick={e=>e.stopPropagation()}>
+            {/* Top bar */}
+            <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 24px',background:'#0f172a',borderBottom:'2px solid #fb923c',flexShrink:0 }}>
+              <div style={{ display:'flex',alignItems:'center',gap:10 }}>
+                <span style={{ fontSize:22 }}>📬</span>
+                <h2 style={{ margin:0,fontSize:18,fontWeight:700,color:'#f1f5f9' }}>New Request</h2>
+              </div>
+              <button onClick={() => setShowNew(false)} style={{ background:'none',border:'none',color:'#64748b',fontSize:24,cursor:'pointer' }}>×</button>
             </div>
-            <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16 }}>
-              <div style={{ gridColumn:'1/-1' }}>
-                <label style={lbl}>Client Name *</label>
-                <input style={inp} value={form.client_name} onChange={e => setForm({...form,client_name:e.target.value})} placeholder="Full name or company" />
-              </div>
-              <div><label style={lbl}>Phone</label><input style={inp} value={form.phone} onChange={e => setForm({...form,phone:e.target.value})} placeholder="(561) 000-0000" /></div>
-              <div><label style={lbl}>Email</label><input style={inp} value={form.email} onChange={e => setForm({...form,email:e.target.value})} placeholder="email@example.com" /></div>
-              <div style={{ gridColumn:'1/-1' }}>
-                <label style={lbl}>Service Requested</label>
-                <select style={inp} value={form.service} onChange={e => setForm({...form,service:e.target.value})}>
-                  <option value="">— Select service —</option>
-                  {['Lawn Mowing','Irrigation','Pest Control','Tree Trimming','Landscape','Yard Clean Up','Core Aeration','Mulch Installation','Fertilizer & Weed Control','Free Assessment','Other'].map(s=><option key={s}>{s}</option>)}
-                </select>
-              </div>
-              <div>
-                <label style={lbl}>Status</label>
-                <select style={inp} value={form.status} onChange={e => setForm({...form,status:e.target.value})}>
-                  <option>New</option><option>In Progress</option><option>Overdue</option><option>Completed</option>
-                </select>
-              </div>
-              <div style={{ gridColumn:'1/-1' }}>
-                <label style={lbl}>Notes</label>
-                <textarea style={{ ...inp,height:80,resize:'vertical' } as React.CSSProperties} value={form.notes} onChange={e => setForm({...form,notes:e.target.value})} placeholder="Additional details about the request..." />
+
+            {/* Header fields */}
+            <div style={{ padding:'16px 24px',background:'#0d1526',borderBottom:'1px solid #1e293b',flexShrink:0 }}>
+              <div style={{ display:'grid',gridTemplateColumns:'1fr auto',gap:16,alignItems:'start' }}>
+                <div>
+                  <input value={form.title||''} onChange={e => setForm({...form,title:e.target.value})}
+                    placeholder="Title"
+                    style={{ width:'100%',padding:'12px 16px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,color:'#f1f5f9',fontSize:16,outline:'none',fontFamily:'inherit',boxSizing:'border-box' as 'border-box' }} />
+                  <div style={{ marginTop:10 }}>
+                    <select style={{ ...inp,fontSize:14 }} value={form.client_name||''} onChange={e => setForm({...form,client_name:e.target.value})}>
+                      <option value="">Select a client</option>
+                      {clients.map((c:any) => <option key={c.id} value={`${c.first_name} ${c.last_name}`}>{c.first_name} {c.last_name}{c.company ? ` — ${c.company}` : ''}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div style={{ minWidth:220 }}>
+                  <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8 }}>
+                    <span style={{ fontSize:13,color:'#64748b' }}>Requested on</span>
+                    <span style={{ fontSize:13,fontWeight:600,color:'#f1f5f9' }}>{new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>
+                  </div>
+                  <div style={{ display:'flex',alignItems:'center',gap:8 }}>
+                    <span style={{ fontSize:13,color:'#64748b' }}>Salesperson</span>
+                    <span style={{ fontSize:12,background:'#1e293b',border:'1px solid #334155',borderRadius:20,padding:'3px 12px',color:'#f1f5f9' }}>Romy Cruz</span>
+                  </div>
+                </div>
               </div>
             </div>
-            <div style={{ display:'flex',gap:8,justifyContent:'flex-end' }}>
-              <button onClick={() => setShowNew(false)} style={{ padding:'10px 20px',border:'1px solid #1e293b',borderRadius:9,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Cancel</button>
-              <button onClick={handleSave} disabled={saving} style={{ padding:'10px 20px',border:'none',borderRadius:9,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:saving?0.7:1 }}>{saving?'Saving...':'Save Request'}</button>
+
+            {/* Scrollable body */}
+            <div style={{ flex:1,overflowY:'auto',padding:'24px' }}>
+              <div style={{ maxWidth:800,margin:'0 auto' }}>
+
+                {/* Overview */}
+                <h3 style={{ fontSize:18,fontWeight:700,color:'#f1f5f9',margin:'0 0 16px' }}>Overview</h3>
+
+                {/* Service Details */}
+                <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:12,padding:'1.25rem',marginBottom:16 }}>
+                  <h4 style={{ margin:'0 0 4px',fontSize:14,fontWeight:700,color:'#f1f5f9' }}>Service Details</h4>
+                  <p style={{ margin:'0 0 12px',fontSize:12,color:'#64748b' }}>Please provide as much information as you can</p>
+                  <textarea value={form.notes||''} onChange={e => setForm({...form,notes:e.target.value})}
+                    placeholder="Describe the work needed..."
+                    style={{ width:'100%',padding:'12px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,color:'#f1f5f9',fontSize:13,outline:'none',resize:'vertical',minHeight:100,fontFamily:'inherit',boxSizing:'border-box' as 'border-box' }} />
+                </div>
+
+                {/* Availability */}
+                <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:12,padding:'1.25rem',marginBottom:16 }}>
+                  <h4 style={{ margin:'0 0 4px',fontSize:14,fontWeight:700,color:'#f1f5f9' }}>Your Availability</h4>
+                  <p style={{ margin:'0 0 12px',fontSize:12,color:'#64748b' }}>Which day would be best for an assessment of the work?</p>
+                  <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12 }}>
+                    <div>
+                      <label style={{ fontSize:12,color:'#64748b',display:'block',marginBottom:4 }}>Preferred date</label>
+                      <input type="date" style={inp} value={form.availability_date1||''} onChange={e => setForm({...form,availability_date1:e.target.value})} />
+                    </div>
+                    <div>
+                      <label style={{ fontSize:12,color:'#64748b',display:'block',marginBottom:4 }}>Alternative date</label>
+                      <input type="date" style={inp} value={form.availability_date2||''} onChange={e => setForm({...form,availability_date2:e.target.value})} />
+                    </div>
+                  </div>
+                  <p style={{ margin:'0 0 8px',fontSize:12,color:'#64748b' }}>What are your preferred arrival times?</p>
+                  <div style={{ display:'flex',flexWrap:'wrap',gap:8 }}>
+                    {['Any time','Morning','Afternoon','Evening'].map(t => {
+                      const times = form.arrival_times || []
+                      const active = times.includes(t)
+                      return (
+                        <label key={t} style={{ display:'flex',alignItems:'center',gap:6,cursor:'pointer' }}>
+                          <div onClick={() => setForm({...form, arrival_times: active ? times.filter((x:string)=>x!==t) : [...times,t]})}
+                            style={{ width:16,height:16,border:`2px solid ${active?'#4ade80':'#334155'}`,borderRadius:3,background:active?'#16a34a':'transparent',cursor:'pointer',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center' }}>
+                            {active && <span style={{ color:'#fff',fontSize:10,lineHeight:1 }}>✓</span>}
+                          </div>
+                          <span style={{ fontSize:13,color:'#cbd5e1' }}>{t}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Property */}
+                <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:12,padding:'1.25rem',marginBottom:16 }}>
+                  <h4 style={{ margin:'0 0 12px',fontSize:14,fontWeight:700,color:'#f1f5f9' }}>Property Address</h4>
+                  <input style={inp} value={form.property_address||''} onChange={e => setForm({...form,property_address:e.target.value})} placeholder="Service address" />
+                </div>
+
+                {/* Service type */}
+                <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:12,padding:'1.25rem',marginBottom:16 }}>
+                  <h4 style={{ margin:'0 0 12px',fontSize:14,fontWeight:700,color:'#f1f5f9' }}>Service Type</h4>
+                  <select style={inp} value={form.service||''} onChange={e => setForm({...form,service:e.target.value})}>
+                    <option value="">— Select service —</option>
+                    {['Lawn Mowing','Irrigation','Pest Control','Tree Trimming','Landscaping','Yard Clean Up','Core Aeration','Mulch Installation','Fertilizer & Weed Control','Palm Trimming','Sod Installation','Hardscape / Pavers','Free Assessment','Other'].map(s=><option key={s}>{s}</option>)}
+                  </select>
+                </div>
+
+                {/* On-site assessment */}
+                <div style={{ border:'2px dashed #1e293b',borderRadius:12,padding:'2rem',textAlign:'center',marginBottom:16 }}>
+                  <div style={{ width:52,height:52,borderRadius:'50%',background:'#1e293b',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 12px',fontSize:24 }}>🚗</div>
+                  <p style={{ margin:0,fontSize:14,color:'#64748b' }}>On-site assessment — visit the property to assess the job before you do the work</p>
+                </div>
+
+                {/* Internal notes */}
+                <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:12,padding:'1.25rem',marginBottom:16 }}>
+                  <h4 style={{ margin:'0 0 12px',fontSize:14,fontWeight:700,color:'#f1f5f9' }}>Notes</h4>
+                  <div style={{ border:'2px dashed #1e293b',borderRadius:8,padding:'1.5rem',textAlign:'center',cursor:'text' }}>
+                    <span style={{ fontSize:20,display:'block',marginBottom:8 }}>📋</span>
+                    <p style={{ margin:0,fontSize:13,color:'#475569' }}>Leave an internal note for yourself or a team member</p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{ display:'flex',justifyContent:'flex-end',gap:12,padding:'16px 24px',background:'#0f172a',borderTop:'1px solid #1e293b',flexShrink:0 }}>
+              <button onClick={() => setShowNew(false)} style={{ padding:'10px 24px',border:'1px solid #334155',borderRadius:9,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:14,fontFamily:'inherit' }}>Cancel</button>
+              <button onClick={handleSave} disabled={saving} style={{ padding:'10px 28px',border:'none',borderRadius:9,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:700,fontFamily:'inherit',opacity:saving?0.7:1 }}>{saving?'Saving...':'Save Request'}</button>
             </div>
           </div>
         </>
