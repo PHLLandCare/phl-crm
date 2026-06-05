@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PHL Land Care - Time Clock</title>
+<link rel="icon" type="image/png" href="https://phllandcare.github.io/phl-crm/favicon.png">
 <!-- fonts loaded from system stack -->
 <style>
 /* Inline icon replacements — no CDN needed */
@@ -334,6 +335,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <div><div class="fl">Last name *</div><input class="fi" id="ef-lname" placeholder="Last name"></div>
       <div><div class="fl">Employee ID (auto)</div><input class="fi" id="ef-eid" placeholder="PHL-0001" readonly style="background:#f8fafc"></div>
       <div><div class="fl">Phone</div><input class="fi" id="ef-phone" placeholder="(561) 000-0000"></div>
+      <div><div class="fl">Personal email</div><input class="fi" id="ef-personal-email" type="email" placeholder="personal@email.com"></div>
+      <div class="fg-full"><div class="fl">Home address</div><input class="fi" id="ef-address" placeholder="Street address"></div>
+      <div><div class="fl">City</div><input class="fi" id="ef-city" placeholder="City"></div>
+      <div><div class="fl">State / ZIP</div><div style="display:flex;gap:6px"><input class="fi" id="ef-state" placeholder="FL" maxlength="2" style="width:60px;flex-shrink:0"><input class="fi" id="ef-zip" placeholder="00000" maxlength="10"></div></div>
     </div>
     <div class="form-sec">Work details</div>
     <div class="fg">
@@ -371,6 +376,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       </div>
       <div><div class="fl">Hourly rate ($)</div>
         <input class="fi" id="ef-rate" type="number" min="0" step="0.01" placeholder="e.g. 18.00">
+      </div>
+      <div><div class="fl">Tax filing status</div>
+        <select class="fs" id="ef-filing-status">
+          <option value="">— Select —</option>
+          <option>Single</option>
+          <option>Married Filing Jointly</option>
+          <option>Married Filing Separately</option>
+          <option>Head of Household</option>
+          <option>Qualifying Widow(er)</option>
+        </select>
       </div>
       <div class="fg-full"><div class="fl">Social Security # <span style="font-size:10px;color:#6b7a90;font-weight:400">(stored securely, for payroll only)</span></div>
         <input class="fi" id="ef-ssn" type="password" placeholder="XXX-XX-XXXX" autocomplete="off" maxlength="11">
@@ -692,11 +707,17 @@ function openAddEmp() {
   document.getElementById('ef-fname').value = '';
   document.getElementById('ef-lname').value = '';
   document.getElementById('ef-phone').value = '';
+  document.getElementById('ef-personal-email').value = '';
+  document.getElementById('ef-address').value = '';
+  document.getElementById('ef-city').value = '';
+  document.getElementById('ef-state').value = '';
+  document.getElementById('ef-zip').value = '';
   document.querySelectorAll('.div-check').forEach(function(cb){ cb.checked = false; });
   document.getElementById('ef-crew').value = '';
   document.getElementById('ef-role').value = 'Time clock only';
   document.getElementById('ef-emptype').value = 'W2';
   document.getElementById('ef-rate').value = '';
+  document.getElementById('ef-filing-status').value = '';
   document.getElementById('ef-ssn').value = '';
   currentDocEmpId = null;
   switchDrawerTab('info');
@@ -716,6 +737,11 @@ function editEmp(eid) {
   document.getElementById('ef-eid').value = e.employee_id||'';
   document.getElementById('ef-eid').removeAttribute('readonly');
   document.getElementById('ef-phone').value = e.phone||'';
+  document.getElementById('ef-personal-email').value = e.personal_email||'';
+  document.getElementById('ef-address').value = e.address||'';
+  document.getElementById('ef-city').value = e.city||'';
+  document.getElementById('ef-state').value = e.state||'';
+  document.getElementById('ef-zip').value = e.zip||'';
   // Multi-division checkboxes
   var empDivs = (e.division||'').split(',').map(function(d){return d.trim();});
   document.querySelectorAll('.div-check').forEach(function(cb){ cb.checked = empDivs.indexOf(cb.value) > -1; });
@@ -723,6 +749,7 @@ function editEmp(eid) {
   document.getElementById('ef-role').value = e.role||'Time clock only';
   document.getElementById('ef-emptype').value = e.employee_type||'W2';
   document.getElementById('ef-rate').value = e.hourly_rate||'';
+  document.getElementById('ef-filing-status').value = e.filing_status||'';
   document.getElementById('ef-ssn').value = e.ssn ? '••••••••••' : '';
   currentDocEmpId = eid;
   switchDrawerTab('info');
@@ -765,9 +792,21 @@ async function saveEmployee() {
   var empTypeEl = document.getElementById('ef-emptype');
   var rateEl = document.getElementById('ef-rate');
   var ssnEl = document.getElementById('ef-ssn');
+  var filingEl = document.getElementById('ef-filing-status');
+  var personalEmailEl = document.getElementById('ef-personal-email');
+  var addressEl = document.getElementById('ef-address');
+  var cityEl = document.getElementById('ef-city');
+  var stateEl = document.getElementById('ef-state');
+  var zipEl = document.getElementById('ef-zip');
   if (empTypeEl) data.employee_type = empTypeEl.value;
   if (rateEl && rateEl.value) data.hourly_rate = parseFloat(rateEl.value) || 15;
   if (ssnEl) { var ssnVal = ssnEl.value.trim(); if (ssnVal && ssnVal !== '••••••••••') data.ssn = ssnVal; }
+  if (filingEl && filingEl.value) data.filing_status = filingEl.value;
+  if (personalEmailEl && personalEmailEl.value) data.personal_email = personalEmailEl.value.trim();
+  if (addressEl && addressEl.value) data.address = addressEl.value.trim();
+  if (cityEl && cityEl.value) data.city = cityEl.value.trim();
+  if (stateEl && stateEl.value) data.state = stateEl.value.trim();
+  if (zipEl && zipEl.value) data.zip = zipEl.value.trim();
 
   try {
     if (editingEmpId) {
@@ -788,6 +827,14 @@ async function saveEmployee() {
       try {
         var coreData = { fname:fn, lname:ln, employee_id:data.employee_id, phone:data.phone, division:divisionValue, crew:data.crew, role:data.role, active:true };
         if (!editingEmpId) coreData.color = data.color;
+        if (data.employee_type) coreData.employee_type = data.employee_type;
+        if (data.hourly_rate) coreData.hourly_rate = data.hourly_rate;
+        if (data.filing_status) coreData.filing_status = data.filing_status;
+        if (data.personal_email) coreData.personal_email = data.personal_email;
+        if (data.address) coreData.address = data.address;
+        if (data.city) coreData.city = data.city;
+        if (data.state) coreData.state = data.state;
+        if (data.zip) coreData.zip = data.zip;
         if (editingEmpId) { await sb('PATCH', '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId), coreData); }
         else { await sb('POST', '/employees', coreData); }
         toast('✅ Saved! (Note: add employee_type/hourly_rate columns to unlock pay features)');

@@ -35,6 +35,7 @@ export default function ProductsServicesPage() {
   const [editing, setEditing] = useState<Partial<Item> | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
   const [typeFilter, setTypeFilter] = useState<'All' | 'Product' | 'Service'>('All')
 
   const load = async () => {
@@ -90,11 +91,25 @@ export default function ProductsServicesPage() {
 
   const handleImageUpload = async (file: File) => {
     setUploading(true)
-    const path = `products/${Date.now()}_${file.name}`
-    const { error } = await supabase.storage.from('product-images').upload(path, file, { upsert: true })
-    if (!error) {
-      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path)
-      setEditing(e => e ? { ...e, image_url: publicUrl } : e)
+    setUploadError('')
+    try {
+      // Sanitize filename — no spaces or special chars
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const path = `products/${Date.now()}_${safeName}`
+      const { error } = await supabase.storage.from('product-images').upload(path, file, { upsert: true })
+      if (error) {
+        if (error.message?.includes('not found') || error.message?.includes('does not exist')) {
+          setUploadError('Storage bucket "product-images" not found. Create it in Supabase Storage with public access.')
+        } else {
+          setUploadError('Upload failed: ' + error.message)
+        }
+      } else {
+        const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path)
+        setEditing(e => e ? { ...e, image_url: publicUrl } : e)
+        setUploadError('')
+      }
+    } catch (e: any) {
+      setUploadError('Upload failed: ' + e.message)
     }
     setUploading(false)
   }
@@ -299,6 +314,11 @@ export default function ProductsServicesPage() {
                     <p style={{ margin: '0 0 6px', fontWeight: 600, color: '#4ade80', fontSize: 14 }}>{uploading ? 'Uploading...' : '📷 Upload Image'}</p>
                     <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Click to select or drag & drop an image here</p>
                     <input id="img-upload-input" type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { if (e.target.files?.[0]) handleImageUpload(e.target.files[0]) }} />
+                  </div>
+                )}
+                {uploadError && (
+                  <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, fontSize: 12, color: '#f87171' }}>
+                    ⚠️ {uploadError}
                   </div>
                 )}
               </div>
