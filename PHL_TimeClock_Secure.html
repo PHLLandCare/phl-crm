@@ -812,6 +812,7 @@ async function saveEmployee() {
     if (editingEmpId) {
       var res = await sb('PATCH', '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId), data);
       console.log('PATCH result:', res);
+      console.log('Division saved as:', divisionValue);
       toast('✅ ' + fn + ' ' + ln + ' updated! Divisions: ' + divisionValue);
     } else {
       var res2 = await sb('POST', '/employees', data);
