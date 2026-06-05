@@ -237,14 +237,18 @@ export default function RequestsPage() {
         <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:12,padding:'1.1rem 1.25rem' }}>
           <p style={{ margin:'0 0 10px',fontSize:13,fontWeight:600,color:'#f1f5f9' }}>Overview</p>
           {[
-            { dot:'#3b82f6', label:`New (${newCount})` },
-            { dot:'#a855f7', label:`Assessment complete (${assessCount})` },
-            { dot:'#ef4444', label:`Overdue (${overdueCount})` },
-            { dot:'#f59e0b', label:`Unscheduled (${unscheduledCount})` },
+            { dot:'#3b82f6', label:`New (${newCount})`,                    filter:'New' },
+            { dot:'#a855f7', label:`Assessment complete (${assessCount})`, filter:'Assessment complete' },
+            { dot:'#ef4444', label:`Overdue (${overdueCount})`,            filter:'Overdue' },
+            { dot:'#f59e0b', label:`Unscheduled (${unscheduledCount})`,    filter:'Unscheduled' },
           ].map(s => (
-            <div key={s.label} style={{ display:'flex',alignItems:'center',gap:8,marginBottom:6 }}>
+            <div key={s.label} onClick={() => setStatusFilter(f => f === s.filter ? 'All' : s.filter)}
+              style={{ display:'flex',alignItems:'center',gap:8,marginBottom:6,cursor:'pointer',borderRadius:6,padding:'3px 4px',
+                background: statusFilter === s.filter ? 'rgba(255,255,255,0.06)' : 'transparent' }}
+              onMouseEnter={e=>(e.currentTarget.style.background='rgba(255,255,255,0.06)')}
+              onMouseLeave={e=>(e.currentTarget.style.background=statusFilter===s.filter?'rgba(255,255,255,0.06)':'transparent')}>
               <div style={{ width:8,height:8,borderRadius:'50%',background:s.dot,flexShrink:0 }} />
-              <span style={{ fontSize:12,color:'#94a3b8' }}>{s.label}</span>
+              <span style={{ fontSize:12,color: statusFilter===s.filter ? '#f1f5f9' : '#94a3b8',fontWeight: statusFilter===s.filter ? 600 : 400 }}>{s.label}</span>
             </div>
           ))}
         </div>
