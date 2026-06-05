@@ -381,10 +381,18 @@ export default function ClientsPage() {
 
     return (
       <div style={{ padding: '2rem', background: '#0a0f1a', minHeight: '100vh', position: 'relative' }} onClick={(e) => {
+        const t = e.target as HTMLElement
+        if (t.closest('button') || t.closest('a') || t.closest('input') || t.closest('select') || t.closest('textarea') || t.closest('label')) return
         if (showEmailModal) return
         setShowDotsMenu(false); setShowCreateMenu(false); setShowWorkCreate(false)
         setShowBillingMenu(false); setShowSchedTypeMenu(false); setShowSchedStatusMenu(false)
       }}>
+        {/* Toast */}
+        {clientToast && (
+          <div style={{ position:'fixed',top:'1rem',right:'1rem',background:'#052e16',border:'1px solid #16a34a',borderRadius:10,padding:'12px 20px',fontSize:13,color:'#4ade80',fontWeight:600,zIndex:9999,boxShadow:'0 4px 20px rgba(0,0,0,0.4)',maxWidth:380,pointerEvents:'none' }}>
+            {clientToast}
+          </div>
+        )}
         {/* Back */}
         <button onClick={() => { setSelectedClient(null); navigate('/clients') }}
           style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 6 }}>
