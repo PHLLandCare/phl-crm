@@ -1,5 +1,5 @@
 // PHL Land Care CRM — Service Worker
-const CACHE = 'phl-crm-v1'
+const CACHE = 'phl-crm-v14'
 const OFFLINE_URLS = ['/phl-crm/', '/phl-crm/index.html']
 
 self.addEventListener('install', e => {
@@ -8,6 +8,7 @@ self.addEventListener('install', e => {
 })
 
 self.addEventListener('activate', e => {
+  // Delete ALL old caches on activate
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))))
   self.clients.claim()
 })
