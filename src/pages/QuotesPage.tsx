@@ -655,9 +655,23 @@ export default function QuotesPage() {
               <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16 }}>
                 <div>
                   <label style={lbl}>Select a client</label>
-                  <select style={inp} value={form.client_id} onChange={e => {
+                  <select style={inp} value={form.client_id} onChange={async e => {
                     const c = clients.find(c => c.id == e.target.value)
-                    setForm({...form, client_id: e.target.value, client_name: c ? `${c.first_name} ${c.last_name}` : ''})
+                    const clientName = c ? `${c.first_name} ${c.last_name}` : ''
+                    setForm({...form, client_id: e.target.value, client_name: clientName})
+                    // Check for existing quotes for this client
+                    if (clientName) {
+                      const { data: existing } = await supabase.from('quotes')
+                        .select('id,quote_number,title,status,amount,created_at')
+                        .eq('client_name', clientName)
+                        .is('deleted_at', null)
+                        .order('created_at', { ascending: false })
+                        .limit(5)
+                      if (existing && existing.length > 0) {
+                        setDuplicateQuotes(existing as Quote[])
+                        setShowDuplicateModal(true)
+                      }
+                    }
                   }}>
                     <option value="">Select a client...</option>
                     {clients.map(c => <option key={c.id} value={c.id}>{c.first_name} {c.last_name}{c.company ? ` — ${c.company}` : ''}</option>)}

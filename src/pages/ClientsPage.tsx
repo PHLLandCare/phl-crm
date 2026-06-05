@@ -119,6 +119,8 @@ export default function ClientsPage() {
   const [showCreateMenu, setShowCreateMenu] = useState(false)
   const [showAddProperty, setShowAddProperty] = useState(false)
   const [showAddContact, setShowAddContact] = useState(false)
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [emailForm, setEmailForm] = useState({ subject: '', body: '', to: '' })
   const [contactForm, setContactForm] = useState({ name: '', phone: '', email: '', role: '' })
 
   const [form, setForm] = useState({
@@ -401,10 +403,14 @@ export default function ClientsPage() {
           </div>
           {/* Action buttons */}
           <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
-            {/* Email button - bigger, with label */}
-            <button onClick={() => { if (selectedClient.email) window.open(`mailto:${selectedClient.email}?subject=PHL Land Care — Following Up`) }}
+            {/* Email button - opens template picker */}
+            <button onClick={() => {
+              if (!selectedClient.email) { showClientToast('⚠️ No email on file for this client'); return }
+              setEmailForm({ to: selectedClient.email, subject: '', body: '' })
+              setShowEmailModal(true)
+            }}
               style={{ padding: '8px 16px', background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, color: '#f1f5f9', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8, opacity: selectedClient.email ? 1 : 0.4 }}>
-              <span style={{ fontSize: 16 }}>✉️</span>
+              <span style={{ fontSize: 18 }}>✉️</span>
               <span style={{ fontWeight: 600 }}>Email</span>
             </button>
             {/* ... dots menu */}
@@ -1145,6 +1151,24 @@ export default function ClientsPage() {
         </div>
       )}
 
+      {/* ── EMAIL TEMPLATE MODAL ── */}
+      {showEmailModal && selectedClient && (
+        <EmailTemplateModal
+          client={selectedClient}
+          initialForm={emailForm}
+          onClose={() => setShowEmailModal(false)}
+          onSent={(subject, body) => {
+            // Log comm entry to client notes
+            const sentAt = new Date().toISOString()
+            const commEntry = `COMM|type:email_general|sent_at:${sentAt}|to:${selectedClient.email}|subject:${subject}|body:${body}`
+            const updatedNotes = (selectedClient.notes || '') + (selectedClient.notes ? '\n\n' : '') + commEntry
+            supabase.from('clients').update({ notes: updatedNotes }).eq('id', selectedClient.id)
+            setSelectedClient({ ...selectedClient, notes: updatedNotes })
+            showClientToast('✅ Email sent!')
+          }}
+        />
+      )}
+
       {/* New Client Modal */}
       {showNewClient && (
         <>
@@ -1197,6 +1221,160 @@ export default function ClientsPage() {
         </>
       )}
     </div>
+  )
+}
+
+// ── Email Templates ───────────────────────────────────────────────────────────
+const EMAIL_TEMPLATES = [
+  {
+    label: 'Following Up',
+    subject: 'Following Up — PHL Land Care',
+    body: (name: string) => `Hi ${name},\n\nI wanted to follow up and see if you had any questions or if there's anything we can help you with.\n\nPlease don't hesitate to reach out — we're always happy to help!\n\nBest regards,\nPHL Land Care Team\n📞 772-466-3617`,
+  },
+  {
+    label: 'Appointment Reminder',
+    subject: 'Upcoming Service Reminder — PHL Land Care',
+    body: (name: string) => `Hi ${name},\n\nThis is a friendly reminder that your scheduled service is coming up soon.\n\nIf you need to reschedule or have any special instructions for our crew, please let us know as soon as possible.\n\nThank you for choosing PHL Land Care!\n\nBest regards,\nPHL Land Care Team\n📞 772-466-3617`,
+  },
+  {
+    label: 'Thank You',
+    subject: 'Thank You — PHL Land Care',
+    body: (name: string) => `Hi ${name},\n\nThank you so much for choosing PHL Land Care! It was a pleasure working with you.\n\nWe hope you're happy with the results. If you have any feedback or questions, please don't hesitate to reach out.\n\nWe look forward to serving you again!\n\nBest regards,\nPHL Land Care Team\n📞 772-466-3617`,
+  },
+  {
+    label: 'Quote Ready',
+    subject: 'Your Quote is Ready — PHL Land Care',
+    body: (name: string) => `Hi ${name},\n\nYour quote is ready for review! Please let us know if you have any questions or if you'd like to make any adjustments.\n\nWe look forward to the opportunity to work with you.\n\nBest regards,\nPHL Land Care Team\n📞 772-466-3617`,
+  },
+  {
+    label: 'Payment Reminder',
+    subject: 'Invoice Payment Reminder — PHL Land Care',
+    body: (name: string) => `Hi ${name},\n\nThis is a friendly reminder that you have an outstanding invoice with PHL Land Care.\n\nPlease contact us if you have any questions about your balance or if you'd like to discuss payment options.\n\nThank you,\nPHL Land Care Team\n📞 772-466-3617`,
+  },
+  {
+    label: 'Seasonal Promotion',
+    subject: 'Special Offer — PHL Land Care',
+    body: (name: string) => `Hi ${name},\n\nWe wanted to reach out with some exciting news about our seasonal services!\n\nWe're currently offering special rates on [SERVICE]. As a valued client, we wanted to make sure you heard about this first.\n\nGive us a call or reply to this email to take advantage of this offer.\n\nBest regards,\nPHL Land Care Team\n📞 772-466-3617`,
+  },
+]
+
+function EmailTemplateModal({ client, initialForm, onClose, onSent }: {
+  client: any
+  initialForm: { to: string; subject: string; body: string }
+  onClose: () => void
+  onSent: (subject: string, body: string) => void
+}) {
+  const firstName = client.first_name || client.first_name + ' ' + client.last_name
+  const [subject, setSubject] = useState(initialForm.subject)
+  const [body, setBody] = useState(initialForm.body)
+  const [sending, setSending] = useState(false)
+  const [activeTemplate, setActiveTemplate] = useState<string | null>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  const applyTemplate = (t: typeof EMAIL_TEMPLATES[0]) => {
+    setSubject(t.subject)
+    setBody(t.body(firstName))
+    setActiveTemplate(t.label)
+  }
+
+  const handleSend = async () => {
+    if (!subject.trim() || !body.trim()) return
+    setSending(true)
+    try {
+      const html = `<div style="font-family:sans-serif;max-width:560px;margin:auto;padding:24px;color:#111">
+        <div style="border-bottom:3px solid #16a34a;padding-bottom:12px;margin-bottom:20px">
+          <strong style="font-size:18px;color:#16a34a">PHL Land Care Inc.</strong>
+        </div>
+        ${body.split('\n').map(line => line ? `<p style="margin:0 0 12px">${line}</p>` : '<br>').join('')}
+        <div style="border-top:1px solid #e2e8f0;margin-top:24px;padding-top:16px;font-size:12px;color:#64748b">
+          PHL Land Care Inc. · 772-466-3617 · admin@phllandcare.com
+        </div>
+      </div>`
+      await supabase.functions.invoke('send-email', {
+        body: { to: client.email, subject, html }
+      })
+      onSent(subject, body)
+      onClose()
+    } catch {
+      // Fallback to mailto if edge function not configured
+      const mailto = `mailto:${client.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+      window.open(mailto)
+      onSent(subject, body)
+      onClose()
+    }
+    setSending(false)
+  }
+
+  return (
+    <>
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 700 }} onClick={onClose} />
+      <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 680, maxHeight: '90vh', display: 'flex', background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 701, overflow: 'hidden' }}>
+
+        {/* Left — templates */}
+        <div style={{ width: 200, flexShrink: 0, borderRight: '1px solid #1e293b', padding: '16px 0', overflowY: 'auto' }}>
+          <p style={{ margin: '0 0 8px', padding: '0 16px', fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Templates</p>
+          {EMAIL_TEMPLATES.map(t => (
+            <button key={t.label} onClick={() => applyTemplate(t)}
+              style={{ display: 'block', width: '100%', padding: '10px 16px', background: activeTemplate === t.label ? 'rgba(74,222,128,0.1)' : 'none', border: 'none', borderLeft: activeTemplate === t.label ? '3px solid #4ade80' : '3px solid transparent', color: activeTemplate === t.label ? '#4ade80' : '#94a3b8', fontSize: 13, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+              onMouseEnter={e => { if (activeTemplate !== t.label) (e.currentTarget as HTMLElement).style.background = '#1e293b' }}
+              onMouseLeave={e => { if (activeTemplate !== t.label) (e.currentTarget as HTMLElement).style.background = 'none' }}>
+              {t.label}
+            </button>
+          ))}
+          <div style={{ margin: '12px 16px 0', padding: '12px', background: '#1e293b', borderRadius: 8 }}>
+            <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>Spell Check</p>
+            <p style={{ margin: 0, fontSize: 11, color: '#64748b', lineHeight: 1.4 }}>Browser spell check is active — misspelled words are underlined in red</p>
+          </div>
+        </div>
+
+        {/* Right — compose */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #1e293b', flexShrink: 0 }}>
+            <h2 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>New Email</h2>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 22, cursor: 'pointer', lineHeight: 1 }}>×</button>
+          </div>
+
+          {/* Fields */}
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid #1e293b', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <span style={{ fontSize: 12, color: '#64748b', minWidth: 50 }}>To:</span>
+              <span style={{ fontSize: 13, color: '#f1f5f9', background: '#1e293b', padding: '4px 10px', borderRadius: 6 }}>{client.first_name} {client.last_name} &lt;{client.email}&gt;</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 12, color: '#64748b', minWidth: 50 }}>Subject:</span>
+              <input value={subject} onChange={e => setSubject(e.target.value)}
+                spellCheck
+                placeholder="Email subject..."
+                style={{ flex: 1, background: 'none', border: 'none', borderBottom: '1px solid #334155', outline: 'none', color: '#f1f5f9', fontSize: 13, padding: '4px 0', fontFamily: 'inherit' }} />
+            </div>
+          </div>
+
+          {/* Body */}
+          <textarea
+            ref={textareaRef}
+            value={body}
+            onChange={e => setBody(e.target.value)}
+            spellCheck
+            lang="en"
+            placeholder="Write your message here..."
+            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#cbd5e1', fontSize: 13, lineHeight: 1.7, padding: '16px 20px', resize: 'none', fontFamily: 'inherit' }}
+          />
+
+          {/* Footer */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid #1e293b', flexShrink: 0 }}>
+            <p style={{ margin: 0, fontSize: 11, color: '#475569' }}>From: PHL Land Care Inc. &lt;admin@phllandcare.com&gt;</p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={onClose} style={{ padding: '8px 16px', background: 'none', border: '1px solid #334155', borderRadius: 8, color: '#64748b', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={handleSend} disabled={sending || !subject.trim() || !body.trim()}
+                style={{ padding: '8px 20px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: sending ? 0.7 : 1 }}>
+                {sending ? 'Sending...' : '✉️ Send Email'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   )
 }
 

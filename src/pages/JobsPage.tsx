@@ -98,6 +98,8 @@ export default function JobsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
+  const [jobToast, setJobToast] = useState('')
+  const setJobToastFn = (msg: string) => { setJobToast(msg); setTimeout(() => setJobToast(''), 5000) }
   const location = useLocation()
 
   useEffect(() => {
@@ -178,6 +180,58 @@ export default function JobsPage() {
     await supabase.from('jobs').update(updates).eq('id', job.id)
     setSelectedJob({ ...job, ...updates })
     loadJobs()
+
+    // ── AUTOBILLING: fire when job marked completed ──
+    if (newStatus === 'completed') {
+      try {
+        const { data: settings } = await supabase.from('org_settings').select('*').limit(1).single()
+        if (settings?.autobill_enabled) {
+          const delayDays = settings.autobill_delay_days ?? 0
+          const fireAt = delayDays === 0
+            ? new Date().toISOString()
+            : new Date(Date.now() + delayDays * 86400000).toISOString()
+
+          // Get next invoice number
+          const { data: lastInv } = await supabase.from('invoices').select('invoice_number').order('created_at', { ascending: false }).limit(1).single()
+          const nextNum = lastInv?.invoice_number
+            ? String(parseInt((lastInv.invoice_number as string).replace(/\D/g, '') || '1000') + 1)
+            : '1001'
+
+          const invData: any = {
+            invoice_number: nextNum,
+            client_name: job.client_name,
+            client_id: job.client_id,
+            title: job.title,
+            status: 'draft',
+            amount: job.total_amount ?? 0,
+            due_date: fireAt,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            notes: `Auto-generated from Job #${job.job_number} on completion`,
+          }
+          const { data: newInv } = await supabase.from('invoices').insert(invData).select().single()
+
+          // Auto-send email if configured
+          if (settings.autobill_send_email && newInv) {
+            const { data: clientRow } = await supabase.from('clients')
+              .select('email,first_name').eq('id', job.client_id).single()
+            if (clientRow?.email) {
+              await supabase.functions.invoke('send-email', {
+                body: {
+                  to: clientRow.email,
+                  subject: `Invoice #${nextNum} from PHL Land Care Inc.`,
+                  html: `<div style="font-family:sans-serif;max-width:540px;margin:auto;padding:24px"><h2 style="color:#16a34a">PHL Land Care Inc.</h2><p>Hi ${clientRow.first_name || job.client_name},</p><p>Thank you for choosing PHL Land Care! Your invoice for <strong>${job.title}</strong> is ready.</p><p style="font-size:24px;font-weight:800;color:#111">$${(job.total_amount ?? 0).toFixed(2)}</p><p>Invoice #${nextNum} · Due: ${new Date(fireAt).toLocaleDateString()}</p><p>Thank you for your business!<br><strong>PHL Land Care Team</strong><br>📞 772-466-3617</p></div>`,
+                }
+              })
+              await supabase.from('invoices').update({ status: 'sent' }).eq('id', newInv.id)
+            }
+          }
+          setJobToastFn?.(`✅ Invoice #${nextNum} auto-created${settings.autobill_send_email ? ' & emailed to client' : ''}`)
+        }
+      } catch (e) {
+        // Autobilling failed silently — don't block status change
+      }
+    }
   }
 
   const openCreate = () => {
@@ -311,6 +365,16 @@ export default function JobsPage() {
           </div>
           <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
             <button onClick={() => openEdit(selectedJob)} style={{ padding:'8px 16px',background:'#16a34a',color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Edit Job</button>
+            <button onClick={async()=>{
+              const {data:cl}=await supabase.from('clients').select('phone,first_name').eq('id',selectedJob.client_id).single()
+              const phone=cl?.phone
+              if(!phone){setJobToastFn('⚠️ No phone number for this client');return}
+              const msg=`Hi ${cl?.first_name||selectedJob.client_name}, this is PHL Land Care. Your job "${selectedJob.title}" has been scheduled. Questions? Call 772-466-3617.`
+              try{await supabase.functions.invoke('send-sms',{body:{to:phone,message:msg}});setJobToastFn(`✅ SMS sent to ${phone}`)}
+              catch{setJobToastFn('⚠️ SMS failed — check Twilio settings')}
+            }} style={{ padding:'8px 16px',background:'rgba(167,139,250,0.1)',color:'#a78bfa',border:'1px solid rgba(167,139,250,0.3)',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>💬 SMS Client</button>
+            <button onClick={() => navigate('/invoices', { state:{ openCreate:true, clientName:selectedJob.client_name, clientId:selectedJob.client_id, jobTitle:selectedJob.title, amount:selectedJob.total_amount } })}
+              style={{ padding:'8px 16px',background:'rgba(96,165,250,0.15)',color:'#60a5fa',border:'1px solid rgba(96,165,250,0.3)',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>📄 Create Invoice</button>
             <button onClick={() => setDeleteConfirm(selectedJob.id)} style={{ padding:'8px 16px',background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.3)',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>Delete</button>
           </div>
         </div>
@@ -377,6 +441,11 @@ export default function JobsPage() {
   // ── JOBS LIST VIEW ──
   return (
     <div style={{ padding:'2rem',background:'#0a0f1a',minHeight:'100vh' }}>
+      {jobToast && (
+        <div style={{ position:'fixed',top:'1rem',right:'1rem',background:'#052e16',border:'1px solid #16a34a',borderRadius:10,padding:'12px 20px',fontSize:13,color:'#4ade80',fontWeight:600,zIndex:9999,boxShadow:'0 4px 20px rgba(0,0,0,0.4)',maxWidth:380 }}>
+          {jobToast}
+        </div>
+      )}
       <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'1.5rem',flexWrap:'wrap',gap:12 }}>
         <div>
           <h1 style={{ fontSize:28,fontWeight:800,color:'#f1f5f9',margin:'0 0 2px' }}>Jobs</h1>

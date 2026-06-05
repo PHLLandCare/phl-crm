@@ -292,6 +292,16 @@ export default function InvoicesPage() {
             <button onClick={()=>sendInvoiceEmail(inv)} disabled={sending===inv.id} style={{padding:'9px 16px',background:'#0c1a2e',border:'1px solid #0ea5e9',borderRadius:8,color:'#7dd3fc',cursor:'pointer',fontSize:13,fontFamily:'inherit',display:'flex',alignItems:'center',gap:6,opacity:sending===inv.id?0.6:1}}>
               {sending===inv.id?'Sending…':'📧 Send Email'}
             </button>
+            <button onClick={async()=>{
+              const {data:cl}=await supabase.from('clients').select('phone,first_name').ilike('first_name',inv.client_name?.split(' ')[0]||'').limit(1).single()
+              const phone=cl?.phone
+              if(!phone){showToast('⚠️ No phone number found for this client');return}
+              const msg=`Hi ${cl?.first_name||inv.client_name}, your invoice #${inv.invoice_number} for $${(inv.amount||0).toFixed(2)} from PHL Land Care is ready. Questions? Call 772-466-3617.`
+              try{await supabase.functions.invoke('send-sms',{body:{to:phone,message:msg}});showToast(`✅ SMS sent to ${phone}`)}
+              catch{showToast('⚠️ SMS failed — check Twilio settings in Settings')}
+            }} style={{padding:'9px 16px',background:'rgba(167,139,250,0.1)',border:'1px solid rgba(167,139,250,0.3)',borderRadius:8,color:'#a78bfa',cursor:'pointer',fontSize:13,fontFamily:'inherit',display:'flex',alignItems:'center',gap:6}}>
+              💬 Send SMS
+            </button>
             <button onClick={()=>setShowPayModal(true)} style={{padding:'9px 16px',background:'rgba(96,165,250,0.15)',border:'1px solid #60a5fa',borderRadius:8,color:'#60a5fa',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit'}}>💳 Record Payment</button>
             <button onClick={()=>handleMarkPaid(inv)} style={{padding:'9px 16px',background:isPaid?'rgba(100,116,139,0.15)':'rgba(74,222,128,0.15)',border:`1px solid ${isPaid?'#475569':'#16a34a'}`,borderRadius:8,color:isPaid?'#94a3b8':'#4ade80',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit'}}>
               {isPaid ? '↩ Mark Unpaid' : '✓ Mark as Paid'}

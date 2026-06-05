@@ -17,9 +17,12 @@ export default function ReportsPage() {
   const [clockEvents, setClockEvents] = useState<any[]>([])
   // Tags report state
   const [allClients, setAllClients] = useState<any[]>([])
+  const [allJobsForTags, setAllJobsForTags] = useState<any[]>([])
+  const [allInvoicesForTags, setAllInvoicesForTags] = useState<any[]>([])
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [tagSearch, setTagSearch] = useState('')
   const [tagLogic, setTagLogic] = useState<'AND'|'OR'>('OR')
+  const [tagSubTab, setTagSubTab] = useState<'clients'|'jobs'|'invoices'>('clients')
 
   useEffect(() => {
     const load = async () => {
@@ -59,10 +62,14 @@ export default function ReportsPage() {
     load()
   }, [range, division])
 
-  // Load all clients for tag report
+  // Load all clients, jobs, invoices for tag report
   useEffect(() => {
     supabase.from('clients').select('id,first_name,last_name,company,tags,status,divisions,email,phone,created_at').is('deleted_at',null)
       .then(({ data }) => setAllClients(data ?? []))
+    supabase.from('jobs').select('id,title,client_name,client_id,status,total_amount,division,created_at,scheduled_start').is('deleted_at',null)
+      .then(({ data }) => setAllJobsForTags(data ?? []))
+    supabase.from('invoices').select('id,invoice_number,client_name,client_id,status,amount,created_at').is('deleted_at',null)
+      .then(({ data }) => setAllInvoicesForTags(data ?? []))
   }, [])
 
   const fmt = (n:number) => n >= 1000 ? `$${(n/1000).toFixed(1)}k` : `$${n.toFixed(0)}`
@@ -342,28 +349,35 @@ export default function ReportsPage() {
         </div>
       )}
 
+
       {tab === 'tags' && (() => {
-        // Gather all unique tags across all clients
+        // Gather all unique tags from clients
         const allTags = Array.from(new Set(
           allClients.flatMap(c => (c.tags||'').split(',').map((t:string)=>t.trim()).filter(Boolean))
         )).sort()
 
-        // Filter clients by selected tags
+        // Tagged clients
         const taggedClients = selectedTags.length === 0 ? allClients : allClients.filter(c => {
-          const clientTags = (c.tags||'').split(',').map((t:string)=>t.trim()).filter(Boolean)
-          if (tagLogic === 'AND') return selectedTags.every(t => clientTags.includes(t))
-          return selectedTags.some(t => clientTags.includes(t))
+          const ct = (c.tags||'').split(',').map((t:string)=>t.trim()).filter(Boolean)
+          return tagLogic === 'AND' ? selectedTags.every(t=>ct.includes(t)) : selectedTags.some(t=>ct.includes(t))
         })
 
-        const exportTagReport = () => {
-          const rows = [['Name','Company','Phone','Email','Tags','Status','Division','Joined']]
-          taggedClients.forEach(c => rows.push([
-            `${c.first_name} ${c.last_name}`, c.company||'', c.phone||'', c.email||'',
-            c.tags||'', c.status||'', c.divisions||'', c.created_at?.slice(0,10)||''
-          ]))
-          const csv = rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n')
-          const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='tag_report.csv'; a.click()
+        // Tagged jobs — match via client name
+        const taggedClientNames = new Set(taggedClients.map((c:any)=>`${c.first_name} ${c.last_name}`))
+        const taggedJobs = selectedTags.length === 0 ? allJobsForTags : allJobsForTags.filter(j => taggedClientNames.has(j.client_name))
+        const taggedInvoices = selectedTags.length === 0 ? allInvoicesForTags : allInvoicesForTags.filter(i => taggedClientNames.has(i.client_name))
+
+        const exportAll = () => {
+          const rows = [['Type','Name/Number','Client','Status','Amount/Division','Date']]
+          taggedClients.forEach(c=>rows.push(['Client',`${c.first_name} ${c.last_name}`,c.company||'',c.status||'',c.divisions||'',c.created_at?.slice(0,10)||'']))
+          taggedJobs.forEach(j=>rows.push(['Job',j.title||'',j.client_name||'',j.status||'',String(j.total_amount||0),j.scheduled_start?.slice(0,10)||j.created_at?.slice(0,10)||'']))
+          taggedInvoices.forEach(i=>rows.push(['Invoice',i.invoice_number||'',i.client_name||'',i.status||'',String(i.amount||0),i.created_at?.slice(0,10)||'']))
+          const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n')
+          const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='tag_report.csv';a.click()
         }
+
+        const fmtMoney = (n:number) => '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})
+        const fmtD = (d:string) => d ? new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '—'
 
         return (
           <div>
@@ -373,96 +387,136 @@ export default function ReportsPage() {
                 <h3 style={{margin:0,fontSize:14,fontWeight:700,color:'#f1f5f9'}}>Filter by Tags</h3>
                 <div style={{display:'flex',gap:8,alignItems:'center'}}>
                   <span style={{fontSize:12,color:'#64748b'}}>Logic:</span>
-                  {(['OR','AND'] as const).map(l => (
-                    <button key={l} onClick={()=>setTagLogic(l)}
-                      style={{padding:'4px 12px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',
-                        background:tagLogic===l?'rgba(74,222,128,0.15)':'#1e293b',
-                        color:tagLogic===l?'#4ade80':'#64748b',
-                        border:tagLogic===l?'1px solid rgba(74,222,128,0.3)':'1px solid #334155'}}>
-                      {l} {l==='OR'?'(any tag)':'(all tags)'}
+                  {(['OR','AND'] as const).map(l=>(
+                    <button key={l} onClick={()=>setTagLogic(l)} style={{padding:'4px 12px',borderRadius:8,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',
+                      background:tagLogic===l?'rgba(74,222,128,0.15)':'#1e293b',color:tagLogic===l?'#4ade80':'#64748b',
+                      border:tagLogic===l?'1px solid rgba(74,222,128,0.3)':'1px solid #334155'}}>
+                      {l} {l==='OR'?'(any)':'(all)'}
                     </button>
                   ))}
-                  {selectedTags.length > 0 && (
-                    <button onClick={()=>setSelectedTags([])} style={{padding:'4px 10px',borderRadius:8,fontSize:12,color:'#f87171',background:'rgba(248,113,113,0.1)',border:'1px solid rgba(248,113,113,0.2)',cursor:'pointer',fontFamily:'inherit'}}>Clear all</button>
-                  )}
+                  {selectedTags.length>0&&<button onClick={()=>setSelectedTags([])} style={{padding:'4px 10px',borderRadius:8,fontSize:12,color:'#f87171',background:'rgba(248,113,113,0.1)',border:'1px solid rgba(248,113,113,0.2)',cursor:'pointer',fontFamily:'inherit'}}>Clear</button>}
+                  <button onClick={exportAll} style={{padding:'4px 12px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,color:'#f1f5f9',cursor:'pointer',fontSize:12,fontFamily:'inherit',fontWeight:600}}>📥 Export All</button>
                 </div>
               </div>
               <input placeholder="Search tags..." value={tagSearch} onChange={e=>setTagSearch(e.target.value)}
-                style={{width:'100%',padding:'8px 12px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,fontSize:13,color:'#f1f5f9',outline:'none',fontFamily:'inherit',boxSizing:'border-box',marginBottom:10}} />
+                style={{width:'100%',padding:'8px 12px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,fontSize:13,color:'#f1f5f9',outline:'none',fontFamily:'inherit',boxSizing:'border-box' as any,marginBottom:10}}/>
               <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-                {allTags.filter(t=>!tagSearch||t.toLowerCase().includes(tagSearch.toLowerCase())).map(t => {
-                  const active = selectedTags.includes(t)
-                  return (
+                {allTags.filter(t=>!tagSearch||t.toLowerCase().includes(tagSearch.toLowerCase())).map(t=>{
+                  const active=selectedTags.includes(t)
+                  return(
                     <button key={t} onClick={()=>setSelectedTags(prev=>active?prev.filter(x=>x!==t):[...prev,t])}
                       style={{padding:'5px 12px',borderRadius:99,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',
-                        background:active?'rgba(74,222,128,0.2)':'#1e293b',
-                        color:active?'#4ade80':'#94a3b8',
-                        border:active?'1px solid rgba(74,222,128,0.4)':'1px solid #334155',
-                        transition:'all .15s'}}>
-                      {active ? '✓ ' : ''}{t}
+                        background:active?'rgba(74,222,128,0.2)':'#1e293b',color:active?'#4ade80':'#94a3b8',
+                        border:active?'1px solid rgba(74,222,128,0.4)':'1px solid #334155',transition:'all .15s'}}>
+                      {active?'✓ ':''}{t}
                     </button>
                   )
                 })}
-                {allTags.length === 0 && <span style={{fontSize:13,color:'#475569'}}>No tags found — add tags to client records first</span>}
+                {allTags.length===0&&<span style={{fontSize:13,color:'#475569'}}>No tags yet — add tags to client records first</span>}
               </div>
             </div>
 
-            {/* Results */}
-            <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',overflow:'hidden'}}>
-              <div style={{padding:'1rem 1.25rem',borderBottom:'1px solid #1e293b',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                <div>
-                  <p style={{margin:'0 0 2px',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>
-                    {selectedTags.length === 0 ? 'All Clients' : `Clients with tag${selectedTags.length>1?'s':''}: ${selectedTags.join(tagLogic==='AND'?' + ':' or ')}`}
-                  </p>
-                  <p style={{margin:0,fontSize:12,color:'#64748b'}}>{taggedClients.length} client{taggedClients.length!==1?'s':''} found</p>
+            {/* Summary KPIs */}
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:16}}>
+              {[
+                {label:'Tagged Clients',val:String(taggedClients.length),color:'#4ade80'},
+                {label:'Related Jobs',val:String(taggedJobs.length),color:'#60a5fa'},
+                {label:'Related Invoices',val:String(taggedInvoices.length)+` (${fmtMoney(taggedInvoices.reduce((a:number,i:any)=>a+(i.amount||0),0))})`,color:'#fbbf24'},
+              ].map(s=>(
+                <div key={s.label} style={{background:'#0f172a',border:'1px solid #1e293b',borderRadius:12,padding:'1rem',borderTop:`3px solid ${s.color}`}}>
+                  <p style={{margin:'0 0 4px',fontSize:11,color:s.color,fontWeight:700,textTransform:'uppercase'}}>{s.label}</p>
+                  <p style={{margin:0,fontSize:20,fontWeight:800,color:'#f1f5f9'}}>{s.val}</p>
                 </div>
-                <button onClick={exportTagReport} style={{padding:'8px 14px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,color:'#f1f5f9',cursor:'pointer',fontSize:13,fontFamily:'inherit',fontWeight:600}}>
-                  📥 Export CSV
+              ))}
+            </div>
+
+            {/* Sub-tabs */}
+            <div style={{display:'flex',gap:4,marginBottom:12,borderBottom:'1px solid #1e293b',paddingBottom:0}}>
+              {([['clients','👥 Clients'],['jobs','🔧 Jobs'],['invoices','💰 Invoices']] as const).map(([id,label])=>(
+                <button key={id} onClick={()=>setTagSubTab(id as any)}
+                  style={{padding:'8px 16px',border:'none',background:'transparent',color:tagSubTab===id?'#4ade80':'#64748b',fontWeight:tagSubTab===id?700:400,fontSize:13,cursor:'pointer',fontFamily:'inherit',borderBottom:tagSubTab===id?'2px solid #4ade80':'2px solid transparent',marginBottom:-1}}>
+                  {label}
                 </button>
-              </div>
-              <table style={{width:'100%',borderCollapse:'collapse'}}>
-                <thead>
-                  <tr style={{background:'#0a0f1a'}}>
+              ))}
+            </div>
+
+            {/* Clients table */}
+            {tagSubTab==='clients'&&(
+              <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',overflow:'hidden'}}>
+                <table style={{width:'100%',borderCollapse:'collapse'}}>
+                  <thead><tr style={{background:'#0a0f1a'}}>
                     {['Client','Division','Tags','Status','Phone','Email'].map(h=>(
                       <th key={h} style={{padding:'10px 16px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {taggedClients.length === 0 ? (
-                    <tr><td colSpan={6} style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No clients match the selected tags</td></tr>
-                  ) : taggedClients.map((c,i)=>{
-                    const tags = (c.tags||'').split(',').map((t:string)=>t.trim()).filter(Boolean)
-                    return (
-                      <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
-                        <td style={{padding:'11px 16px'}}>
-                          <p style={{margin:'0 0 1px',fontSize:13,fontWeight:600,color:'#f1f5f9'}}>{c.first_name} {c.last_name}</p>
-                          {c.company && <p style={{margin:0,fontSize:11,color:'#64748b'}}>{c.company}</p>}
-                        </td>
+                  </tr></thead>
+                  <tbody>
+                    {taggedClients.length===0?(<tr><td colSpan={6} style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No clients match</td></tr>)
+                    :taggedClients.map((c:any,i:number)=>{
+                      const tags=(c.tags||'').split(',').map((t:string)=>t.trim()).filter(Boolean)
+                      return(<tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
+                        <td style={{padding:'11px 16px'}}><p style={{margin:'0 0 1px',fontSize:13,fontWeight:600,color:'#f1f5f9'}}>{c.first_name} {c.last_name}</p>{c.company&&<p style={{margin:0,fontSize:11,color:'#64748b'}}>{c.company}</p>}</td>
                         <td style={{padding:'11px 16px',fontSize:13,color:'#64748b'}}>{c.divisions||'—'}</td>
-                        <td style={{padding:'11px 16px'}}>
-                          <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
-                            {tags.map((t:string,j:number)=>(
-                              <span key={j} style={{
-                                padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600,
-                                background:selectedTags.includes(t)?'rgba(74,222,128,0.2)':'rgba(100,116,139,0.15)',
-                                color:selectedTags.includes(t)?'#4ade80':'#94a3b8',
-                                border:selectedTags.includes(t)?'1px solid rgba(74,222,128,0.3)':'none'
-                              }}>{t}</span>
-                            ))}
-                          </div>
-                        </td>
-                        <td style={{padding:'11px 16px'}}>
-                          <span style={{background:c.status==='active'?'rgba(74,222,128,0.15)':'rgba(100,116,139,0.15)',color:c.status==='active'?'#4ade80':'#94a3b8',padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600,textTransform:'capitalize'}}>{c.status}</span>
-                        </td>
+                        <td style={{padding:'11px 16px'}}><div style={{display:'flex',flexWrap:'wrap',gap:4}}>{tags.map((t:string,j:number)=>(<span key={j} style={{padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600,background:selectedTags.includes(t)?'rgba(74,222,128,0.2)':'rgba(100,116,139,0.15)',color:selectedTags.includes(t)?'#4ade80':'#94a3b8'}}>{t}</span>))}</div></td>
+                        <td style={{padding:'11px 16px'}}><span style={{background:c.status==='active'?'rgba(74,222,128,0.15)':'rgba(100,116,139,0.15)',color:c.status==='active'?'#4ade80':'#94a3b8',padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600,textTransform:'capitalize'}}>{c.status}</span></td>
                         <td style={{padding:'11px 16px',fontSize:12,color:'#64748b'}}>{c.phone||'—'}</td>
                         <td style={{padding:'11px 16px',fontSize:12,color:'#64748b'}}>{c.email||'—'}</td>
+                      </tr>)
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Jobs table */}
+            {tagSubTab==='jobs'&&(
+              <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',overflow:'hidden'}}>
+                <table style={{width:'100%',borderCollapse:'collapse'}}>
+                  <thead><tr style={{background:'#0a0f1a'}}>
+                    {['Job Title','Client','Division','Status','Amount','Date'].map(h=>(
+                      <th key={h} style={{padding:'10px 16px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {taggedJobs.length===0?(<tr><td colSpan={6} style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No jobs found for selected tags</td></tr>)
+                    :taggedJobs.map((j:any,i:number)=>(
+                      <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
+                        <td style={{padding:'11px 16px',fontSize:13,fontWeight:600,color:'#f1f5f9'}}>{j.title||'—'}</td>
+                        <td style={{padding:'11px 16px',fontSize:13,color:'#94a3b8'}}>{j.client_name||'—'}</td>
+                        <td style={{padding:'11px 16px',fontSize:12,color:'#64748b'}}>{j.division||'—'}</td>
+                        <td style={{padding:'11px 16px'}}><span style={{background:j.status==='completed'?'rgba(74,222,128,0.15)':'rgba(100,116,139,0.15)',color:j.status==='completed'?'#4ade80':'#94a3b8',padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600,textTransform:'capitalize'}}>{j.status}</span></td>
+                        <td style={{padding:'11px 16px',fontSize:13,fontWeight:700,color:'#4ade80'}}>{fmtMoney(j.total_amount||0)}</td>
+                        <td style={{padding:'11px 16px',fontSize:12,color:'#64748b'}}>{fmtD(j.scheduled_start||j.created_at)}</td>
                       </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Invoices table */}
+            {tagSubTab==='invoices'&&(
+              <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',overflow:'hidden'}}>
+                <table style={{width:'100%',borderCollapse:'collapse'}}>
+                  <thead><tr style={{background:'#0a0f1a'}}>
+                    {['Invoice #','Client','Status','Amount','Date'].map(h=>(
+                      <th key={h} style={{padding:'10px 16px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>
+                    ))}
+                  </tr></thead>
+                  <tbody>
+                    {taggedInvoices.length===0?(<tr><td colSpan={5} style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No invoices found for selected tags</td></tr>)
+                    :taggedInvoices.map((inv:any,i:number)=>(
+                      <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
+                        <td style={{padding:'11px 16px',fontSize:13,fontWeight:600,color:'#f1f5f9'}}>#{inv.invoice_number||inv.id}</td>
+                        <td style={{padding:'11px 16px',fontSize:13,color:'#94a3b8'}}>{inv.client_name||'—'}</td>
+                        <td style={{padding:'11px 16px'}}><span style={{background:inv.status==='paid'?'rgba(74,222,128,0.15)':inv.status==='overdue'?'rgba(248,113,113,0.15)':'rgba(251,191,36,0.15)',color:inv.status==='paid'?'#4ade80':inv.status==='overdue'?'#f87171':'#fbbf24',padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600,textTransform:'capitalize'}}>{inv.status}</span></td>
+                        <td style={{padding:'11px 16px',fontSize:13,fontWeight:700,color:'#4ade80'}}>{fmtMoney(inv.amount||0)}</td>
+                        <td style={{padding:'11px 16px',fontSize:12,color:'#64748b'}}>{fmtD(inv.created_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )
       })()}
