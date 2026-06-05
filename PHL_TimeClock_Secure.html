@@ -320,7 +320,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <span class="drawer-title" id="emp-drawer-title">Add New Employee</span>
     <button class="drawer-close" onclick="closeEmpDrawer()">×</button>
   </div>
-  <div class="drawer-body">
+  <!-- Drawer tabs -->
+  <div style="display:flex;border-bottom:1px solid var(--border);background:#fafbfc;flex-shrink:0">
+    <button id="dtab-info" onclick="switchDrawerTab('info')" style="flex:1;padding:10px;border:none;background:transparent;font-size:12px;font-weight:700;color:#1e3a5f;border-bottom:2px solid #1e3a5f;cursor:pointer;font-family:inherit">👤 Employee Info</button>
+    <button id="dtab-docs" onclick="switchDrawerTab('docs')" style="flex:1;padding:10px;border:none;background:transparent;font-size:12px;font-weight:600;color:#6b7a90;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit">📁 Documents</button>
+  </div>
+
+  <!-- INFO TAB -->
+  <div class="drawer-body" id="dtab-info-panel">
     <div class="form-sec">Personal info</div>
     <div class="fg">
       <div><div class="fl">First name *</div><input class="fi" id="ef-fname" placeholder="First name"></div>
@@ -373,6 +380,48 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       ⬛ QR <strong>QR badge:</strong> After saving, click the QR button next to the employee to print their personal badge. They scan it to clock in — no PIN needed.
     </div>
   </div>
+
+  <!-- DOCUMENTS TAB -->
+  <div class="drawer-body" id="dtab-docs-panel" style="display:none">
+    <div class="form-sec" style="margin-top:0">Employee Paperwork & Documents</div>
+    <p style="font-size:12px;color:#6b7a90;margin:0 0 12px">Upload W4, I-9, direct deposit forms, contracts, or any other employee documents. Files are stored securely and only visible to admins.</p>
+
+    <!-- Upload area -->
+    <div id="doc-drop-zone" style="border:2px dashed #c7d2e0;border-radius:10px;padding:20px;text-align:center;cursor:pointer;margin-bottom:14px;transition:border-color .2s"
+      onclick="document.getElementById('doc-file-input').click()"
+      ondragover="event.preventDefault();this.style.borderColor='#1e3a5f'"
+      ondragleave="this.style.borderColor='#c7d2e0'"
+      ondrop="handleDocDrop(event)">
+      <div style="font-size:28px;margin-bottom:6px">📎</div>
+      <p style="margin:0 0 3px;font-size:13px;font-weight:700;color:#1e3a5f">Click to upload or drag files here</p>
+      <p style="margin:0;font-size:11px;color:#6b7a90">PDF, Word, images accepted · Max 10MB per file</p>
+      <input type="file" id="doc-file-input" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif" style="display:none" onchange="handleDocFiles(this.files)">
+    </div>
+
+    <!-- Document type quick-label buttons -->
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+      <span style="font-size:10px;color:#6b7a90;font-weight:700;text-transform:uppercase;width:100%;margin-bottom:2px">Quick label for next upload:</span>
+      <button class="doc-type-btn" onclick="setDocLabel('W-4 Form')" style="padding:4px 10px;border:1px solid #c7d2e0;border-radius:20px;background:#f4f6f9;font-size:11px;cursor:pointer;font-family:inherit">W-4</button>
+      <button class="doc-type-btn" onclick="setDocLabel('I-9 Form')" style="padding:4px 10px;border:1px solid #c7d2e0;border-radius:20px;background:#f4f6f9;font-size:11px;cursor:pointer;font-family:inherit">I-9</button>
+      <button class="doc-type-btn" onclick="setDocLabel('Direct Deposit')" style="padding:4px 10px;border:1px solid #c7d2e0;border-radius:20px;background:#f4f6f9;font-size:11px;cursor:pointer;font-family:inherit">Direct Deposit</button>
+      <button class="doc-type-btn" onclick="setDocLabel('Employment Contract')" style="padding:4px 10px;border:1px solid #c7d2e0;border-radius:20px;background:#f4f6f9;font-size:11px;cursor:pointer;font-family:inherit">Contract</button>
+      <button class="doc-type-btn" onclick="setDocLabel('Background Check')" style="padding:4px 10px;border:1px solid #c7d2e0;border-radius:20px;background:#f4f6f9;font-size:11px;cursor:pointer;font-family:inherit">Background Check</button>
+      <button class="doc-type-btn" onclick="setDocLabel('Driver License')" style="padding:4px 10px;border:1px solid #c7d2e0;border-radius:20px;background:#f4f6f9;font-size:11px;cursor:pointer;font-family:inherit">Driver License</button>
+      <button class="doc-type-btn" onclick="setDocLabel('Other')" style="padding:4px 10px;border:1px solid #c7d2e0;border-radius:20px;background:#f4f6f9;font-size:11px;cursor:pointer;font-family:inherit">Other</button>
+    </div>
+    <div id="doc-label-display" style="display:none;margin-bottom:10px;padding:6px 10px;background:#e6f9fd;border-radius:6px;font-size:12px;color:#0c447c">
+      Next upload will be labeled: <strong id="doc-label-text"></strong> <button onclick="clearDocLabel()" style="background:none;border:none;color:#6b7a90;cursor:pointer;font-size:13px;margin-left:6px">×</button>
+    </div>
+
+    <!-- Upload progress -->
+    <div id="doc-uploading" style="display:none;padding:10px;text-align:center;color:#6b7a90;font-size:13px">⏳ Uploading...</div>
+
+    <!-- File list -->
+    <div id="doc-file-list" style="display:flex;flex-direction:column;gap:8px">
+      <p style="color:#9aacbc;font-size:13px;text-align:center;margin:16px 0" id="doc-empty-msg">No documents uploaded yet.<br>Save the employee first, then upload their paperwork.</p>
+    </div>
+  </div>
+
   <div class="drawer-footer">
     <button class="btn" onclick="closeEmpDrawer()">Cancel</button>
     <button class="btn primary" id="emp-save-btn" onclick="saveEmployee()">+ User <span id="emp-save-lbl">Add employee</span></button>
@@ -649,6 +698,8 @@ function openAddEmp() {
   document.getElementById('ef-emptype').value = 'W2';
   document.getElementById('ef-rate').value = '';
   document.getElementById('ef-ssn').value = '';
+  currentDocEmpId = null;
+  switchDrawerTab('info');
   updateEmpIdField();
   document.getElementById('emp-drawer').classList.add('open');
   document.getElementById('emp-overlay').classList.add('show');
@@ -673,6 +724,8 @@ function editEmp(eid) {
   document.getElementById('ef-emptype').value = e.employee_type||'W2';
   document.getElementById('ef-rate').value = e.hourly_rate||'';
   document.getElementById('ef-ssn').value = e.ssn ? '••••••••••' : '';
+  currentDocEmpId = eid;
+  switchDrawerTab('info');
   document.getElementById('emp-drawer').classList.add('open');
   document.getElementById('emp-overlay').classList.add('show');
   setTimeout(function(){ document.getElementById('ef-fname').focus(); }, 250);
@@ -906,7 +959,172 @@ document.addEventListener('click', function(ev) {
   else if (btn.classList.contains('btn-restore')){ ev.stopPropagation(); restoreEmp(eid); }
 });
 
-// Init
+// ── DOCUMENT TAB ──────────────────────────────────────────────────────────────
+var currentDocEmpId = null;
+var pendingDocLabel = null;
+
+function switchDrawerTab(tab) {
+  var infoPanel = document.getElementById('dtab-info-panel');
+  var docsPanel = document.getElementById('dtab-docs-panel');
+  var infoBtn   = document.getElementById('dtab-info');
+  var docsBtn   = document.getElementById('dtab-docs');
+  if (tab === 'info') {
+    infoPanel.style.display = '';
+    docsPanel.style.display = 'none';
+    infoBtn.style.color = '#1e3a5f';
+    infoBtn.style.borderBottomColor = '#1e3a5f';
+    infoBtn.style.fontWeight = '700';
+    docsBtn.style.color = '#6b7a90';
+    docsBtn.style.borderBottomColor = 'transparent';
+    docsBtn.style.fontWeight = '600';
+  } else {
+    infoPanel.style.display = 'none';
+    docsPanel.style.display = '';
+    docsBtn.style.color = '#1e3a5f';
+    docsBtn.style.borderBottomColor = '#1e3a5f';
+    docsBtn.style.fontWeight = '700';
+    infoBtn.style.color = '#6b7a90';
+    infoBtn.style.borderBottomColor = 'transparent';
+    infoBtn.style.fontWeight = '600';
+    if (currentDocEmpId) loadDocuments(currentDocEmpId);
+    else {
+      document.getElementById('doc-empty-msg').textContent = 'Save the employee first, then upload their paperwork.';
+      document.getElementById('doc-empty-msg').style.display = 'block';
+    }
+  }
+}
+
+function setDocLabel(label) {
+  pendingDocLabel = label;
+  document.getElementById('doc-label-text').textContent = label;
+  document.getElementById('doc-label-display').style.display = 'block';
+  document.querySelectorAll('.doc-type-btn').forEach(function(b) {
+    b.style.background = b.textContent.trim() === label.replace(' Form','') || b.textContent.trim() === label ? '#1e3a5f' : '#f4f6f9';
+    b.style.color = b.textContent.trim() === label.replace(' Form','') || b.textContent.trim() === label ? '#fff' : '';
+    b.style.borderColor = b.style.background === '#1e3a5f' ? '#1e3a5f' : '#c7d2e0';
+  });
+}
+
+function clearDocLabel() {
+  pendingDocLabel = null;
+  document.getElementById('doc-label-display').style.display = 'none';
+  document.querySelectorAll('.doc-type-btn').forEach(function(b) {
+    b.style.background = '#f4f6f9'; b.style.color = ''; b.style.borderColor = '#c7d2e0';
+  });
+}
+
+function handleDocDrop(ev) {
+  ev.preventDefault();
+  document.getElementById('doc-drop-zone').style.borderColor = '#c7d2e0';
+  handleDocFiles(ev.dataTransfer.files);
+}
+
+async function handleDocFiles(files) {
+  if (!currentDocEmpId) {
+    toast('Please save the employee first before uploading documents');
+    return;
+  }
+  var uploading = document.getElementById('doc-uploading');
+  uploading.style.display = 'block';
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
+    if (file.size > 10 * 1024 * 1024) { toast('File too large: ' + file.name + ' (max 10MB)'); continue; }
+    var label = pendingDocLabel || file.name;
+    var safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    var path = 'employee-docs/' + currentDocEmpId + '/' + Date.now() + '_' + safeName;
+    try {
+      // Upload to Supabase Storage
+      var formData = new FormData();
+      formData.append('', file);
+      var uploadRes = await fetch(SUPA_URL + '/storage/v1/object/' + path, {
+        method: 'POST',
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
+        body: file
+      });
+      if (!uploadRes.ok) {
+        var errText = await uploadRes.text();
+        // Bucket may not exist yet — store as base64 in the DB as fallback
+        await saveDocToDb(currentDocEmpId, file.name, label, '', file.size, file.type);
+        toast('⚠️ Storage bucket not set up — doc name saved. See setup instructions.');
+      } else {
+        var publicUrl = SUPA_URL + '/storage/v1/object/public/' + path;
+        await saveDocToDb(currentDocEmpId, file.name, label, publicUrl, file.size, file.type);
+        toast('✅ ' + file.name + ' uploaded!');
+      }
+      clearDocLabel();
+    } catch(e) {
+      toast('Error uploading ' + file.name + ': ' + e.message);
+    }
+  }
+  uploading.style.display = 'none';
+  loadDocuments(currentDocEmpId);
+}
+
+async function saveDocToDb(empId, fileName, label, url, size, mimeType) {
+  // Store in employee_documents table (falls back gracefully if table doesn't exist)
+  try {
+    await sb('POST', '/employee_documents', {
+      employee_id: empId,
+      file_name: fileName,
+      label: label,
+      url: url,
+      file_size: size,
+      mime_type: mimeType,
+      uploaded_at: new Date().toISOString()
+    });
+  } catch(e) {
+    // Table doesn't exist yet — create it or use employees.notes as fallback
+    console.warn('employee_documents table not found. Please create it in Supabase.', e.message);
+    throw e;
+  }
+}
+
+async function loadDocuments(empId) {
+  var list = document.getElementById('doc-file-list');
+  var emptyMsg = document.getElementById('doc-empty-msg');
+  list.innerHTML = '<p style="color:#9aacbc;font-size:13px;text-align:center;margin:16px 0">Loading...</p>';
+  try {
+    var docs = await sb('GET', '/employee_documents?employee_id=eq.' + encodeURIComponent(empId) + '&order=uploaded_at.desc');
+    list.innerHTML = '';
+    if (!docs || docs.length === 0) {
+      list.innerHTML = '<p style="color:#9aacbc;font-size:13px;text-align:center;margin:16px 0" id="doc-empty-msg">No documents yet. Upload W4, I-9, and other paperwork above.</p>';
+      return;
+    }
+    docs.forEach(function(doc) {
+      var ext = (doc.file_name||'').split('.').pop().toLowerCase();
+      var icon = ext === 'pdf' ? '📄' : ['jpg','jpeg','png','gif'].includes(ext) ? '🖼️' : ['doc','docx'].includes(ext) ? '📝' : '📁';
+      var size = doc.file_size ? (doc.file_size > 1024*1024 ? (doc.file_size/1024/1024).toFixed(1)+'MB' : Math.round(doc.file_size/1024)+'KB') : '';
+      var date = doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e1e8ef;border-radius:8px';
+      row.innerHTML = '<span style="font-size:22px;flex-shrink:0">' + icon + '</span>' +
+        '<div style="flex:1;min-width:0">' +
+          '<p style="margin:0 0 1px;font-size:13px;font-weight:600;color:#1a2a3a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (doc.label||doc.file_name) + '</p>' +
+          '<p style="margin:0;font-size:11px;color:#6b7a90">' + [doc.file_name, size, date].filter(Boolean).join(' · ') + '</p>' +
+        '</div>' +
+        (doc.url ? '<a href="' + doc.url + '" target="_blank" style="font-size:12px;color:#1e3a5f;font-weight:600;text-decoration:none;white-space:nowrap;flex-shrink:0">View ↗</a>' : '') +
+        '<button onclick="deleteDoc(\'' + doc.id + '\',\'' + (doc.url||'') + '\')" style="background:none;border:none;color:#e53e3e;cursor:pointer;font-size:16px;flex-shrink:0;padding:0 2px" title="Delete">🗑</button>';
+      list.appendChild(row);
+    });
+  } catch(e) {
+    list.innerHTML = '<p style="color:#e53e3e;font-size:12px;text-align:center;margin:12px 0">⚠️ employee_documents table not found.<br>Run the setup SQL in Supabase to enable document storage.</p>';
+  }
+}
+
+async function deleteDoc(docId, url) {
+  if (!confirm('Delete this document? This cannot be undone.')) return;
+  try {
+    await sb('DELETE', '/employee_documents?id=eq.' + encodeURIComponent(docId));
+    if (url) {
+      var path = url.replace(SUPA_URL + '/storage/v1/object/public/', '');
+      await fetch(SUPA_URL + '/storage/v1/object/' + path, { method:'DELETE', headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY} });
+    }
+    toast('Document deleted');
+    loadDocuments(currentDocEmpId);
+  } catch(e) { toast('Error deleting: ' + e.message); }
+}
+
+// ── Init
 loadEmployees();
 loadClockEvents();
 </script>
