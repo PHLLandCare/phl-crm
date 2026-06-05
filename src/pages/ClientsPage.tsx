@@ -379,8 +379,8 @@ export default function ClientsPage() {
     const addr = [selectedClient.address, selectedClient.city, selectedClient.state, selectedClient.zip].filter(Boolean).join(', ')
 
     return (
-      <div style={{ padding: '2rem', background: '#0a0f1a', minHeight: '100vh', position: 'relative' }} onClick={() => {
-        {clientToast && <div style={{ position:'fixed',top:'1rem',right:'1rem',background:'#052e16',border:'1px solid #16a34a',borderRadius:10,padding:'10px 18px',fontSize:14,color:'#4ade80',fontWeight:600,zIndex:9999 }}>{clientToast}</div>}
+      <div style={{ padding: '2rem', background: '#0a0f1a', minHeight: '100vh', position: 'relative' }} onClick={(e) => {
+        if (showEmailModal) return
         setShowDotsMenu(false); setShowCreateMenu(false); setShowWorkCreate(false)
         setShowBillingMenu(false); setShowSchedTypeMenu(false); setShowSchedStatusMenu(false)
       }}>
@@ -1155,12 +1155,12 @@ export default function ClientsPage() {
 
       {/* ── EMAIL TEMPLATE MODAL ── */}
       {showEmailModal && selectedClient && (
+        <div onClick={e => e.stopPropagation()} style={{ position: 'fixed', inset: 0, zIndex: 699 }}>
         <EmailTemplateModal
           client={selectedClient}
           initialForm={emailForm}
           onClose={() => setShowEmailModal(false)}
           onSent={(subject, body) => {
-            // Log comm entry to client notes
             const sentAt = new Date().toISOString()
             const commEntry = `COMM|type:email_general|sent_at:${sentAt}|to:${selectedClient.email}|subject:${subject}|body:${body}`
             const updatedNotes = (selectedClient.notes || '') + (selectedClient.notes ? '\n\n' : '') + commEntry
@@ -1169,6 +1169,7 @@ export default function ClientsPage() {
             showClientToast('✅ Email sent!')
           }}
         />
+        </div>
       )}
 
       {/* New Client Modal */}

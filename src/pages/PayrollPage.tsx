@@ -3,9 +3,9 @@ import { supabase } from '../lib/supabase'
 
 const COMPANY = {
   name: 'PHL Land Care Inc.',
-  address: '123 PHL Way',
-  cityStateZip: 'Lake Park, FL 33403',
-  email: 'info@phllandcare.com',
+  address: 'PO Box 13767',
+  cityStateZip: 'Fort Pierce, FL 34979',
+  email: 'admin@phllandcare.com',
   logo: 'https://phllandcare.github.io/phl-crm/phl_logo.jpg',
 }
 
