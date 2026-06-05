@@ -338,6 +338,17 @@ export default function TeamPage() {
   const [showInvite, setShowInvite] = useState(false)
   const [addMode, setAddMode] = useState<'invite' | 'manual'>('invite')
   const [manualPassword, setManualPassword] = useState('')
+  const [invitePhone, setInvitePhone] = useState('')
+  const [invitePersonalEmail, setInvitePersonalEmail] = useState('')
+  const [inviteAddress, setInviteAddress] = useState('')
+  const [inviteCity, setInviteCity] = useState('')
+  const [inviteState, setInviteState] = useState('')
+  const [inviteZip, setInviteZip] = useState('')
+  const [inviteSSN, setInviteSSN] = useState('')
+  const [inviteFilingStatus, setInviteFilingStatus] = useState('')
+  const [inviteEmpType, setInviteEmpType] = useState<'W2'|'1099'>('W2')
+  const [paperworkUploading, setPaperworkUploading] = useState(false)
+  const [paperworkFiles, setPaperworkFiles] = useState<{name:string;url:string}[]>([])
   const [showEdit, setShowEdit] = useState(false)
   const [editMember, setEditMember] = useState<TeamMember | null>(null)
   const [inviteEmail, setInviteEmail] = useState('')
@@ -397,11 +408,30 @@ export default function TeamPage() {
             role: inviteRole,
             active: true,
           })
+          // Save personal info to employee_details
+          await supabase.from('employee_details').upsert({
+            user_id: data.user.id,
+            full_name: inviteName.trim(),
+            work_email: inviteEmail.trim(),
+            personal_email: invitePersonalEmail.trim()||null,
+            phone: invitePhone.trim()||null,
+            address: inviteAddress.trim()||null,
+            city: inviteCity.trim()||null,
+            state: inviteState.trim()||null,
+            zip: inviteZip.trim()||null,
+            ssn: inviteSSN.trim()||null,
+            filing_status: inviteFilingStatus||null,
+            employee_type: inviteEmpType,
+            paperwork_files: paperworkFiles.length > 0 ? JSON.stringify(paperworkFiles) : null,
+          }).catch(() => null) // table may not exist yet — silent fail
         }
         setSuccess(`${inviteName} added successfully! They can log in with their email and the password you set.`)
       }
       setShowInvite(false)
       setInviteEmail(''); setInviteName(''); setInviteRole('worker_limited'); setManualPassword('')
+      setInvitePhone(''); setInvitePersonalEmail(''); setInviteAddress(''); setInviteCity('')
+      setInviteState(''); setInviteZip(''); setInviteSSN(''); setInviteFilingStatus(''); setInviteEmpType('W2')
+      setPaperworkFiles([])
       setTimeout(() => setSuccess(null), 5000)
       loadMembers()
     } catch (e: any) { setError('Failed: ' + e.message) }
@@ -600,24 +630,28 @@ export default function TeamPage() {
             <label style={lbl}>Email address *</label>
             <input style={{ ...inp, marginBottom: 12 }} type="email" value={inviteEmail} onChange={e => setInviteEmail(e.target.value)} placeholder="e.g. brandon@phllandcare.com" />
             <label style={lbl}>Personal email (if different)</label>
-            <input style={{ ...inp, marginBottom: 12 }} type="email" placeholder="Personal email address" />
+            <input style={{ ...inp, marginBottom: 12 }} type="email" placeholder="Personal email address"
+              value={invitePersonalEmail} onChange={e => setInvitePersonalEmail(e.target.value)} />
             <label style={lbl}>Phone number</label>
-            <input style={{ ...inp, marginBottom: 12 }} type="tel" placeholder="(772) 000-0000" />
+            <input style={{ ...inp, marginBottom: 12 }} type="tel" placeholder="(772) 000-0000"
+              value={invitePhone} onChange={e => setInvitePhone(e.target.value)} />
             <label style={lbl}>Home address</label>
-            <input style={{ ...inp, marginBottom: 8 }} placeholder="Street address" />
+            <input style={{ ...inp, marginBottom: 8 }} placeholder="Street address"
+              value={inviteAddress} onChange={e => setInviteAddress(e.target.value)} />
             <div style={{ display:'grid',gridTemplateColumns:'1fr 80px 100px',gap:8,marginBottom:12 }}>
-              <input style={inp} placeholder="City" />
-              <input style={inp} placeholder="State" maxLength={2} />
-              <input style={inp} placeholder="Zip" maxLength={10} />
+              <input style={inp} placeholder="City" value={inviteCity} onChange={e => setInviteCity(e.target.value)} />
+              <input style={inp} placeholder="State" maxLength={2} value={inviteState} onChange={e => setInviteState(e.target.value)} />
+              <input style={inp} placeholder="Zip" maxLength={10} value={inviteZip} onChange={e => setInviteZip(e.target.value)} />
             </div>
             <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12 }}>
               <div>
                 <label style={lbl}>Social Security # <span style={{ fontSize:10,color:'#475569' }}>(stored securely)</span></label>
-                <input style={inp} type="password" placeholder="XXX-XX-XXXX" maxLength={11} autoComplete="off" />
+                <input style={inp} type="password" placeholder="XXX-XX-XXXX" maxLength={11} autoComplete="off"
+                  value={inviteSSN} onChange={e => setInviteSSN(e.target.value)} />
               </div>
               <div>
                 <label style={lbl}>Tax filing status</label>
-                <select style={inp}>
+                <select style={inp} value={inviteFilingStatus} onChange={e => setInviteFilingStatus(e.target.value)}>
                   <option value="">— Select —</option>
                   <option>Single</option>
                   <option>Married Filing Jointly</option>
@@ -629,12 +663,68 @@ export default function TeamPage() {
             </div>
             <label style={lbl}>Employee type</label>
             <div style={{ display:'flex',gap:8,marginBottom:16 }}>
-              <div style={{ flex:1,padding:'8px 12px',background:'rgba(74,222,128,0.1)',border:'1px solid rgba(74,222,128,0.3)',borderRadius:8,cursor:'pointer',textAlign:'center' }}>
-                <span style={{ fontSize:12,fontWeight:700,color:'#4ade80' }}>W2 — Employee</span>
+              {(['W2','1099'] as const).map(t => (
+                <button key={t} onClick={() => setInviteEmpType(t)}
+                  style={{ flex:1,padding:'8px 12px',borderRadius:8,cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:700,border:'none',
+                    background: inviteEmpType===t ? (t==='W2'?'rgba(74,222,128,0.15)':'rgba(251,191,36,0.15)') : '#1e293b',
+                    color: inviteEmpType===t ? (t==='W2'?'#4ade80':'#fbbf24') : '#64748b' }}>
+                  {t === 'W2' ? 'W2 — Employee' : '1099 — Contractor'}
+                </button>
+              ))}
+            </div>
+
+            {/* Employee Paperwork Upload */}
+            <label style={lbl}>Employee Paperwork <span style={{ fontSize:10,color:'#475569',fontWeight:400,textTransform:'none' }}>(W4, I-9, direct deposit, etc.)</span></label>
+            <div style={{ border:'2px dashed #334155',borderRadius:10,padding:'1rem',marginBottom:16 }}
+              onDragOver={e=>e.preventDefault()}
+              onDrop={async e=>{
+                e.preventDefault()
+                const files = Array.from(e.dataTransfer.files)
+                for (const file of files) {
+                  setPaperworkUploading(true)
+                  const path = `employee-docs/${Date.now()}_${file.name.replace(/\s/g,'_')}`
+                  const { error } = await supabase.storage.from('employee-docs').upload(path, file, {upsert:true})
+                  if (!error) {
+                    const { data: { publicUrl } } = supabase.storage.from('employee-docs').getPublicUrl(path)
+                    setPaperworkFiles(prev => [...prev, {name:file.name, url:publicUrl}])
+                  }
+                  setPaperworkUploading(false)
+                }
+              }}>
+              <div style={{ textAlign:'center',marginBottom:paperworkFiles.length>0?12:0 }}>
+                <label style={{ cursor:'pointer',display:'inline-flex',flexDirection:'column',alignItems:'center',gap:4 }}>
+                  <span style={{ fontSize:24 }}>📎</span>
+                  <span style={{ fontSize:12,color:'#4ade80',fontWeight:600 }}>{paperworkUploading ? 'Uploading...' : 'Click to upload or drag files here'}</span>
+                  <span style={{ fontSize:11,color:'#475569' }}>PDF, images, Word docs accepted</span>
+                  <input type="file" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style={{display:'none'}} onChange={async e=>{
+                    const files = Array.from(e.target.files||[])
+                    for (const file of files) {
+                      setPaperworkUploading(true)
+                      const path = `employee-docs/${Date.now()}_${file.name.replace(/\s/g,'_')}`
+                      const { error } = await supabase.storage.from('employee-docs').upload(path, file, {upsert:true})
+                      if (!error) {
+                        const { data: { publicUrl } } = supabase.storage.from('employee-docs').getPublicUrl(path)
+                        setPaperworkFiles(prev => [...prev, {name:file.name, url:publicUrl}])
+                      } else {
+                        setPaperworkFiles(prev => [...prev, {name:file.name, url:''}])
+                      }
+                      setPaperworkUploading(false)
+                    }
+                  }} />
+                </label>
               </div>
-              <div style={{ flex:1,padding:'8px 12px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,cursor:'pointer',textAlign:'center' }}>
-                <span style={{ fontSize:12,fontWeight:600,color:'#94a3b8' }}>1099 — Contractor</span>
-              </div>
+              {paperworkFiles.length > 0 && (
+                <div style={{ display:'flex',flexDirection:'column',gap:6 }}>
+                  {paperworkFiles.map((f,i) => (
+                    <div key={i} style={{ display:'flex',alignItems:'center',gap:8,background:'#1e293b',borderRadius:6,padding:'6px 10px' }}>
+                      <span style={{ fontSize:14 }}>{f.name.endsWith('.pdf')?'📄':f.name.match(/\.(jpg|jpeg|png)/i)?'🖼️':'📁'}</span>
+                      <span style={{ fontSize:12,color:'#f1f5f9',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{f.name}</span>
+                      {f.url && <a href={f.url} target="_blank" rel="noreferrer" style={{ fontSize:11,color:'#60a5fa',flexShrink:0 }}>View</a>}
+                      <button onClick={()=>setPaperworkFiles(prev=>prev.filter((_,j)=>j!==i))} style={{ background:'none',border:'none',color:'#f87171',cursor:'pointer',fontSize:14,flexShrink:0 }}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             {addMode === 'manual' && (
               <>

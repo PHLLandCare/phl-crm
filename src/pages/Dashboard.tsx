@@ -213,7 +213,6 @@ export default function Dashboard() {
       case 'inventory': return can(userRole,'view_inventory') ? <InventoryPage /> : <AccessDenied />
       case 'team':      return can(userRole,'view_team')      ? <TeamPage />      : <AccessDenied />
       case 'settings':  return can(userRole,'view_settings')  ? <SettingsPage />  : <AccessDenied />
-      case 'timeclock': { window.open('https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html','_blank'); navigate(-1); return null; }
       case 'teamchat':  return can(userRole,'manage_users')   ? <TeamChatPage />  : <AccessDenied />
       case 'routes':    return can(userRole,'view_schedule')    ? <RoutePage />     : <AccessDenied />
       case 'reports':   return can(userRole,'view_reports')   ? <ReportsPage />   : <AccessDenied />
@@ -441,7 +440,7 @@ export default function Dashboard() {
           <NavItem label="Hardscape"      id="div-hardscape"     icon="🪨" />
 
           <SectionLabel title="Tools" />
-          <NavItem label="Time Clock"    id="timeclock"  icon="⏰" onClick={()=>window.open('https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html','_self')} />
+          <NavItem label="Time Clock"    id="timeclock"  icon="⏰" onClick={()=>{ window.open('https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html','_blank'); }} />
           {can(userRole,'view_payroll')   && <NavItem label="Payroll"           id="payroll"   icon="💵" />}
           {can(userRole,'view_team')      && <NavItem label="All Employees"     id="team"      icon="👤" />}
           {can(userRole,'view_expenses')  && <NavItem label="Expenses"          id="expenses"  icon="🧾" />}
