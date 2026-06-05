@@ -330,11 +330,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     </div>
     <div class="form-sec">Work details</div>
     <div class="fg">
-      <div><div class="fl">Division *</div>
-        <select class="fs" id="ef-div">
-          <option>Lawn & Tree</option><option>Irrigation</option>
-          <option>Extermination</option><option>Nursery</option><option>Farm</option><option>Hardscape</option>
-        </select>
+      <div class="fg-full"><div class="fl">Divisions * <span style="font-size:10px;color:#6b7a90;font-weight:400">(select all that apply)</span></div>
+        <div id="ef-div-checks" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:#f4f6f9;border:1px solid #e1e8ef;border-radius:6px;padding:4px 10px"><input type="checkbox" value="Lawn & Tree" class="div-check"> Lawn &amp; Tree</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:#f4f6f9;border:1px solid #e1e8ef;border-radius:6px;padding:4px 10px"><input type="checkbox" value="Irrigation" class="div-check"> Irrigation</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:#f4f6f9;border:1px solid #e1e8ef;border-radius:6px;padding:4px 10px"><input type="checkbox" value="Extermination" class="div-check"> Extermination</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:#f4f6f9;border:1px solid #e1e8ef;border-radius:6px;padding:4px 10px"><input type="checkbox" value="Nursery" class="div-check"> Nursery</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:#f4f6f9;border:1px solid #e1e8ef;border-radius:6px;padding:4px 10px"><input type="checkbox" value="Farm" class="div-check"> Farm</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:#f4f6f9;border:1px solid #e1e8ef;border-radius:6px;padding:4px 10px"><input type="checkbox" value="Hardscape" class="div-check"> Hardscape</label>
+        </div>
       </div>
       <div><div class="fl">Crew</div>
         <select class="fs" id="ef-crew">
@@ -343,11 +347,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
           <option>Crew D</option><option>Crew E</option>
         </select>
       </div>
-      <div class="fg-full"><div class="fl">Role</div>
+      <div><div class="fl">Role</div>
         <select class="fs" id="ef-role">
           <option>Time clock only</option><option>Field Tech</option>
           <option>Crew Lead</option><option>Office Manager</option>
         </select>
+      </div>
+    </div>
+    <div class="form-sec">Pay & Tax info</div>
+    <div class="fg">
+      <div><div class="fl">Employee type *</div>
+        <select class="fs" id="ef-emptype">
+          <option value="W2">W2 — Employee</option>
+          <option value="1099">1099 — Contractor</option>
+        </select>
+      </div>
+      <div><div class="fl">Hourly rate ($)</div>
+        <input class="fi" id="ef-rate" type="number" min="0" step="0.01" placeholder="e.g. 18.00">
+      </div>
+      <div class="fg-full"><div class="fl">Social Security # <span style="font-size:10px;color:#6b7a90;font-weight:400">(stored securely, for payroll only)</span></div>
+        <input class="fi" id="ef-ssn" type="password" placeholder="XXX-XX-XXXX" autocomplete="off" maxlength="11">
       </div>
     </div>
     <div style="background:#e6f9fd;border-radius:8px;padding:10px 12px;font-size:12px;color:#0c447c;margin-top:10px">
@@ -492,7 +511,7 @@ function renderEmps() {
   var q = (document.getElementById('emp-search')||{value:''}).value.toLowerCase();
   var dv = (document.getElementById('emp-div-filter')||{value:''}).value;
   var list = allEmployees.filter(function(e) {
-    return e.active && (!q || fullName(e).toLowerCase().includes(q)) && (!dv || e.division === dv);
+    return e.active && (!q || fullName(e).toLowerCase().includes(q)) && (!dv || (e.division||'').split(',').map(function(d){return d.trim();}).indexOf(dv) > -1);
   });
   var tb = document.getElementById('emp-tbody');
   if (!tb) return;
@@ -509,7 +528,7 @@ function renderEmps() {
       '<td style="font-size:11px;color:var(--muted)">' + (e.employee_id||'—') + '</td>' +
       '<td>' + (e.division||'—') + '</td>' +
       '<td>' + (e.crew||'—') + '</td>' +
-      '<td><span class="b bs">' + (e.role||'—') + '</span></td>' +
+      '<td><span class="b bs">' + (e.role||'—') + '</span> <span style="font-size:10px;color:#6b7a90;display:block;margin-top:2px">' + (e.employee_type||'W2') + ' · $' + (e.hourly_rate||15) + '/hr</span></td>' +
       '<td><div style="display:flex;gap:4px">' +
         '<button class="btn btn-qr" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px">⬛ QR</button>' +
         '<button class="btn btn-edit" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px">✏️</button>' +
@@ -624,9 +643,12 @@ function openAddEmp() {
   document.getElementById('ef-fname').value = '';
   document.getElementById('ef-lname').value = '';
   document.getElementById('ef-phone').value = '';
-  document.getElementById('ef-div').value = 'Lawn & Tree';
+  document.querySelectorAll('.div-check').forEach(function(cb){ cb.checked = false; });
   document.getElementById('ef-crew').value = '';
   document.getElementById('ef-role').value = 'Time clock only';
+  document.getElementById('ef-emptype').value = 'W2';
+  document.getElementById('ef-rate').value = '';
+  document.getElementById('ef-ssn').value = '';
   updateEmpIdField();
   document.getElementById('emp-drawer').classList.add('open');
   document.getElementById('emp-overlay').classList.add('show');
@@ -643,9 +665,14 @@ function editEmp(eid) {
   document.getElementById('ef-eid').value = e.employee_id||'';
   document.getElementById('ef-eid').removeAttribute('readonly');
   document.getElementById('ef-phone').value = e.phone||'';
-  document.getElementById('ef-div').value = e.division||'Lawn & Tree';
+  // Multi-division checkboxes
+  var empDivs = (e.division||'').split(',').map(function(d){return d.trim();});
+  document.querySelectorAll('.div-check').forEach(function(cb){ cb.checked = empDivs.indexOf(cb.value) > -1; });
   document.getElementById('ef-crew').value = e.crew||'';
   document.getElementById('ef-role').value = e.role||'Time clock only';
+  document.getElementById('ef-emptype').value = e.employee_type||'W2';
+  document.getElementById('ef-rate').value = e.hourly_rate||'';
+  document.getElementById('ef-ssn').value = e.ssn ? '••••••••••' : '';
   document.getElementById('emp-drawer').classList.add('open');
   document.getElementById('emp-overlay').classList.add('show');
   setTimeout(function(){ document.getElementById('ef-fname').focus(); }, 250);
@@ -665,12 +692,16 @@ async function saveEmployee() {
     fname: fn, lname: ln,
     employee_id: document.getElementById('ef-eid').value,
     phone: document.getElementById('ef-phone').value.trim(),
-    division: document.getElementById('ef-div').value,
+    division: Array.from(document.querySelectorAll('.div-check:checked')).map(function(cb){ return cb.value; }).join(', ') || 'Lawn & Tree',
     crew: document.getElementById('ef-crew').value,
     role: document.getElementById('ef-role').value,
+    employee_type: document.getElementById('ef-emptype').value,
+    hourly_rate: parseFloat(document.getElementById('ef-rate').value) || 15,
     color: COLORS[Math.floor(Math.random() * COLORS.length)],
     active: true
   };
+  var ssnVal = document.getElementById('ef-ssn').value.trim();
+  if (ssnVal && ssnVal !== '••••••••••') data.ssn = ssnVal;
   try {
     if (editingEmpId) {
       await sb('PATCH', '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId), data);

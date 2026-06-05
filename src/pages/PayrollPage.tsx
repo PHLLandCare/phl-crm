@@ -18,6 +18,7 @@ interface Employee {
   hourly_rate: number
   employee_type: 'W2' | '1099'
   division?: string
+  ssn?: string
 }
 
 interface ClockEvent {
