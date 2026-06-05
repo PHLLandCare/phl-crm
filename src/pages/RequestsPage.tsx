@@ -61,6 +61,7 @@ export default function RequestsPage() {
   const [requests, setRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
+  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [toast, setToast] = useState('')
@@ -111,11 +112,25 @@ export default function RequestsPage() {
 
   const handleImageUpload = async (file: File) => {
     setUploadingImg(true)
-    const path = `request-images/${Date.now()}_${file.name.replace(/\s/g,'_')}`
-    const { error } = await supabase.storage.from('request-images').upload(path, file, { upsert: true })
-    if (!error) {
-      const { data: { publicUrl } } = supabase.storage.from('request-images').getPublicUrl(path)
-      setUploadedImages(prev => [...prev, publicUrl])
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const path = `request-images/${Date.now()}_${safeName}`
+      // Try product-images bucket (already exists), fall back to base64 preview
+      const { error } = await supabase.storage.from('product-images').upload(path, file, { upsert: true })
+      if (!error) {
+        const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path)
+        setUploadedImages(prev => [...prev, publicUrl])
+      } else {
+        // Fallback: show local preview as base64
+        const reader = new FileReader()
+        reader.onload = e => { if (e.target?.result) setUploadedImages(prev => [...prev, e.target!.result as string]) }
+        reader.readAsDataURL(file)
+      }
+    } catch {
+      // Fallback to base64 preview
+      const reader = new FileReader()
+      reader.onload = e => { if (e.target?.result) setUploadedImages(prev => [...prev, e.target!.result as string]) }
+      reader.readAsDataURL(file)
     }
     setUploadingImg(false)
   }
@@ -205,11 +220,11 @@ export default function RequestsPage() {
       <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'1.5rem',flexWrap:'wrap',gap:12 }}>
         <h1 style={{ fontSize:30,fontWeight:800,color:'#f1f5f9',margin:0 }}>Requests</h1>
         <div style={{ display:'flex',gap:10 }}>
-          <button style={{ background:'transparent',color:'#94a3b8',border:'1px solid #1e293b',borderRadius:8,padding:'9px 16px',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>
-            ··· More Actions
+          <button onClick={() => { const sel = filtered.filter(r => r.status === 'New'); sel.forEach(r => handleUpdateStatus(r.id, 'Assessment complete')) }} style={{ background:'transparent',color:'#94a3b8',border:'1px solid #1e293b',borderRadius:8,padding:'9px 16px',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>
+            ··· Mark All Assessed
           </button>
-          <button style={{ background:'transparent',color:'#94a3b8',border:'1px solid #1e293b',borderRadius:8,padding:'9px 16px',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>
-            🔔 Requests and Booking Updates
+          <button onClick={() => { const csv = ['Client,Title,Property,Contact,Status,Date'].concat(filtered.map(r=>`"${r.client_name}","${r.title||r.notes||''}","${r.property_address||''}","${r.phone||r.email||''}","${r.status}","${r.created_at?.slice(0,10)||''}"`)).join('\n'); const b = new Blob([csv],{type:'text/csv'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download='requests.csv'; a.click() }} style={{ background:'transparent',color:'#94a3b8',border:'1px solid #1e293b',borderRadius:8,padding:'9px 16px',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>
+            🔔 Export CSV
           </button>
           <button onClick={() => setShowNew(true)} style={{ background:'#16a34a',color:'#fff',border:'none',borderRadius:8,padding:'9px 20px',fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>
             New Request
@@ -315,7 +330,7 @@ export default function RequestsPage() {
               ) : filtered.map(r => {
                 const s = sc(r.status)
                 return (
-                  <tr key={r.id} style={{ borderBottom:'1px solid #0d1526', cursor:'pointer' }}
+                  <tr key={r.id} onClick={() => setSelectedRequest(r)} style={{ borderBottom:'1px solid #0d1526', cursor:'pointer' }}
                     onMouseEnter={e=>(e.currentTarget.style.background='rgba(255,255,255,0.03)')}
                     onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
                     <td style={{ padding:'14px 14px' }}>
@@ -573,6 +588,86 @@ export default function RequestsPage() {
               <button onClick={handleSave} disabled={saving}
                 style={{ padding:'10px 32px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:14,fontWeight:700,fontFamily:'inherit',opacity:saving?0.7:1 }}>
                 {saving ? 'Saving...' : 'Save Request'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ── REQUEST DETAIL DRAWER ── */}
+      {selectedRequest && (
+        <>
+          <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:500 }} onClick={() => setSelectedRequest(null)} />
+          <div style={{ position:'fixed',top:0,right:0,width:'min(600px,100vw)',height:'100vh',background:'#0d1526',borderLeft:'1px solid #1e293b',zIndex:501,display:'flex',flexDirection:'column',overflow:'hidden' }}>
+            {/* Header */}
+            <div style={{ padding:'16px 20px',borderBottom:'1px solid #1e293b',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0 }}>
+              <div>
+                <h2 style={{ margin:0,fontSize:16,fontWeight:700,color:'#f1f5f9' }}>{selectedRequest.title || selectedRequest.service || 'Request'}</h2>
+                <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>{selectedRequest.client_name}</p>
+              </div>
+              <div style={{ display:'flex',gap:8 }}>
+                <button
+                  onClick={() => { navigate('/quotes', { state:{ openCreate:true, clientName:selectedRequest.client_name } }); setSelectedRequest(null) }}
+                  style={{ background:'rgba(168,85,247,0.12)',color:'#a855f7',border:'1px solid rgba(168,85,247,0.3)',borderRadius:7,padding:'6px 12px',fontSize:12,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>
+                  → Quote
+                </button>
+                <button
+                  onClick={() => { navigate('/jobs', { state:{ openCreate:true, clientName:selectedRequest.client_name } }); setSelectedRequest(null) }}
+                  style={{ background:'rgba(74,222,128,0.1)',color:'#4ade80',border:'1px solid rgba(74,222,128,0.2)',borderRadius:7,padding:'6px 12px',fontSize:12,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>
+                  → Job
+                </button>
+                <button onClick={() => setSelectedRequest(null)} style={{ background:'none',border:'none',color:'#64748b',fontSize:22,cursor:'pointer' }}>×</button>
+              </div>
+            </div>
+            {/* Body */}
+            <div style={{ flex:1,overflowY:'auto',padding:20 }}>
+              {/* Status */}
+              <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:16 }}>
+                <div style={{ width:8,height:8,borderRadius:'50%',background:sc(selectedRequest.status).dot }} />
+                <select value={selectedRequest.status}
+                  onChange={e => { handleUpdateStatus(selectedRequest.id, e.target.value); setSelectedRequest({...selectedRequest, status: e.target.value}) }}
+                  style={{ background:'#1e293b',color:sc(selectedRequest.status).color,border:'1px solid #334155',borderRadius:7,padding:'4px 10px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',outline:'none' }}>
+                  {Object.keys(STATUS_COLORS).map(s=><option key={s} style={{ background:'#0f172a',color:'#f1f5f9' }}>{s}</option>)}
+                </select>
+                <span style={{ fontSize:12,color:'#475569',marginLeft:'auto' }}>Requested: {fmtDate(selectedRequest.created_at)}</span>
+              </div>
+
+              {/* Info grid */}
+              {[
+                { label:'Client', value: selectedRequest.client_name },
+                { label:'Phone', value: selectedRequest.phone },
+                { label:'Email', value: selectedRequest.email },
+                { label:'Property', value: selectedRequest.property_address },
+                { label:'Service', value: selectedRequest.service },
+                { label:'Availability', value: [selectedRequest.availability_date1, selectedRequest.availability_date2].filter(Boolean).join(' / ') },
+                { label:'Arrival Times', value: Array.isArray(selectedRequest.arrival_times) ? selectedRequest.arrival_times.join(', ') : selectedRequest.arrival_times },
+              ].filter(row => row.value).map(row => (
+                <div key={row.label} style={{ display:'flex',gap:12,padding:'8px 0',borderBottom:'1px solid #1e293b' }}>
+                  <span style={{ fontSize:12,color:'#475569',fontWeight:600,width:100,flexShrink:0 }}>{row.label}</span>
+                  <span style={{ fontSize:13,color:'#cbd5e1' }}>{row.value}</span>
+                </div>
+              ))}
+
+              {/* Notes */}
+              {selectedRequest.notes && (
+                <div style={{ marginTop:16,background:'#0f172a',border:'1px solid #1e293b',borderRadius:10,padding:'12px 14px' }}>
+                  <p style={{ margin:'0 0 6px',fontSize:11,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em' }}>Service Details</p>
+                  <p style={{ margin:0,fontSize:13,color:'#cbd5e1',lineHeight:1.6 }}>{selectedRequest.notes}</p>
+                </div>
+              )}
+              {selectedRequest.internal_notes && (
+                <div style={{ marginTop:10,background:'#0f172a',border:'1px solid #1e293b',borderRadius:10,padding:'12px 14px' }}>
+                  <p style={{ margin:'0 0 6px',fontSize:11,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em' }}>Internal Notes</p>
+                  <p style={{ margin:0,fontSize:13,color:'#cbd5e1',lineHeight:1.6 }}>{selectedRequest.internal_notes}</p>
+                </div>
+              )}
+            </div>
+            {/* Footer */}
+            <div style={{ padding:'12px 20px',borderTop:'1px solid #1e293b',display:'flex',gap:8,flexShrink:0 }}>
+              <button
+                onClick={() => { handleDelete(selectedRequest.id); setSelectedRequest(null) }}
+                style={{ padding:'8px 16px',background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.2)',borderRadius:7,cursor:'pointer',fontSize:12,fontFamily:'inherit' }}>
+                Delete Request
               </button>
             </div>
           </div>
