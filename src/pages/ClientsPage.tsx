@@ -404,13 +404,14 @@ export default function ClientsPage() {
           {/* Action buttons */}
           <div style={{ display: 'flex', gap: 8, position: 'relative' }}>
             {/* Email button - opens template picker */}
-            <button onClick={() => {
+            <button onClick={(e) => {
+              e.stopPropagation()
               if (!selectedClient.email) { showClientToast('⚠️ No email on file for this client'); return }
               setEmailForm({ to: selectedClient.email, subject: '', body: '' })
               setShowEmailModal(true)
             }}
-              style={{ padding: '8px 16px', background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, color: '#f1f5f9', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8, opacity: selectedClient.email ? 1 : 0.4 }}>
-              <span style={{ fontSize: 18 }}>✉️</span>
+              style={{ padding: '8px 16px', background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, color: '#f1f5f9', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 20 }}>✉️</span>
               <span style={{ fontWeight: 600 }}>Email</span>
             </button>
             {/* ... dots menu */}
@@ -593,12 +594,12 @@ export default function ClientsPage() {
                 </button>
                 {(['All','Requests','Quotes','Jobs','Invoices'] as const).map(f => (
                   <button key={f} onClick={() => setWorkFilter(f)}
-                    style={{ padding: '5px 12px', borderRadius: 99, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', fontWeight: workFilter === f ? 700 : 400,
+                    style={{ padding: '6px 14px', borderRadius: 99, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', fontWeight: workFilter === f ? 700 : 500,
                       background: workFilter === f ? 'rgba(74,222,128,0.15)' : 'transparent',
                       border: workFilter === f ? '1px solid rgba(74,222,128,0.3)' : '1px solid transparent',
-                      color: workFilter === f ? '#4ade80' : '#64748b',
-                      display: 'flex', alignItems: 'center', gap: 5 }}>
-                    {f !== 'All' && <span style={{ fontSize: 18 }}>{{ Requests:'📬', Quotes:'📋', Jobs:'🔧', Invoices:'💰' }[f]}</span>}
+                      color: workFilter === f ? '#4ade80' : '#94a3b8',
+                      display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {f !== 'All' && <span style={{ fontSize: 22 }}>{{ Requests:'📬', Quotes:'📋', Jobs:'🔧', Invoices:'💰' }[f]}</span>}
                     {f}
                   </button>
                 ))}
