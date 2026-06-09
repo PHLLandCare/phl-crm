@@ -81,9 +81,14 @@ export default function ClientPortalPage() {
     if (!squareLoaded || !window.Square || view !== 'pay') return
     const init = async () => {
       try {
-        // Replace with your actual Square Application ID and Location ID
-        const appId = 'sandbox-sq0idb-REPLACE_WITH_YOUR_APP_ID'
-        const locationId = 'REPLACE_WITH_YOUR_LOCATION_ID'
+        // Load Square credentials from org_settings
+        const { data: settings } = await supabase.from('org_settings').select('square_app_id,square_location_id').limit(1).single()
+        const appId = settings?.square_app_id || ''
+        const locationId = settings?.square_location_id || ''
+        if (!appId || !locationId) {
+          console.warn('Square not configured — add credentials in Settings → Integrations')
+          return
+        }
         squarePaymentsRef.current = window.Square.payments(appId, locationId)
         const card = await squarePaymentsRef.current.card({
           style: {

@@ -24,6 +24,13 @@ export default function SettingsPage() {
 
   // API keys (stored in org_settings)
   const [resendKey, setResendKey] = useState('')
+  // GoDaddy / SMTP email settings
+  const [smtpHost, setSmtpHost] = useState('smtpout.secureserver.net')
+  const [smtpPort, setSmtpPort] = useState('465')
+  const [smtpUser, setSmtpUser] = useState('')
+  const [smtpPass, setSmtpPass] = useState('')
+  const [smtpFromName, setSmtpFromName] = useState('PHL Land Care Inc.')
+  const [smtpFromEmail, setSmtpFromEmail] = useState('admin@phllandcare.com')
   const [squareToken, setSquareToken] = useState('')
   const [squareAppId, setSquareAppId] = useState('')
   const [squareLocationId, setSquareLocationId] = useState('')
@@ -145,6 +152,12 @@ export default function SettingsPage() {
       if (s) {
         setCompany(c => ({ ...c, ...s }))
         if (s.resend_api_key) setResendKey(s.resend_api_key)
+        if (s.smtp_host)       setSmtpHost(s.smtp_host)
+        if (s.smtp_port)       setSmtpPort(String(s.smtp_port))
+        if (s.smtp_username)   setSmtpUser(s.smtp_username)
+        if (s.smtp_password)   setSmtpPass(s.smtp_password)
+        if (s.smtp_from_name)  setSmtpFromName(s.smtp_from_name)
+        if (s.smtp_from_email) setSmtpFromEmail(s.smtp_from_email)
         if (s.square_access_token) setSquareToken(s.square_access_token)
         if (s.square_app_id) setSquareAppId(s.square_app_id)
         if (s.square_location_id) setSquareLocationId(s.square_location_id)
@@ -805,42 +818,76 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* ── RESEND EMAIL ── */}
+            {/* ── GODADDY / SMTP EMAIL ── */}
             <div style={card}>
               <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
-                <div style={{ background:'#000',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#fff' }}>✉ Resend</div>
+                <div style={{ background:'#1bdbad',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#000' }}>✉ Email</div>
                 <div>
-                  <h2 style={{ ...secTitle,margin:0 }}>Email Delivery</h2>
-                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Send invoices, quotes, and reminders via email</p>
+                  <h2 style={{ ...secTitle,margin:0 }}>Email Settings (GoDaddy / SMTP)</h2>
+                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Send invoices, quotes, and reminders using your GoDaddy email</p>
                 </div>
-                <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:resendKey?'#052e16':'#1a1000',color:resendKey?'#4ade80':'#fcd34d',padding:'3px 10px',borderRadius:20,border:`1px solid ${resendKey?'#16a34a':'#d97706'}` }}>{resendKey?'Configured':'Setup needed'}</span>
+                <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:smtpUser?'#052e16':'#1a1000',color:smtpUser?'#4ade80':'#fcd34d',padding:'3px 10px',borderRadius:20,border:`1px solid ${smtpUser?'#16a34a':'#d97706'}` }}>{smtpUser?'Configured':'Setup needed'}</span>
               </div>
-              <div style={{ background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:12 }}>
-                <p style={{ margin:'0 0 4px',fontSize:13,color:'#94a3b8' }}>Once connected, emails will be sent from:</p>
-                <p style={{ margin:0,fontSize:13,color:'#4ade80',fontWeight:600 }}>admin@phllandcare.com</p>
+              <div style={{ background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:16 }}>
+                <p style={{ margin:'0 0 6px',fontSize:13,color:'#94a3b8',fontWeight:600 }}>GoDaddy Workspace Email settings:</p>
+                <p style={{ margin:'0 0 2px',fontSize:12,color:'#cbd5e1' }}>• Outgoing server: <span style={{color:'#4ade80'}}>smtpout.secureserver.net</span></p>
+                <p style={{ margin:'0 0 2px',fontSize:12,color:'#cbd5e1' }}>• Port: <span style={{color:'#4ade80'}}>465</span> (SSL) or <span style={{color:'#4ade80'}}>587</span> (TLS)</p>
+                <p style={{ margin:'0 0 2px',fontSize:12,color:'#cbd5e1' }}>• Username: your full GoDaddy email address</p>
+                <p style={{ margin:0,fontSize:12,color:'#cbd5e1' }}>• Password: your GoDaddy email password</p>
               </div>
-              <div>
-                <label style={lbl}>Resend API Key</label>
-                <input style={{ ...inp,marginBottom:8 }} type="password" placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value={resendKey} onChange={e=>setResendKey(e.target.value)} />
-                <p style={{ margin:'0 0 12px',fontSize:11,color:'#475569' }}>Get your API key at resend.com/api-keys — requires domain verification for phllandcare.com</p>
+              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12 }}>
+                <div>
+                  <label style={lbl}>From Name</label>
+                  <input style={inp} placeholder="PHL Land Care Inc." value={smtpFromName} onChange={e=>setSmtpFromName(e.target.value)} />
+                </div>
+                <div>
+                  <label style={lbl}>From Email Address</label>
+                  <input style={inp} placeholder="admin@phllandcare.com" value={smtpFromEmail} onChange={e=>setSmtpFromEmail(e.target.value)} />
+                </div>
+                <div>
+                  <label style={lbl}>SMTP Username (your email)</label>
+                  <input style={inp} placeholder="admin@phllandcare.com" value={smtpUser} onChange={e=>setSmtpUser(e.target.value)} />
+                </div>
+                <div>
+                  <label style={lbl}>SMTP Password</label>
+                  <input style={{ ...inp }} type="password" placeholder="Your GoDaddy email password" value={smtpPass} onChange={e=>setSmtpPass(e.target.value)} />
+                </div>
+                <div>
+                  <label style={lbl}>SMTP Host</label>
+                  <input style={inp} placeholder="smtpout.secureserver.net" value={smtpHost} onChange={e=>setSmtpHost(e.target.value)} />
+                </div>
+                <div>
+                  <label style={lbl}>Port</label>
+                  <select style={inp} value={smtpPort} onChange={e=>setSmtpPort(e.target.value)}>
+                    <option value="465">465 (SSL — recommended for GoDaddy)</option>
+                    <option value="587">587 (TLS/STARTTLS)</option>
+                    <option value="25">25 (plain — not recommended)</option>
+                  </select>
+                </div>
               </div>
               <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
-                <a href="https://resend.com/api-keys" target="_blank" rel="noreferrer"
-                  style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
-                  ↗ Open Resend Dashboard
-                </a>
-                <button onClick={()=>saveApiKeys({resend_api_key:resendKey},'Resend email settings')} disabled={keysSaving} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save Email Settings</button>
+                <button onClick={()=>saveApiKeys({smtp_host:smtpHost,smtp_port:smtpPort,smtp_username:smtpUser,smtp_password:smtpPass,smtp_from_name:smtpFromName,smtp_from_email:smtpFromEmail},'Email settings')} disabled={keysSaving}
+                  style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>
+                  Save Email Settings
+                </button>
                 <button onClick={async()=>{
                   try {
                     const user = (await supabase.auth.getUser()).data.user
-                    const to = user?.email || 'romy.cruz@live.com'
-                    const testHtml = '<div style="font-family:sans-serif;padding:24px"><h2 style="color:#16a34a">PHL Land Care CRM</h2><p>Email working!</p></div>'
-                    await supabase.functions.invoke('send-email',{body:{to,subject:'PHL CRM — Test Email',html:testHtml}})
+                    const to = user?.email || smtpFromEmail || 'admin@phllandcare.com'
+                    await supabase.functions.invoke('send-email',{body:{to,subject:'PHL CRM — Test Email ✅',html:'<div style="font-family:sans-serif;padding:24px"><h2 style="color:#16a34a">PHL Land Care CRM</h2><p>Your GoDaddy email is working correctly!</p><p style="color:#64748b;font-size:13px">Sent from PHL CRM via ' + smtpHost + '</p></div>'}})
                     showToast('✅ Test email sent to ' + to)
-                  } catch { showToast('⚠️ Test failed — check API key') }
+                  } catch(e:any) { showToast('⚠️ Test failed: ' + e.message) }
                 }} style={{ padding:'9px 18px',border:'1px solid #0ea5e9',borderRadius:8,background:'rgba(14,165,233,0.1)',color:'#7dd3fc',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>
                   📧 Send Test Email
                 </button>
+              </div>
+              <div style={{ marginTop:16,paddingTop:16,borderTop:'1px solid #1e293b' }}>
+                <p style={{ margin:'0 0 8px',fontSize:12,color:'#475569',fontWeight:600 }}>Optional: Resend API fallback</p>
+                <div style={{ display:'flex',gap:8,alignItems:'center' }}>
+                  <input style={{ ...inp,flex:1 }} type="password" placeholder="re_xxxx (optional — only if not using SMTP)" value={resendKey} onChange={e=>setResendKey(e.target.value)} />
+                  <button onClick={()=>saveApiKeys({resend_api_key:resendKey},'Resend fallback')} disabled={keysSaving}
+                    style={{ padding:'9px 14px',border:'1px solid #334155',borderRadius:8,background:'transparent',color:'#94a3b8',cursor:'pointer',fontSize:13,fontFamily:'inherit',whiteSpace:'nowrap' }}>Save</button>
+                </div>
               </div>
             </div>
 
@@ -897,7 +944,7 @@ export default function SettingsPage() {
                   {name:'Supabase',      desc:'Database & realtime sync',  status:'Connected',    ok:true},
                   {name:'GitHub Pages',  desc:'Hosting & deployment',      status:'Active',       ok:true},
                   {name:'Square',        desc:'Payment processing',        status: squareToken ? 'Configured' : 'Setup needed', ok:!!squareToken},
-                  {name:'Resend',        desc:'Email delivery',            status: resendKey ? 'Configured' : 'Setup needed',   ok:!!resendKey},
+                  {name:'Email (SMTP)',  desc:'GoDaddy outgoing email',   status: smtpUser ? 'Configured' : 'Setup needed',    ok:!!smtpUser},
                   {name:'Twilio',        desc:'SMS notifications',         status: twilioSid ? 'Configured' : 'Setup needed',   ok:!!twilioSid},
                 ].map(item=>(
                   <div key={item.name} style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'#1e293b',borderRadius:10,border:'1px solid #334155' }}>
