@@ -899,7 +899,7 @@ export default function SettingsPage() {
                 </button>
               </div>
 
-              <div style={{ marginTop:16,paddingTop:16,borderTop:'1px solid #1e293b',background:'rgba(92,45,142,0.08)',borderRadius:8,padding:'12px 14px',marginTop:16 }}>
+              <div style={{ marginTop:16,borderTop:'1px solid #1e293b',background:'rgba(92,45,142,0.08)',borderRadius:8,padding:'12px 14px' }}>
                 <p style={{ margin:'0 0 6px',fontSize:12,color:'#a78bfa',fontWeight:700 }}>📋 SignalWire Setup Guide</p>
                 <p style={{ margin:'0 0 3px',fontSize:12,color:'#94a3b8' }}>1. Create a free account at <strong style={{color:'#c4b5fd'}}>signalwire.com</strong></p>
                 <p style={{ margin:'0 0 3px',fontSize:12,color:'#94a3b8' }}>2. Create a project → note your <strong style={{color:'#c4b5fd'}}>Project ID</strong> and <strong style={{color:'#c4b5fd'}}>Space URL</strong></p>
