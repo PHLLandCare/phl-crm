@@ -269,8 +269,8 @@ export default function ClientsPage() {
       payment_terms: c.payment_terms || 'Net 7'
     })
     // Load properties and contacts
-    supabase.from('client_properties').select('*').eq('client_id', c.id).order('is_primary', {ascending:false}).then(({data}) => setClientProperties(data ?? []))
-    supabase.from('property_contacts').select('*').eq('client_id', c.id).then(({data}) => setPropertyContacts(data ?? []))
+    supabase.from('client_properties').select('*').eq('client_id', String(c.id)).order('is_primary', {ascending:false}).then(({data}) => setClientProperties(data ?? []))
+    supabase.from('property_contacts').select('*').eq('client_id', String(c.id)).then(({data}) => setPropertyContacts(data ?? []))
   }
 
   const openNewClient = () => {
@@ -1120,7 +1120,7 @@ export default function ClientsPage() {
                     await supabase.from('client_properties').update(propForm).eq('id', editingPropId)
                     setClientProperties(ps => ps.map(p => p.id===editingPropId ? {...p,...propForm} : p))
                   } else {
-                    const { data } = await supabase.from('client_properties').insert({ ...propForm, client_id: selectedClient.id }).select().single()
+                    const { data } = await supabase.from('client_properties').insert({ ...propForm, client_id: String(selectedClient.id) }).select().single()
                     if (data) setClientProperties(ps => [...ps, data])
                   }
                   setShowAddProperty(false)
