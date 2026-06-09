@@ -34,16 +34,18 @@ export default function SettingsPage() {
   const [squareToken, setSquareToken] = useState('')
   const [squareAppId, setSquareAppId] = useState('')
   const [squareLocationId, setSquareLocationId] = useState('')
-  const [twilioSid, setTwilioSid] = useState('')
-  const [twilioToken, setTwilioToken] = useState('')
-  const [twilioPhone, setTwilioPhone] = useState('')
+  // SignalWire (replaces Twilio — compatible API)
+  const [swProjectId, setSwProjectId] = useState('')
+  const [swApiToken, setSwApiToken] = useState('')
+  const [swSpaceUrl, setSwSpaceUrl] = useState('')
+  const [swPhone, setSwPhone] = useState('')
   const [keysSaving, setKeysSaving] = useState(false)
 
   // Autobilling state
   const [autobillEnabled, setAutobillEnabled] = useState(false)
-  const [autobillDelay, setAutobillDelay] = useState('1') // days after job completion
-  const [autobillMethod, setAutobillMethod] = useState('invoice') // invoice | charge
-  const [autobillSend, setAutobillSend] = useState(true) // auto-send invoice email
+  const [autobillDelay, setAutobillDelay] = useState('1')
+  const [autobillMethod, setAutobillMethod] = useState('invoice')
+  const [autobillSend, setAutobillSend] = useState(true)
   const [autobillSaving, setAutobillSaving] = useState(false)
 
   // Divisions state
@@ -104,7 +106,6 @@ export default function SettingsPage() {
   const [showDocSettings, setShowDocSettings] = useState(false)
   const [docTab, setDocTab] = useState<'Quotes'|'Jobs'|'Invoices'|'Style'>('Quotes')
   const [docSettings, setDocSettings] = useState({
-    // Quotes
     quote_use_estimate: false,
     quote_show_qty: true,
     quote_show_unit_price: true,
@@ -113,10 +114,8 @@ export default function SettingsPage() {
     quote_show_signature: false,
     quote_contract: 'This quote is valid for the next 30 days, after which values may be subject to change.',
     quote_deposit_language: 'A deposit of {{DEPOSIT_AMOUNT}} will be required to begin.',
-    // Jobs
     job_show_signature: true,
     job_contract: 'We can be called for touch-ups and small changes for the next 3 days. After that all work is final.',
-    // Invoices
     inv_show_qty: true,
     inv_show_unit_price: true,
     inv_show_total: true,
@@ -125,7 +124,6 @@ export default function SettingsPage() {
     inv_account_balance: false,
     inv_paid_date: true,
     inv_contract: 'Thank you for your business. Please contact us with any questions regarding this invoice.',
-    // Style
     header_layout: 'Basic',
     header_style: 'Modern',
     logo_size: 'Small',
@@ -147,7 +145,6 @@ export default function SettingsPage() {
         const { data: p } = await supabase.from('user_profiles').select('full_name').eq('id', user.id).single()
         if (p) setUserInfo(u => ({ ...u, full_name: p.full_name || '' }))
       }
-      // Load saved org settings
       const { data: s } = await supabase.from('org_settings').select('*').limit(1).single()
       if (s) {
         setCompany(c => ({ ...c, ...s }))
@@ -161,15 +158,17 @@ export default function SettingsPage() {
         if (s.square_access_token) setSquareToken(s.square_access_token)
         if (s.square_app_id) setSquareAppId(s.square_app_id)
         if (s.square_location_id) setSquareLocationId(s.square_location_id)
-        if (s.twilio_account_sid) setTwilioSid(s.twilio_account_sid)
-        if (s.twilio_auth_token) setTwilioToken(s.twilio_auth_token)
-        if (s.twilio_phone_number) setTwilioPhone(s.twilio_phone_number)
+        // SignalWire
+        if (s.signalwire_project_id)  setSwProjectId(s.signalwire_project_id)
+        if (s.signalwire_api_token)   setSwApiToken(s.signalwire_api_token)
+        if (s.signalwire_space_url)   setSwSpaceUrl(s.signalwire_space_url)
+        if (s.signalwire_phone_number) setSwPhone(s.signalwire_phone_number)
       }
     }
     load()
   }, [])
 
-  const showToast = (msg: string) => { setToast(msg); setTimeout(()=>setToast(''), 3000) }
+  const showToast = (msg: string) => { setToast(msg); setTimeout(()=>setToast(''), 3500) }
 
   const saveCompany = async () => {
     setSaving(true)
@@ -183,7 +182,6 @@ export default function SettingsPage() {
       }
       showToast('Company settings saved!')
     } catch {
-      // If table doesn't have all columns, try partial save
       try {
         const { data: existing } = await supabase.from('org_settings').select('id').limit(1).single()
         const basic = { company_name: company.company_name, phone: company.phone, email: company.email, website: company.website, address: `${company.street1}, ${company.city}, ${company.state} ${company.zip}` }
@@ -193,7 +191,7 @@ export default function SettingsPage() {
           await supabase.from('org_settings').insert(basic)
         }
         showToast('Company settings saved!')
-      } catch (e2) {
+      } catch {
         showToast('Saved locally — some fields may need DB migration')
       }
     }
@@ -243,7 +241,6 @@ export default function SettingsPage() {
     { id:'integrations', label:'Integrations' },
   ]
 
-  // ── INVOICE PREVIEW (used in doc settings modal) ──
   const InvoicePreview = () => (
     <div style={{ background:'#fff',borderRadius:8,padding:'24px',fontSize:11,color:'#111',fontFamily:'Georgia,serif',width:'100%',maxWidth:380 }}>
       <div style={{ display:'flex',alignItems:'flex-start',gap:16,marginBottom:16,borderBottom:'2px solid #1e293b',paddingBottom:12 }}>
@@ -280,7 +277,7 @@ export default function SettingsPage() {
     <div style={{ display:'flex', background:'#0a0f1a', minHeight:'100vh', fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif' }}>
       {toast && (
         <div style={{ position:'fixed',top:'1rem',right:'1rem',background:'#052e16',border:'1px solid #16a34a',borderRadius:10,padding:'10px 18px',fontSize:14,color:'#4ade80',fontWeight:600,zIndex:9999 }}>
-          ✅ {toast}
+          {toast}
         </div>
       )}
 
@@ -307,7 +304,6 @@ export default function SettingsPage() {
         {/* ── COMPANY DETAILS ── */}
         {activeNav === 'company' && (
           <div>
-            {/* Company details card */}
             <div style={card}>
               <h2 style={secTitle}>Company details</h2>
               <p style={secSub}>Your business information — admin only</p>
@@ -381,8 +377,6 @@ export default function SettingsPage() {
                   <button onClick={()=>{setEditingHours(false);showToast('Business hours saved!')}} style={{ padding:'8px 16px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Save Hours</button>
                 </div>
               )}
-
-              {/* Toggles */}
               <div style={{ marginTop:16,display:'flex',flexDirection:'column',gap:12 }}>
                 {[
                   { key:'show_business_hours' as const, label:'Show business hours', desc:'Display your business hours on client hub.' },
@@ -421,7 +415,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               <p style={{ margin:'0 0 16px',fontSize:11,color:'#64748b' }}>Tax ID name and number will appear on invoices</p>
-              <p style={{ margin:'0 0 10px',fontSize:13,fontWeight:700,color:'#f1f5f9',display:'flex',alignItems:'center',gap:6 }}>Default <span style={{ fontSize:12,background:'#1e293b',borderRadius:'50%',width:18,height:18,display:'inline-flex',alignItems:'center',justifyContent:'center',color:'#64748b',cursor:'pointer' }}>?</span></p>
+              <p style={{ margin:'0 0 10px',fontSize:13,fontWeight:700,color:'#f1f5f9' }}>Default</p>
               <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr 2fr auto',gap:8,alignItems:'center' }}>
                 <input type="radio" defaultChecked />
                 <input style={inp} placeholder="Tax name" value={company.default_tax_name} onChange={e=>setCompany({...company,default_tax_name:e.target.value})} />
@@ -466,17 +460,16 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
+
         {/* ── BUSINESS PROFILE ── */}
         {activeNav === 'business-profile' && (
           <div>
             <h1 style={{ fontSize:24,fontWeight:700,color:'#f1f5f9',margin:'0 0 4px' }}>Business profile</h1>
             <p style={{ fontSize:13,color:'#64748b',margin:'0 0 1.5rem' }}>Your Business profile brings together key information about your business – including your policies, services, and brand assets.</p>
 
-            {/* Essential information */}
             <div style={card}>
               <h2 style={secTitle}>Essential information</h2>
               <p style={{ margin:'4px 0 16px',fontSize:13,color:'#64748b' }}>This information helps client-facing features answer questions about your business.</p>
-
               {[
                 { key:'about' as const, label:'About', hint:'Tell the story of your business – who you are, what you do, and what sets you apart.' },
                 { key:'policies' as const, label:'Policies', hint:'Outline your key policies on scheduling, cancellations, payments, safety, and more.' },
@@ -500,7 +493,6 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Legal information */}
             <div style={card}>
               <h2 style={{ ...secTitle,marginBottom:4 }}>Legal information</h2>
               <p style={{ margin:'0 0 16px',fontSize:13,color:'#64748b' }}>This information appears on client facing surfaces like your website, campaigns, and request and booking forms.</p>
@@ -519,12 +511,10 @@ export default function SettingsPage() {
               ))}
             </div>
 
-            {/* Brand assets */}
             <div style={card}>
               <h2 style={{ ...secTitle,marginBottom:4 }}>Brand assets</h2>
               <p style={{ margin:'0 0 16px',fontSize:13,color:'#64748b' }}>Your company branding is shown in email messages and on all PDFs</p>
               <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16 }}>
-                {/* Brand Colors */}
                 <div style={{ border:'1px solid #1e293b',borderRadius:12,padding:'1rem' }}>
                   <h3 style={{ margin:'0 0 12px',fontSize:14,fontWeight:700,color:'#f1f5f9' }}>Brand Colors</h3>
                   {[
@@ -538,8 +528,6 @@ export default function SettingsPage() {
                   ))}
                   <button style={{ padding:'6px 12px',background:'#1e293b',border:'1px solid #334155',borderRadius:6,color:'#94a3b8',cursor:'pointer',fontSize:12,fontFamily:'inherit' }}>Save</button>
                 </div>
-
-                {/* Logo */}
                 <div style={{ border:'1px solid #1e293b',borderRadius:12,padding:'1rem',display:'flex',flexDirection:'column',alignItems:'center' }}>
                   <h3 style={{ margin:'0 0 12px',fontSize:14,fontWeight:700,color:'#f1f5f9',alignSelf:'flex-start' }}>Logo</h3>
                   <div style={{ width:120,height:80,background:'#1e293b',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',marginBottom:12 }}>
@@ -550,8 +538,6 @@ export default function SettingsPage() {
                     <button style={{ padding:'6px 12px',background:'none',border:'1px solid #4ade80',borderRadius:6,color:'#4ade80',cursor:'pointer',fontSize:12,fontFamily:'inherit',fontWeight:700 }}>Replace</button>
                   </div>
                 </div>
-
-                {/* Client Document Settings */}
                 <div style={{ border:'1px solid #1e293b',borderRadius:12,padding:'1rem',display:'flex',flexDirection:'column',alignItems:'center' }}>
                   <h3 style={{ margin:'0 0 12px',fontSize:14,fontWeight:700,color:'#f1f5f9',alignSelf:'flex-start' }}>Client Document Settings</h3>
                   <div style={{ flex:1,width:'100%',background:'#f8fafc',borderRadius:8,padding:'8px',marginBottom:12,overflow:'hidden' }}>
@@ -564,7 +550,6 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Social networks */}
             <div style={card}>
               <h2 style={{ ...secTitle,marginBottom:4 }}>Social networks</h2>
               <p style={{ margin:'0 0 16px',fontSize:13,color:'#64748b' }}>Social network icons will appear on emails and Client Hub.</p>
@@ -607,8 +592,6 @@ export default function SettingsPage() {
                 {saving?'Saving...':'Save Profile'}
               </button>
             </div>
-
-            {/* Divisions */}
             <div style={card}>
               <h2 style={{ ...secTitle,marginBottom:4 }}>Divisions</h2>
               <p style={{ ...secSub }}>Active service divisions</p>
@@ -634,7 +617,6 @@ export default function SettingsPage() {
             <div style={card}>
               <h2 style={secTitle}>Autobilling</h2>
               <p style={secSub}>Automatically generate and send invoices when jobs are marked complete</p>
-
               <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 20px',background:'#1e293b',borderRadius:12,marginBottom:16 }}>
                 <div>
                   <p style={{ margin:'0 0 2px',fontSize:14,fontWeight:700,color:'#f1f5f9' }}>Enable Autobilling</p>
@@ -645,7 +627,6 @@ export default function SettingsPage() {
                   <span style={{ position:'absolute',top:3,left:autobillEnabled?24:4,width:20,height:20,borderRadius:'50%',background:'#fff',transition:'left .2s',display:'block' }} />
                 </button>
               </div>
-
               {autobillEnabled && (
                 <div style={{ display:'flex',flexDirection:'column',gap:16 }}>
                   <div>
@@ -671,33 +652,18 @@ export default function SettingsPage() {
                       Automatically send invoice email to client when created
                     </label>
                   </div>
-
                   <div style={{ background:'rgba(74,222,128,0.08)',border:'1px solid rgba(74,222,128,0.2)',borderRadius:10,padding:'14px 16px' }}>
                     <p style={{ margin:'0 0 4px',fontSize:13,fontWeight:700,color:'#4ade80' }}>✅ How autobilling works</p>
                     <p style={{ margin:'0 0 2px',fontSize:12,color:'#94a3b8' }}>1. A crew member marks a job as "Completed"</p>
                     <p style={{ margin:'0 0 2px',fontSize:12,color:'#94a3b8' }}>2. After {autobillDelay === '0' ? 'immediately' : `${autobillDelay} day(s)`}, an invoice is created using the job's amount</p>
                     <p style={{ margin:'0',fontSize:12,color:'#94a3b8' }}>3. {autobillSend ? 'The invoice is emailed to the client automatically' : 'The invoice sits as draft until you send it manually'}</p>
                   </div>
-
-                  <div style={{ background:'rgba(251,191,36,0.08)',border:'1px solid rgba(251,191,36,0.2)',borderRadius:10,padding:'14px 16px' }}>
-                    <p style={{ margin:'0 0 4px',fontSize:13,fontWeight:700,color:'#fbbf24' }}>📋 Requirements</p>
-                    <p style={{ margin:'0 0 2px',fontSize:12,color:'#94a3b8' }}>• Jobs must have a client name and amount set</p>
-                    <p style={{ margin:'0 0 2px',fontSize:12,color:'#94a3b8' }}>• Client must have an email on file for auto-send</p>
-                    <p style={{ margin:'0',fontSize:12,color:'#94a3b8' }}>• Resend API key must be configured in integrations</p>
-                  </div>
                 </div>
               )}
-
               <div style={{ display:'flex',justifyContent:'flex-end',marginTop:16 }}>
                 <button onClick={async () => {
                   setAutobillSaving(true)
-                  await supabase.from('org_settings').upsert({
-                    id: 1,
-                    autobill_enabled: autobillEnabled,
-                    autobill_delay_days: parseInt(autobillDelay),
-                    autobill_action: autobillMethod,
-                    autobill_send_email: autobillSend,
-                  })
+                  await supabase.from('org_settings').upsert({ id: 1, autobill_enabled: autobillEnabled, autobill_delay_days: parseInt(autobillDelay), autobill_action: autobillMethod, autobill_send_email: autobillSend })
                   setAutobillSaving(false)
                   showToast('✅ Autobilling settings saved!')
                 }} style={{ padding:'10px 24px',background:'#16a34a',border:'none',borderRadius:9,color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>
@@ -714,8 +680,6 @@ export default function SettingsPage() {
             <div style={card}>
               <h2 style={secTitle}>Divisions</h2>
               <p style={secSub}>Manage the service divisions your company operates</p>
-
-              {/* Built-in divisions */}
               <p style={{ fontSize:11,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.06em',margin:'0 0 10px' }}>Built-in Divisions</p>
               <div style={{ display:'flex',flexDirection:'column',gap:8,marginBottom:24 }}>
                 {[
@@ -729,12 +693,10 @@ export default function SettingsPage() {
                   <div key={d.label} style={{ display:'flex',alignItems:'center',gap:12,padding:'12px 16px',background:'#1e293b',borderRadius:10,border:'1px solid #334155' }}>
                     <span style={{ fontSize:20 }}>{d.icon}</span>
                     <span style={{ fontSize:13,fontWeight:600,color:'#f1f5f9',flex:1 }}>{d.label}</span>
-                    <span style={{ fontSize:10,background:`rgba(74,222,128,0.15)`,color:'#4ade80',padding:'2px 8px',borderRadius:99,fontWeight:700 }}>Active</span>
+                    <span style={{ fontSize:10,background:'rgba(74,222,128,0.15)',color:'#4ade80',padding:'2px 8px',borderRadius:99,fontWeight:700 }}>Active</span>
                   </div>
                 ))}
               </div>
-
-              {/* Custom divisions */}
               <p style={{ fontSize:11,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.06em',margin:'0 0 10px' }}>Add Custom Division</p>
               <div style={{ display:'flex',gap:8,marginBottom:16 }}>
                 <select style={{ ...inp,width:'auto',padding:'9px 10px' }} value={newDivIcon} onChange={e=>setNewDivIcon(e.target.value)}>
@@ -748,7 +710,6 @@ export default function SettingsPage() {
                   setNewDivLabel('')
                 }} style={{ padding:'9px 16px',background:'#16a34a',border:'none',borderRadius:8,color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Add</button>
               </div>
-
               {customDivisions.length > 0 && (
                 <div style={{ display:'flex',flexDirection:'column',gap:8 }}>
                   {customDivisions.map((d, i) => (
@@ -774,9 +735,11 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* ── INTEGRATIONS ── */}
         {activeNav === 'integrations' && (
           <div>
-            {/* ── SQUARE INTEGRATION ── */}
+
+            {/* ── SQUARE ── */}
             <div style={card}>
               <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
                 <div style={{ background:'#fff',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#000' }}>■ Square</div>
@@ -786,39 +749,26 @@ export default function SettingsPage() {
                 </div>
                 <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:squareToken?'#052e16':'#1a1000',color:squareToken?'#4ade80':'#fcd34d',padding:'3px 10px',borderRadius:20,border:`1px solid ${squareToken?'#16a34a':'#d97706'}` }}>{squareToken?'Configured':'Setup needed'}</span>
               </div>
-              <div style={{ background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:12 }}>
-                <p style={{ margin:'0 0 8px',fontSize:13,color:'#94a3b8' }}>Connect your Square account to enable:</p>
-                <ul style={{ margin:0,padding:'0 0 0 20px',fontSize:13,color:'#cbd5e1' }}>
-                  <li>Credit card payments on invoices (client portal)</li>
-                  <li>Auto-charge clients after job completion</li>
-                  <li>Collect payments in the field</li>
-                </ul>
-              </div>
               <div style={{ display:'grid',gridTemplateColumns:'1fr',gap:10,marginBottom:12 }}>
                 <div>
                   <label style={lbl}>Square Access Token</label>
                   <input style={inp} type="password" placeholder="sq0atp-..." value={squareToken} onChange={e=>setSquareToken(e.target.value)} />
                   <p style={{ margin:'4px 0 0',fontSize:11,color:'#475569' }}>Found in Square Dashboard → Developer → Applications → Access Token</p>
                 </div>
-                <div>
-                  <label style={lbl}>Square Application ID</label>
-                  <input style={inp} placeholder="sq0idp-..." value={squareAppId} onChange={e=>setSquareAppId(e.target.value)} />
-                </div>
-                <div>
-                  <label style={lbl}>Square Location ID</label>
-                  <input style={inp} placeholder="LXXXXXXXXXXXXXXXX" value={squareLocationId} onChange={e=>setSquareLocationId(e.target.value)} />
-                </div>
+                <div><label style={lbl}>Square Application ID</label><input style={inp} placeholder="sq0idp-..." value={squareAppId} onChange={e=>setSquareAppId(e.target.value)} /></div>
+                <div><label style={lbl}>Square Location ID</label><input style={inp} placeholder="LXXXXXXXXXXXXXXXX" value={squareLocationId} onChange={e=>setSquareLocationId(e.target.value)} /></div>
               </div>
               <div style={{ display:'flex',gap:8 }}>
                 <a href="https://developer.squareup.com/apps" target="_blank" rel="noreferrer"
                   style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
                   ↗ Open Square Developer Dashboard
                 </a>
-                <button onClick={()=>saveApiKeys({square_access_token:squareToken,square_app_id:squareAppId,square_location_id:squareLocationId},'Square settings')} disabled={keysSaving} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save Square Settings</button>
+                <button onClick={()=>saveApiKeys({square_access_token:squareToken,square_app_id:squareAppId,square_location_id:squareLocationId},'Square settings')} disabled={keysSaving}
+                  style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save Square Settings</button>
               </div>
             </div>
 
-            {/* ── GODADDY / SMTP EMAIL ── */}
+            {/* ── EMAIL (SMTP) ── */}
             <div style={card}>
               <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
                 <div style={{ background:'#1bdbad',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#000' }}>✉ Email</div>
@@ -836,26 +786,11 @@ export default function SettingsPage() {
                 <p style={{ margin:0,fontSize:12,color:'#cbd5e1' }}>• Password: your GoDaddy email password</p>
               </div>
               <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12 }}>
-                <div>
-                  <label style={lbl}>From Name</label>
-                  <input style={inp} placeholder="PHL Land Care Inc." value={smtpFromName} onChange={e=>setSmtpFromName(e.target.value)} />
-                </div>
-                <div>
-                  <label style={lbl}>From Email Address</label>
-                  <input style={inp} placeholder="admin@phllandcare.com" value={smtpFromEmail} onChange={e=>setSmtpFromEmail(e.target.value)} />
-                </div>
-                <div>
-                  <label style={lbl}>SMTP Username (your email)</label>
-                  <input style={inp} placeholder="admin@phllandcare.com" value={smtpUser} onChange={e=>setSmtpUser(e.target.value)} />
-                </div>
-                <div>
-                  <label style={lbl}>SMTP Password</label>
-                  <input style={{ ...inp }} type="password" placeholder="Your GoDaddy email password" value={smtpPass} onChange={e=>setSmtpPass(e.target.value)} />
-                </div>
-                <div>
-                  <label style={lbl}>SMTP Host</label>
-                  <input style={inp} placeholder="smtpout.secureserver.net" value={smtpHost} onChange={e=>setSmtpHost(e.target.value)} />
-                </div>
+                <div><label style={lbl}>From Name</label><input style={inp} placeholder="PHL Land Care Inc." value={smtpFromName} onChange={e=>setSmtpFromName(e.target.value)} /></div>
+                <div><label style={lbl}>From Email Address</label><input style={inp} placeholder="admin@phllandcare.com" value={smtpFromEmail} onChange={e=>setSmtpFromEmail(e.target.value)} /></div>
+                <div><label style={lbl}>SMTP Username (your email)</label><input style={inp} placeholder="admin@phllandcare.com" value={smtpUser} onChange={e=>setSmtpUser(e.target.value)} /></div>
+                <div><label style={lbl}>SMTP Password</label><input style={inp} type="password" placeholder="Your GoDaddy email password" value={smtpPass} onChange={e=>setSmtpPass(e.target.value)} /></div>
+                <div><label style={lbl}>SMTP Host</label><input style={inp} placeholder="smtpout.secureserver.net" value={smtpHost} onChange={e=>setSmtpHost(e.target.value)} /></div>
                 <div>
                   <label style={lbl}>Port</label>
                   <select style={inp} value={smtpPort} onChange={e=>setSmtpPort(e.target.value)}>
@@ -874,7 +809,7 @@ export default function SettingsPage() {
                   try {
                     const user = (await supabase.auth.getUser()).data.user
                     const to = user?.email || smtpFromEmail || 'admin@phllandcare.com'
-                    await supabase.functions.invoke('send-email',{body:{to,subject:'PHL CRM — Test Email ✅',html:'<div style="font-family:sans-serif;padding:24px"><h2 style="color:#16a34a">PHL Land Care CRM</h2><p>Your GoDaddy email is working correctly!</p><p style="color:#64748b;font-size:13px">Sent from PHL CRM via ' + smtpHost + '</p></div>'}})
+                    await supabase.functions.invoke('send-email',{body:{to,subject:'PHL CRM — Test Email ✅',html:'<div style="font-family:sans-serif;padding:24px"><h2 style="color:#16a34a">PHL Land Care CRM</h2><p>Your GoDaddy email is working correctly!</p></div>'}})
                     showToast('✅ Test email sent to ' + to)
                   } catch(e:any) { showToast('⚠️ Test failed: ' + e.message) }
                 }} style={{ padding:'9px 18px',border:'1px solid #0ea5e9',borderRadius:8,background:'rgba(14,165,233,0.1)',color:'#7dd3fc',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>
@@ -884,68 +819,108 @@ export default function SettingsPage() {
               <div style={{ marginTop:16,paddingTop:16,borderTop:'1px solid #1e293b' }}>
                 <p style={{ margin:'0 0 8px',fontSize:12,color:'#475569',fontWeight:600 }}>Optional: Resend API fallback</p>
                 <div style={{ display:'flex',gap:8,alignItems:'center' }}>
-                  <input style={{ ...inp,flex:1 }} type="password" placeholder="re_xxxx (optional — only if not using SMTP)" value={resendKey} onChange={e=>setResendKey(e.target.value)} />
+                  <input style={{ ...inp,flex:1 }} type="password" placeholder="re_xxxx (optional)" value={resendKey} onChange={e=>setResendKey(e.target.value)} />
                   <button onClick={()=>saveApiKeys({resend_api_key:resendKey},'Resend fallback')} disabled={keysSaving}
                     style={{ padding:'9px 14px',border:'1px solid #334155',borderRadius:8,background:'transparent',color:'#94a3b8',cursor:'pointer',fontSize:13,fontFamily:'inherit',whiteSpace:'nowrap' }}>Save</button>
                 </div>
               </div>
             </div>
 
-            {/* ── TWILIO SMS ── */}
+            {/* ── SIGNALWIRE — Phone, Fax & SMS ── */}
             <div style={card}>
               <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
-                <div style={{ background:'#f22f46',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#fff' }}>💬 Twilio</div>
+                <div style={{ background:'linear-gradient(135deg,#5B2D8E,#7C3AED)',borderRadius:8,padding:'6px 12px',fontSize:13,fontWeight:800,color:'#fff',letterSpacing:'-0.3px' }}>📡 SW</div>
                 <div>
-                  <h2 style={{ ...secTitle,margin:0 }}>SMS Notifications</h2>
-                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Send text reminders and notifications to clients and staff</p>
+                  <h2 style={{ ...secTitle,margin:0 }}>SignalWire — Phone, Fax & SMS</h2>
+                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Outbound calls, incoming calls, fax sending/receiving, and SMS notifications</p>
                 </div>
-                <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:twilioSid?'#052e16':'#1a1000',color:twilioSid?'#4ade80':'#fcd34d',padding:'3px 10px',borderRadius:20,border:`1px solid ${twilioSid?'#16a34a':'#d97706'}` }}>{twilioSid?'Configured':'Setup needed'}</span>
+                <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:swProjectId?'#052e16':'#1a1000',color:swProjectId?'#4ade80':'#fcd34d',padding:'3px 10px',borderRadius:20,border:`1px solid ${swProjectId?'#16a34a':'#d97706'}` }}>{swProjectId?'Configured':'Setup needed'}</span>
               </div>
+
+              <div style={{ background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:16 }}>
+                <p style={{ margin:'0 0 8px',fontSize:13,color:'#94a3b8',fontWeight:600 }}>What SignalWire powers in PHL CRM:</p>
+                <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:6 }}>
+                  {[
+                    { icon:'📞', text:'Outbound calls from Dialer' },
+                    { icon:'📲', text:'Inbound call routing' },
+                    { icon:'📠', text:'Send & receive faxes' },
+                    { icon:'💬', text:'SMS to clients & staff' },
+                    { icon:'🔔', text:'Job & invoice reminders' },
+                    { icon:'📋', text:'Voicemail transcription' },
+                  ].map(f => (
+                    <div key={f.text} style={{ display:'flex',alignItems:'center',gap:8,fontSize:12,color:'#cbd5e1' }}>
+                      <span>{f.icon}</span><span>{f.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12 }}>
                 <div>
-                  <label style={lbl}>Twilio Account SID</label>
-                  <input style={inp} type="password" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value={twilioSid} onChange={e=>setTwilioSid(e.target.value)} />
+                  <label style={lbl}>Project ID</label>
+                  <input style={inp} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" value={swProjectId} onChange={e=>setSwProjectId(e.target.value)} />
+                  <p style={{ margin:'4px 0 0',fontSize:11,color:'#475569' }}>SignalWire Dashboard → Project → Settings</p>
                 </div>
                 <div>
-                  <label style={lbl}>Twilio Auth Token</label>
-                  <input style={inp} type="password" placeholder="your_auth_token" value={twilioToken} onChange={e=>setTwilioToken(e.target.value)} />
+                  <label style={lbl}>API Token</label>
+                  <input style={inp} type="password" placeholder="PTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value={swApiToken} onChange={e=>setSwApiToken(e.target.value)} />
+                  <p style={{ margin:'4px 0 0',fontSize:11,color:'#475569' }}>Found under API Credentials in your project</p>
                 </div>
                 <div>
-                  <label style={lbl}>From Phone Number</label>
-                  <input style={inp} placeholder="+17724660000" value={twilioPhone} onChange={e=>setTwilioPhone(e.target.value)} />
-                  <p style={{ margin:'4px 0 0',fontSize:11,color:'#475569' }}>Must be a Twilio-verified number in E.164 format</p>
+                  <label style={lbl}>Space URL</label>
+                  <input style={inp} placeholder="yourspace.signalwire.com" value={swSpaceUrl} onChange={e=>setSwSpaceUrl(e.target.value)} />
+                  <p style={{ margin:'4px 0 0',fontSize:11,color:'#475569' }}>e.g. phllandcare.signalwire.com</p>
+                </div>
+                <div>
+                  <label style={lbl}>Phone Number (E.164)</label>
+                  <input style={inp} placeholder="+17724660000" value={swPhone} onChange={e=>setSwPhone(e.target.value)} />
+                  <p style={{ margin:'4px 0 0',fontSize:11,color:'#475569' }}>Your SignalWire DID number for calls, SMS & fax</p>
                 </div>
               </div>
-              <div style={{ display:'flex',gap:8 }}>
-                <a href="https://console.twilio.com" target="_blank" rel="noreferrer"
+
+              <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
+                <a href="https://signalwire.com/signin" target="_blank" rel="noreferrer"
                   style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
-                  ↗ Open Twilio Console
+                  ↗ Open SignalWire Dashboard
                 </a>
-                <button onClick={()=>saveApiKeys({twilio_account_sid:twilioSid,twilio_auth_token:twilioToken,twilio_phone_number:twilioPhone},'Twilio SMS settings')} disabled={keysSaving}
-                  style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save SMS Settings</button>
+                <button onClick={()=>saveApiKeys({signalwire_project_id:swProjectId,signalwire_api_token:swApiToken,signalwire_space_url:swSpaceUrl,signalwire_phone_number:swPhone},'SignalWire settings')} disabled={keysSaving}
+                  style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#7C3AED',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>
+                  Save SignalWire Settings
+                </button>
                 <button onClick={async()=>{
-                  const to = prompt('Enter a phone number to test (e.g. +17725551234):')
+                  const to = prompt('Enter a phone number to test SMS (e.g. +17725551234):')
                   if (!to) return
                   try {
-                    await supabase.functions.invoke('send-sms',{body:{to,message:'PHL Land Care CRM — SMS test successful! 🎉'}})
+                    await supabase.functions.invoke('send-sms',{body:{to,message:'PHL Land Care CRM — SignalWire SMS test successful! 🎉'}})
                     showToast('✅ Test SMS sent to ' + to)
-                  } catch { showToast('⚠️ SMS test failed — check Twilio settings') }
+                  } catch { showToast('⚠️ SMS test failed — check SignalWire settings') }
                 }} style={{ padding:'9px 18px',border:'1px solid rgba(167,139,250,0.4)',borderRadius:8,background:'rgba(167,139,250,0.1)',color:'#a78bfa',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>
                   💬 Send Test SMS
                 </button>
               </div>
+
+              <div style={{ marginTop:16,paddingTop:16,borderTop:'1px solid #1e293b',background:'rgba(92,45,142,0.08)',borderRadius:8,padding:'12px 14px',marginTop:16 }}>
+                <p style={{ margin:'0 0 6px',fontSize:12,color:'#a78bfa',fontWeight:700 }}>📋 SignalWire Setup Guide</p>
+                <p style={{ margin:'0 0 3px',fontSize:12,color:'#94a3b8' }}>1. Create a free account at <strong style={{color:'#c4b5fd'}}>signalwire.com</strong></p>
+                <p style={{ margin:'0 0 3px',fontSize:12,color:'#94a3b8' }}>2. Create a project → note your <strong style={{color:'#c4b5fd'}}>Project ID</strong> and <strong style={{color:'#c4b5fd'}}>Space URL</strong></p>
+                <p style={{ margin:'0 0 3px',fontSize:12,color:'#94a3b8' }}>3. Go to API → Create Token → paste as <strong style={{color:'#c4b5fd'}}>API Token</strong></p>
+                <p style={{ margin:'0 0 3px',fontSize:12,color:'#94a3b8' }}>4. Buy a phone number → supports Voice + SMS + Fax on same number</p>
+                <p style={{ margin:0,fontSize:12,color:'#94a3b8' }}>5. Save settings above → test SMS → open Dialer to make your first call</p>
+              </div>
             </div>
 
-            {/* ── STATUS OVERVIEW ── */}
+            {/* ── CONNECTION STATUS ── */}
             <div style={card}>
               <h2 style={{ ...secTitle,marginBottom:12 }}>Connection Status</h2>
               <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
                 {[
-                  {name:'Supabase',      desc:'Database & realtime sync',  status:'Connected',    ok:true},
-                  {name:'GitHub Pages',  desc:'Hosting & deployment',      status:'Active',       ok:true},
-                  {name:'Square',        desc:'Payment processing',        status: squareToken ? 'Configured' : 'Setup needed', ok:!!squareToken},
-                  {name:'Email (SMTP)',  desc:'GoDaddy outgoing email',   status: smtpUser ? 'Configured' : 'Setup needed',    ok:!!smtpUser},
-                  {name:'Twilio',        desc:'SMS notifications',         status: twilioSid ? 'Configured' : 'Setup needed',   ok:!!twilioSid},
+                  {name:'Supabase',        desc:'Database & realtime sync',        status:'Connected',                                ok:true},
+                  {name:'GitHub Pages',    desc:'Hosting & deployment',            status:'Active',                                   ok:true},
+                  {name:'Square',          desc:'Payment processing',              status: squareToken ? 'Configured' : 'Setup needed', ok:!!squareToken},
+                  {name:'Email (SMTP)',    desc:'GoDaddy outgoing email',          status: smtpUser ? 'Configured' : 'Setup needed',    ok:!!smtpUser},
+                  {name:'SignalWire SMS',  desc:'SMS notifications',               status: swProjectId ? 'Configured' : 'Setup needed', ok:!!swProjectId},
+                  {name:'SignalWire Voice',desc:'Phone calls via Dialer',          status: swProjectId ? 'Configured' : 'Setup needed', ok:!!swProjectId},
+                  {name:'SignalWire Fax',  desc:'Send & receive faxes',            status: swProjectId ? 'Configured' : 'Setup needed', ok:!!swProjectId},
                 ].map(item=>(
                   <div key={item.name} style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'#1e293b',borderRadius:10,border:'1px solid #334155' }}>
                     <div>
@@ -959,7 +934,6 @@ export default function SettingsPage() {
             </div>
           </div>
         )}
-
       </div>
 
       {/* ── CLIENT DOCUMENT SETTINGS MODAL ── */}
@@ -967,22 +941,17 @@ export default function SettingsPage() {
         <>
           <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:600 }} onClick={()=>setShowDocSettings(false)} />
           <div style={{ position:'fixed',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:'min(900px,95vw)',maxHeight:'90vh',overflowY:'auto',background:'#0d1526',border:'1px solid #1e293b',borderRadius:16,zIndex:601 }}>
-            {/* Header */}
             <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 24px',borderBottom:'1px solid #1e293b' }}>
               <h2 style={{ margin:0,fontSize:17,fontWeight:700,color:'#f1f5f9' }}>Client Document Settings</h2>
               <button onClick={()=>setShowDocSettings(false)} style={{ background:'none',border:'none',color:'#64748b',fontSize:22,cursor:'pointer' }}>×</button>
             </div>
-
             <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:0,minHeight:500 }}>
-              {/* Left: controls */}
               <div style={{ padding:'20px 24px',borderRight:'1px solid #1e293b' }}>
-                {/* Tabs */}
                 <div style={{ display:'flex',gap:0,borderBottom:'1px solid #1e293b',marginBottom:20 }}>
                   {(['Quotes','Jobs','Invoices','Style'] as const).map(t => (
                     <button key={t} onClick={()=>setDocTab(t)} style={{ padding:'8px 16px',background:'none',border:'none',borderBottom:docTab===t?'2px solid #4ade80':'2px solid transparent',color:docTab===t?'#f1f5f9':'#64748b',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>{t}</button>
                   ))}
                 </div>
-
                 {docTab === 'Quotes' && (
                   <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
                     <label style={{ display:'flex',alignItems:'center',gap:8,fontSize:13,color:'#94a3b8',cursor:'pointer' }}>
@@ -999,25 +968,18 @@ export default function SettingsPage() {
                         <input type="checkbox" checked={docSettings[f.key]} onChange={e=>setDocSettings({...docSettings,[f.key]:e.target.checked})} style={{ accentColor:'#4ade80' }} /> {f.label}
                       </label>
                     ))}
-                    <div><label style={lbl}>Contract/Disclaimer</label><textarea style={{ ...inp,height:80,resize:'vertical' } as React.CSSProperties} value={docSettings.quote_contract} onChange={e=>setDocSettings({...docSettings,quote_contract:e.target.value})} /><p style={{ margin:'2px 0 0',fontSize:10,color:'#475569' }}>Appears at the bottom of every Quote</p></div>
-                    <div><label style={lbl}>Deposit Language</label><textarea style={{ ...inp,height:60,resize:'vertical' } as React.CSSProperties} value={docSettings.quote_deposit_language} onChange={e=>setDocSettings({...docSettings,quote_deposit_language:e.target.value})} /><p style={{ margin:'2px 0 0',fontSize:10,color:'#475569' }}>Appears when deposit requested</p></div>
-                    <button style={{ color:'#4ade80',background:'none',border:'none',cursor:'pointer',fontSize:13,fontFamily:'inherit',textDecoration:'underline',textAlign:'left' }}>Reset to default message</button>
-                    <button style={{ display:'flex',alignItems:'center',gap:6,padding:'8px 14px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',cursor:'pointer',fontSize:12,fontFamily:'inherit' }}>Select fields to display +</button>
-                    <p style={{ margin:0,fontSize:11,color:'#475569' }}>Selected fields will display on the quote and will also show up in Client Hub</p>
+                    <div><label style={lbl}>Contract/Disclaimer</label><textarea style={{ ...inp,height:80,resize:'vertical' } as React.CSSProperties} value={docSettings.quote_contract} onChange={e=>setDocSettings({...docSettings,quote_contract:e.target.value})} /></div>
+                    <div><label style={lbl}>Deposit Language</label><textarea style={{ ...inp,height:60,resize:'vertical' } as React.CSSProperties} value={docSettings.quote_deposit_language} onChange={e=>setDocSettings({...docSettings,quote_deposit_language:e.target.value})} /></div>
                   </div>
                 )}
-
                 {docTab === 'Jobs' && (
                   <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
                     <label style={{ display:'flex',alignItems:'center',gap:8,fontSize:13,color:'#f1f5f9',cursor:'pointer' }}>
                       <input type="checkbox" checked={docSettings.job_show_signature} onChange={e=>setDocSettings({...docSettings,job_show_signature:e.target.checked})} style={{ accentColor:'#4ade80' }} /> Include client signature line
                     </label>
-                    <div><label style={lbl}>Contract/Disclaimer</label><textarea style={{ ...inp,height:80,resize:'vertical' } as React.CSSProperties} value={docSettings.job_contract} onChange={e=>setDocSettings({...docSettings,job_contract:e.target.value})} /><p style={{ margin:'2px 0 0',fontSize:10,color:'#475569' }}>Appears at the bottom of every Job</p></div>
-                    <button style={{ display:'flex',alignItems:'center',gap:6,padding:'8px 14px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',cursor:'pointer',fontSize:12,fontFamily:'inherit' }}>Select fields to display +</button>
-                    <p style={{ margin:0,fontSize:11,color:'#475569' }}>Selected fields will display on the job and will also show up in Client Hub</p>
+                    <div><label style={lbl}>Contract/Disclaimer</label><textarea style={{ ...inp,height:80,resize:'vertical' } as React.CSSProperties} value={docSettings.job_contract} onChange={e=>setDocSettings({...docSettings,job_contract:e.target.value})} /></div>
                   </div>
                 )}
-
                 {docTab === 'Invoices' && (
                   <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
                     {[
@@ -1033,12 +995,9 @@ export default function SettingsPage() {
                         <input type="checkbox" checked={docSettings[f.key]} onChange={e=>setDocSettings({...docSettings,[f.key]:e.target.checked})} style={{ accentColor:'#4ade80' }} /> {f.label}
                       </label>
                     ))}
-                    {docSettings.inv_return_stub && <p style={{ margin:0,fontSize:11,color:'#64748b' }}>Adds a tear off payment return stub at the bottom of your Unpaid Invoices. NOTE: The return stub is formatted to fit #8 Envelopes.</p>}
-                    <div><label style={lbl}>Contract/Disclaimer</label><textarea style={{ ...inp,height:80,resize:'vertical' } as React.CSSProperties} value={docSettings.inv_contract} onChange={e=>setDocSettings({...docSettings,inv_contract:e.target.value})} /><p style={{ margin:'2px 0 0',fontSize:10,color:'#475569' }}>Appears at the bottom of every Invoice</p></div>
-                    <button style={{ display:'flex',alignItems:'center',gap:6,padding:'8px 14px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',cursor:'pointer',fontSize:12,fontFamily:'inherit' }}>Select fields to display +</button>
+                    <div><label style={lbl}>Contract/Disclaimer</label><textarea style={{ ...inp,height:80,resize:'vertical' } as React.CSSProperties} value={docSettings.inv_contract} onChange={e=>setDocSettings({...docSettings,inv_contract:e.target.value})} /></div>
                   </div>
                 )}
-
                 {docTab === 'Style' && (
                   <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
                     {[
@@ -1071,90 +1030,14 @@ export default function SettingsPage() {
                   </div>
                 )}
               </div>
-
-              {/* Right: preview */}
               <div style={{ padding:'20px 24px',background:'#070d19',display:'flex',flexDirection:'column',alignItems:'center' }}>
                 <p style={{ margin:'0 0 12px',fontSize:11,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.06em',alignSelf:'flex-start' }}>Preview</p>
                 <InvoicePreview />
               </div>
             </div>
-
-            {/* Footer */}
             <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 24px',borderTop:'1px solid #1e293b' }}>
               <button onClick={()=>setShowDocSettings(false)} style={{ padding:'9px 18px',border:'1px solid #1e293b',borderRadius:8,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Cancel</button>
-              <div style={{ display:'flex',gap:8 }}>
-                <button onClick={() => {
-                  const win = window.open('', '_blank')
-                  if (!win) return
-                  win.document.write(`<!DOCTYPE html><html><head><title>Document Preview — PHL Land Care Inc.</title><style>
-                    body{font-family:Arial,sans-serif;margin:0;padding:32px;color:#111;max-width:800px;margin:auto;background:#f8fafc}
-                    .page{background:#fff;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,0.1);padding:40px;margin:auto}
-                    .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:2px solid #1e3a5f}
-                    .logo-area h1{margin:0;color:#1e3a5f;font-size:${docSettings.header_style==='Modern'?'22':'20'}px;font-weight:800}
-                    .logo-area p{margin:2px 0;font-size:11px;color:#64748b}
-                    .invoice-box{background:#1e3a5f;color:#fff;padding:14px 18px;border-radius:8px;text-align:right;min-width:180px}
-                    .invoice-box h2{margin:0;font-size:16px;font-weight:700} .invoice-box p{margin:3px 0;font-size:11px;color:#94a3b8}
-                    .total-badge{background:#4ade80;color:#052e16;padding:5px 10px;border-radius:4px;font-weight:800;font-size:13px;display:inline-block;margin-top:6px}
-                    .section{margin-bottom:20px} .section h3{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin:0 0 8px;font-weight:700}
-                    table{width:100%;border-collapse:collapse;margin-bottom:16px}
-                    thead{background:#1e3a5f;color:#fff} th{padding:9px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
-                    tbody tr{border-bottom:1px solid #e2e8f0} td{padding:10px 12px;font-size:13px}
-                    .totals{display:flex;justify-content:flex-end} .totals-inner{min-width:240px}
-                    .total-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;color:#475569;border-bottom:1px solid #f1f5f9}
-                    .grand-total{display:flex;justify-content:space-between;padding:10px 0;font-size:16px;font-weight:800;color:#1e3a5f;border-top:2px solid #1e3a5f;margin-top:4px}
-                    .contract{margin-top:20px;padding:12px;background:#f8fafc;border-radius:6px;font-size:11px;color:#64748b;line-height:1.5}
-                    .footer{margin-top:28px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:10px;color:#94a3b8;text-align:center}
-                    .sig-line{display:flex;justify-content:flex-end;gap:40px;margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0}
-                    .sig-box{text-align:center;min-width:160px} .sig-box .line{border-bottom:1px solid #111;height:32px;margin-bottom:4px} .sig-box p{font-size:10px;color:#64748b;margin:0}
-                    @media print{body{padding:0;background:#fff}.page{box-shadow:none}button{display:none!important}}
-                  </style></head><body>
-                  <div class="page">
-                    <div class="header">
-                      <div class="logo-area">
-                        <h1>${docSettings.show_company_name ? company.company_name : ''}</h1>
-                        <p>${company.street1}${company.city ? ' | ' + company.city + ', ' + company.state + ' ' + company.zip : ''}</p>
-                        ${docSettings.show_company_phone ? `<p>${company.phone}` : ''} ${docSettings.show_company_email ? ` | ${company.email}` : ''} ${docSettings.show_company_website ? ` | ${company.website}` : ''}${docSettings.show_company_phone || docSettings.show_company_email || docSettings.show_company_website ? '</p>' : ''}
-                      </div>
-                      <div class="invoice-box">
-                        <h2>${docTab === 'Jobs' ? 'Work Order #3548' : docTab === 'Invoices' ? 'Invoice #16299' : 'Quote #15699'}</h2>
-                        <p>${docTab === 'Invoices' ? 'Issued: ' + new Date().toLocaleDateString() : 'Date: ' + new Date().toLocaleDateString()}</p>
-                        ${docTab === 'Invoices' ? `<p>Due: Net ${company.default_tax_rate ? '7' : '7'} days</p>` : ''}
-                        <div class="total-badge">Total: $150.00</div>
-                      </div>
-                    </div>
-                    <div style="display:flex;gap:40px;margin-bottom:20px">
-                      <div class="section"><h3>Recipient</h3><strong>Sample Client</strong><p style="margin:2px 0;font-size:12px;color:#475569">123 Main St.<br>Port St. Lucie, FL 34986</p></div>
-                      <div class="section"><h3>Service Address</h3><p style="margin:0;font-size:12px;color:#475569">123 Main St.<br>Port St. Lucie, FL 34986</p></div>
-                    </div>
-                    <div class="section">
-                      <h3>${docTab === 'Jobs' ? 'Work Order Details' : 'For Services Rendered'}</h3>
-                      <table>
-                        <thead><tr><th>Product/Service</th><th>Description</th>${docSettings.quote_show_qty||docSettings.inv_show_qty ? '<th>Qty</th>' : ''}${docSettings.inv_show_unit_price||docSettings.quote_show_unit_price ? '<th>Unit Price</th>' : ''}<th>Total</th></tr></thead>
-                        <tbody>
-                          <tr><td>Lawn Mowing</td><td>Weekly service</td>${docSettings.quote_show_qty||docSettings.inv_show_qty ? '<td>1</td>' : ''}${docSettings.inv_show_unit_price||docSettings.quote_show_unit_price ? '<td>$100.00</td>' : ''}<td>$100.00</td></tr>
-                          <tr><td>Edging</td><td>Trim and edge</td>${docSettings.quote_show_qty||docSettings.inv_show_qty ? '<td>2</td>' : ''}${docSettings.inv_show_unit_price||docSettings.quote_show_unit_price ? '<td>$25.00</td>' : ''}<td>$50.00</td></tr>
-                        </tbody>
-                      </table>
-                    </div>
-                    <div class="totals"><div class="totals-inner">
-                      <div class="total-row"><span>Subtotal</span><span>$150.00</span></div>
-                      ${company.default_tax_rate && parseFloat(company.default_tax_rate) > 0 ? `<div class="total-row"><span>${company.default_tax_name||'Tax'} (${company.default_tax_rate}%)</span><span>$9.00</span></div>` : ''}
-                      <div class="grand-total"><span>Total</span><span>$150.00</span></div>
-                    </div></div>
-                    ${(docTab==='Quotes'&&docSettings.quote_show_signature)||(docTab==='Jobs'&&docSettings.job_show_signature) ? '<div class="sig-line"><div class="sig-box"><div class="line"></div><p>Date</p></div><div class="sig-box"><div class="line"></div><p>Client Signature</p></div></div>' : ''}
-                    <div class="contract">${docTab==='Quotes' ? docSettings.quote_contract : docTab==='Jobs' ? docSettings.job_contract : docSettings.inv_contract}</div>
-                    ${docSettings.show_company_name||company.tax_id_number ? `<p style="font-size:10px;color:#94a3b8;margin-top:12px">${company.tax_id_name||''} ${company.tax_id_number ? '· ' + company.tax_id_number : ''}</p>` : ''}
-                    <div class="footer">${company.company_name} | ${company.street1}, ${company.city}, ${company.state} ${company.zip} | ${company.phone} | ${company.email}</div>
-                  </div>
-                  <div style="text-align:center;margin-top:16px">
-                    <button onclick="window.print()" style="background:#1e3a5f;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px">🖨️ Print / Save as PDF</button>
-                    <button onclick="window.close()" style="background:#e2e8f0;color:#475569;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer">Close</button>
-                  </div>
-                  </body></html>`)
-                  win.document.close()
-                }} style={{ padding:'9px 18px',border:'1px solid #334155',borderRadius:8,background:'transparent',color:'#94a3b8',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Preview PDF</button>
-                <button onClick={()=>{showToast('Document settings saved!');setShowDocSettings(false)}} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Save Changes</button>
-              </div>
+              <button onClick={()=>{showToast('Document settings saved!');setShowDocSettings(false)}} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Save Changes</button>
             </div>
           </div>
         </>
