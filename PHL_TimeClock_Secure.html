@@ -562,7 +562,7 @@ async function loadEmployees() {
 async function loadClockEvents() {
   try {
     var today = new Date().toISOString().split('T')[0];
-    var data = await sb('GET', '/clock_events?select=*&order=created_at.desc&created_at=gte.' + today + 'T00:00:00');
+    var data = await sb('GET', '/clock_events?select=*&order=clock_in.desc&clock_in=gte.' + today + 'T00:00:00.000Z&clock_in=lte.' + today + 'T23:59:59.999Z');
     allClockEvents = data;
     renderLog();
     renderKioskRecent();
