@@ -92,8 +92,9 @@ export default function PayrollPage() {
           .gte('clock_in', weekStart.toISOString())
           .lt('clock_in', new Date(weekStart.getTime() + 7 * 86400000).toISOString()),
         supabase.from('clock_events').select('*')
-          .gte('clock_in', today + 'T00:00:00')
-          .order('created_at', { ascending: false }),
+          .gte('clock_in', today + 'T00:00:00.000Z')
+          .lte('clock_in', today + 'T23:59:59.999Z')
+          .order('clock_in', { ascending: false }),
       ])
       setEmployees(empRes.data ?? [])
       setClockEvents(clockRes.data ?? [])
