@@ -188,7 +188,7 @@ export default function RequestsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Delete this request?')) return
-    await supabase.from('requests').delete().eq('id', id).catch(()=>null)
+    await supabase.from('requests').delete().eq('id', id)
     setRequests(prev => prev.filter(r => r.id!==id))
     showToast('Request deleted')
   }

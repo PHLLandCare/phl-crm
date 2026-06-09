@@ -510,7 +510,7 @@ export default function Dashboard() {
         .phl-sidebar::-webkit-scrollbar { display: none; }
         .phl-sidebar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
-      <div ref={sidebarRef} onScroll={e=>{ sidebarScrollRef.current=(e.currentTarget as HTMLElement).scrollTop }} className="phl-sidebar" style={{width:220,flexShrink:0,background:'#0d1526',display:'flex',flexDirection:'column',position:'fixed',top:0,left:0,height:'100vh',overflowY:'auto',zIndex:200,borderRight:'1px solid #1e293b'}} ref={(el)=>{ if(el&&sidebarRef){(sidebarRef as any).current=el; el.scrollTop=sidebarScrollRef.current} }}>
+      <div ref={(el)=>{ if(el){ (sidebarRef as any).current=el; el.scrollTop=sidebarScrollRef.current } }} onScroll={e=>{ sidebarScrollRef.current=(e.currentTarget as HTMLElement).scrollTop }} className="phl-sidebar" style={{width:220,flexShrink:0,background:'#0d1526',display:'flex',flexDirection:'column',position:'fixed',top:0,left:0,height:'100vh',overflowY:'auto',zIndex:200,borderRight:'1px solid #1e293b'}}>
         <div style={{padding:'12px 14px',borderBottom:'1px solid #1e293b',display:'flex',alignItems:'center',gap:10}}>
           <img src="https://phllandcare.github.io/phl-crm/phl_logo.jpg" alt="PHL" style={{width:36,height:36,borderRadius:8,objectFit:'cover',flexShrink:0,background:'#fff',padding:2}} />
           <div>

@@ -192,9 +192,9 @@ export default function SettingsPage() {
     try {
       const { data: existing } = await supabase.from('org_settings').select('id').limit(1).single()
       if (existing?.id) {
-        await supabase.from('org_settings').update({ ...keys, updated_at: new Date().toISOString() }).eq('id', existing.id)
+        await supabase.from('org_settings').update({ ...(keys as any), updated_at: new Date().toISOString() }).eq('id', existing.id)
       } else {
-        await supabase.from('org_settings').insert({ ...keys })
+        await supabase.from('org_settings').insert({ ...(keys as any) })
       }
       showToast(`✅ ${label} saved!`)
     } catch {

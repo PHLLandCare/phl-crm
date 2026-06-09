@@ -149,10 +149,12 @@ export default function ClientsPage() {
   const [paymentForm, setPaymentForm] = useState({ amount: '', method: 'Square', note: '' })
 
   // Header action menus
-  const [showDotsMenu, setShowDotsMenu] = useState(false)
+  const [showDotsMenu, setShowDotsMenu] = useState<string|null>(null)
+  const [showDetailDotsMenu, setShowDetailDotsMenu] = useState(false)
   const [showCreateMenu, setShowCreateMenu] = useState(false)
   const [showAddProperty, setShowAddProperty] = useState(false)
   const [showAddContact, setShowAddContact] = useState(false)
+  const [contactingPropertyId, setContactingPropertyId] = useState<string|null>(null)
   const [clientProperties, setClientProperties] = useState<ClientProperty[]>([])
   const [propertyContacts, setPropertyContacts] = useState<PropertyContact[]>([])
   const [propForm, setPropForm] = useState({ address:'', city:'', state:'FL', zip:'', lawn_size:'Medium', irrigation:'No', pest_control:'No', locked_gate:false, has_dog:false, notes:'' })
@@ -166,7 +168,8 @@ export default function ClientsPage() {
     address: '', city: '', state: 'FL', zip: '',
     status: 'lead', divisions: 'Lawn & Tree', tags: '',
     notes: '', lead_source: '', lawn_size: 'Small',
-    locked_gate: false, has_dog: false, irrigation: 'No', pest_control: 'No'
+    locked_gate: false, has_dog: false, irrigation: 'No', pest_control: 'No',
+    title: 'No title', role: '', billing_contact: false, payment_terms: 'Net 7'
   })
 
   const loadClients = async () => {
@@ -242,7 +245,7 @@ export default function ClientsPage() {
   // Close menus on outside click
   useEffect(() => {
     const handler = () => {
-      setShowDotsMenu(false)
+      setShowDotsMenu(null)
       setShowCreateMenu(false)
       setShowWorkCreate(false)
       setShowBillingMenu(false)
@@ -279,7 +282,8 @@ export default function ClientsPage() {
       address: '', city: '', state: 'FL', zip: '',
       status: 'lead', divisions: 'Lawn & Tree', tags: '',
       notes: '', lead_source: '', lawn_size: 'Small',
-      locked_gate: false, has_dog: false, irrigation: 'No', pest_control: 'No'
+      locked_gate: false, has_dog: false, irrigation: 'No', pest_control: 'No',
+      title: 'No title', role: '', billing_contact: false, payment_terms: 'Net 7'
     })
     setShowNewClient(true)
   }
@@ -436,7 +440,7 @@ export default function ClientsPage() {
         const t = e.target as HTMLElement
         if (t.closest('button') || t.closest('a') || t.closest('input') || t.closest('select') || t.closest('textarea') || t.closest('label')) return
         if (showEmailModal) return
-        setShowDotsMenu(false); setShowCreateMenu(false); setShowWorkCreate(false)
+        setShowDotsMenu(null); setShowCreateMenu(false); setShowWorkCreate(false)
         setShowBillingMenu(false); setShowSchedTypeMenu(false); setShowSchedStatusMenu(false)
       }}>
         {/* Toast */}
@@ -495,17 +499,17 @@ export default function ClientsPage() {
             </button>
             {/* ... dots menu */}
             <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
-              <button onClick={() => { setShowDotsMenu(v => !v); setShowCreateMenu(false) }}
+              <button onClick={() => { setShowDetailDotsMenu(v => !v); setShowCreateMenu(false) }}
                 style={{ padding: '8px 12px', background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, color: '#f1f5f9', cursor: 'pointer', fontSize: 14, fontFamily: 'inherit' }}>
                 ···
               </button>
-              {showDotsMenu && (
+              {showDetailDotsMenu && (
                 <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 4, background: '#0d1526', border: '1px solid #1e293b', borderRadius: 10, zIndex: 200, minWidth: 180, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
                   {[
                     { icon: '✉️', label: 'Send Login Email', action: () => {} },
                     { icon: '👤', label: 'Log in as Client', action: () => {} },
-                    { icon: '📦', label: 'Archive', action: () => { setShowDotsMenu(false); handleArchive(selectedClient.id) } },
-                    { icon: '🗑️', label: 'Delete Client', action: () => { setShowDotsMenu(false); handleArchive(selectedClient.id) }, red: true },
+                    { icon: '📦', label: 'Archive', action: () => { setShowDetailDotsMenu(false); handleArchive(selectedClient.id) } },
+                    { icon: '🗑️', label: 'Delete Client', action: () => { setShowDetailDotsMenu(false); handleArchive(selectedClient.id) }, red: true },
                     { icon: '⚙️', label: 'Customize view', action: () => {} },
                   ].map((item: any) => (
                     <button key={item.label} onClick={item.action}
@@ -520,7 +524,7 @@ export default function ClientsPage() {
             </div>
             {/* + Create dropdown */}
             <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
-              <button onClick={() => { setShowCreateMenu(v => !v); setShowDotsMenu(false) }}
+              <button onClick={() => { setShowCreateMenu(v => !v); setShowDotsMenu(null) }}
                 style={{ padding: '8px 16px', background: '#16a34a', border: 'none', borderRadius: 8, color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
                 + Create
               </button>
@@ -625,7 +629,7 @@ export default function ClientsPage() {
                   <div style={{ borderTop: '1px solid #1e293b', padding: '10px 14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: propertyContacts.filter(c=>!c.property_id).length > 0 ? 8 : 0 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Property contacts</span>
-                      <button onClick={() => { setContactForm({ first_name:'', last_name:'', phone:'', email:'', role:'' }); setShowAddContact(true) }}
+                      <button onClick={() => { setContactForm({ first_name:'', last_name:'', phone:'', email:'', role:'' }); setContactingPropertyId(null); setShowAddContact(true) }}
                         style={{ background:'none',border:'1px solid #1e293b',color:'#4ade80',cursor:'pointer',fontSize:11,borderRadius:6,padding:'3px 8px',fontFamily:'inherit',fontWeight:600 }}>+ Add Contact</button>
                     </div>
                     {propertyContacts.filter(c=>!c.property_id).map(pc => (
@@ -678,7 +682,7 @@ export default function ClientsPage() {
                     <div style={{ borderTop:'1px solid #1e293b', padding:'10px 14px' }}>
                       <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:propContacts.length>0?8:0 }}>
                         <span style={{ fontSize:12,fontWeight:600,color:'#64748b' }}>Property contacts</span>
-                        <button onClick={() => { setContactForm({ first_name:'', last_name:'', phone:'', email:'', role:'' }); setShowAddContact(true) }}
+                        <button onClick={() => { setContactForm({ first_name:'', last_name:'', phone:'', email:'', role:'' }); setContactingPropertyId(String(prop.id)); setShowAddContact(true) }}
                           style={{ background:'none',border:'1px solid #1e293b',color:'#4ade80',cursor:'pointer',fontSize:11,borderRadius:6,padding:'3px 8px',fontFamily:'inherit',fontWeight:600 }}>+ Add Contact</button>
                       </div>
                       {propContacts.map(pc => (
@@ -715,7 +719,7 @@ export default function ClientsPage() {
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Contacts</span>
                   <span style={{ fontSize: 12, color: '#64748b' }}> — Add contacts to keep track of everyone you communicate with</span>
                 </div>
-                <button onClick={() => setShowAddContact(true)} style={{ color: '#4ade80', fontSize: 13, fontWeight: 600, background: 'none', border: '1px solid #4ade80', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit' }}>Add Contact</button>
+                <button onClick={() => { setContactForm({ first_name:'', last_name:'', phone:'', email:'', role:'' }); setContactingPropertyId(null); setShowAddContact(true) }} style={{ color: '#4ade80', fontSize: 13, fontWeight: 600, background: 'none', border: '1px solid #4ade80', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit' }}>Add Contact</button>
               </div>
             </div>
 
@@ -1103,7 +1107,7 @@ export default function ClientsPage() {
                     <h4 style={{ margin:'0 0 4px',fontSize:13,fontWeight:700,color:'#f1f5f9' }}>Property contacts</h4>
                     <p style={{ margin:0,fontSize:11,color:'#64748b' }}>For contacts with access limited to this property, e.g., tenants.</p>
                   </div>
-                  <button style={{ background:'none',border:'1px solid #1e293b',borderRadius:8,padding:'6px 12px',color:'#4ade80',fontSize:12,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>Add Contact</button>
+                  <button onClick={() => { setContactForm({ first_name:'', last_name:'', phone:'', email:'', role:'' }); setContactingPropertyId(editingPropId); setShowAddContact(true) }} style={{ background:'none',border:'1px solid #1e293b',borderRadius:8,padding:'6px 12px',color:'#4ade80',fontSize:12,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>Add Contact</button>
                 </div>
               </div>
 
@@ -1143,8 +1147,19 @@ export default function ClientsPage() {
               </div>
               <p style={{ margin:'0 0 16px',fontSize:13,color:'#64748b' }}>Add contacts to keep track of everyone you communicate with for this client.</p>
               <div style={{ display:'flex',flexDirection:'column',gap:12,marginBottom:20 }}>
+                <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
+                  <div>
+                    <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase' as const,letterSpacing:'0.05em',marginBottom:4,display:'block' }}>First Name *</label>
+                    <input style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }}
+                      placeholder='John' value={contactForm.first_name} onChange={e => setContactForm({...contactForm, first_name: e.target.value})} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase' as const,letterSpacing:'0.05em',marginBottom:4,display:'block' }}>Last Name</label>
+                    <input style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }}
+                      placeholder='Smith' value={contactForm.last_name} onChange={e => setContactForm({...contactForm, last_name: e.target.value})} />
+                  </div>
+                </div>
                 {[
-                  { label:'Full Name *', key:'name' as const, placeholder:'John Smith' },
                   { label:'Phone', key:'phone' as const, placeholder:'(561) 000-0000' },
                   { label:'Email', key:'email' as const, placeholder:'email@example.com' },
                   { label:'Role / Title', key:'role' as const, placeholder:'Property Manager, Spouse, etc.' },
@@ -1157,20 +1172,24 @@ export default function ClientsPage() {
                 ))}
               </div>
               <div style={{ display:'flex',gap:8,justifyContent:'flex-end' }}>
-                <button onClick={() => { setShowAddContact(false); setContactForm({ name:'', phone:'', email:'', role:'' }) }}
+                <button onClick={() => { setShowAddContact(false); setContactForm({ first_name:'', last_name:'', phone:'', email:'', role:'' }) }}
                   style={{ padding:'10px 20px',border:'1px solid #1e293b',borderRadius:9,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Cancel</button>
                 <button onClick={async () => {
-                  if (contactForm.name) {
-                    // Save contact to client notes
-                    const contactEntry = `CONTACT: ${contactForm.name}${contactForm.role ? ` (${contactForm.role})` : ''} | ${contactForm.phone || ''} | ${contactForm.email || ''}`
-                    const existing = selectedClient.notes || ''
-                    const updated = existing ? existing + '\n\n' + contactEntry : contactEntry
-                    await supabase.from('clients').update({ notes: updated }).eq('id', selectedClient.id)
-                    setSelectedClient({ ...selectedClient, notes: updated })
-                    showClientToast(`✅ Contact "${contactForm.name}" added!`)
-                    setShowAddContact(false)
-                    setContactForm({ name:'', phone:'', email:'', role:'' })
-                  }
+                  if (!contactForm.first_name.trim()) return
+                  const { data: newContact, error } = await supabase.from('property_contacts').insert({
+                    client_id: String(selectedClient.id),
+                    property_id: contactingPropertyId,
+                    first_name: contactForm.first_name.trim(),
+                    last_name: contactForm.last_name.trim() || null,
+                    phone: contactForm.phone || null,
+                    email: contactForm.email || null,
+                    role: contactForm.role || null,
+                  }).select().single()
+                  if (error) { showClientToast('❌ Failed to save contact'); return }
+                  setPropertyContacts(prev => [...prev, newContact])
+                  showClientToast(`✅ Contact "${contactForm.first_name}" added!`)
+                  setShowAddContact(false)
+                  setContactForm({ first_name:'', last_name:'', phone:'', email:'', role:'' })
                 }} style={{ padding:'10px 20px',border:'none',borderRadius:9,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Add Contact</button>
               </div>
             </div>
@@ -1375,9 +1394,9 @@ export default function ClientsPage() {
                         <button title="Email" onClick={e => { e.stopPropagation(); if(c.email) window.open(`mailto:${c.email}`) }}
                           style={{ background: 'none', border: '1px solid #1e293b', borderRadius: 6, color: '#64748b', cursor: 'pointer', padding: '4px 8px', fontSize: 13 }}>✉️</button>
                         <div style={{ position: 'relative' }}>
-                          <button title="More actions" onClick={e => { e.stopPropagation(); setShowDotsMenu(showDotsMenu===c.id?null:c.id as any) }}
+                          <button title="More actions" onClick={e => { e.stopPropagation(); setShowDotsMenu(showDotsMenu===String(c.id)?null:String(c.id)) }}
                             style={{ background: 'none', border: '1px solid #1e293b', borderRadius: 6, color: '#64748b', cursor: 'pointer', padding: '4px 10px', fontSize: 13 }}>···</button>
-                          {showDotsMenu === (c.id as any) && (
+                          {showDotsMenu === String(c.id) && (
                             <div onClick={e=>e.stopPropagation()} style={{ position: 'absolute', right: 0, top: '110%', background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, zIndex: 100, minWidth: 160, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
                               <button onClick={() => { setShowDotsMenu(null); handleArchive(c.id) }}
                                 style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', color: '#cbd5e1', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
@@ -1386,7 +1405,7 @@ export default function ClientsPage() {
                                 style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', color: '#f87171', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
                                 onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='none')}>Delete</button>
                               <button onClick={() => { setShowDotsMenu(null); window.open(`${window.location.origin}${window.location.pathname}#/clients?id=${c.id}`, '_blank') }}
-                                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', color: '#cbd5e1', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                style={{ display: 'flex', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', color: '#cbd5e1', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', alignItems: 'center', justifyContent: 'space-between' }}
                                 onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='none')}>
                                 Open in New Tab <span style={{ fontSize: 11 }}>↗</span>
                               </button>
@@ -1411,11 +1430,12 @@ export default function ClientsPage() {
           initialForm={emailForm}
           onClose={() => setShowEmailModal(false)}
           onSent={(subject, body) => {
+            const client = selectedClient as Client
             const sentAt = new Date().toISOString()
-            const commEntry = `COMM|type:email_general|sent_at:${sentAt}|to:${selectedClient.email}|subject:${subject}|body:${body}`
-            const updatedNotes = (selectedClient.notes || '') + (selectedClient.notes ? '\n\n' : '') + commEntry
-            supabase.from('clients').update({ notes: updatedNotes }).eq('id', selectedClient.id)
-            setSelectedClient({ ...selectedClient, notes: updatedNotes })
+            const commEntry = `COMM|type:email_general|sent_at:${sentAt}|to:${client.email}|subject:${subject}|body:${body}`
+            const updatedNotes = (client.notes || '') + (client.notes ? '\n\n' : '') + commEntry
+            supabase.from('clients').update({ notes: updatedNotes }).eq('id', client.id)
+            setSelectedClient({ ...client, notes: updatedNotes })
             showClientToast('✅ Email sent!')
           }}
         />
@@ -1790,7 +1810,7 @@ function ClientSidebar({ client, workItems, fmt, fmtDate, onTagsSaved, onNoteSav
   // Parse notes — find COMM entries and plain notes
   const noteLines = (client.notes || '').split('\n\n').filter(Boolean)
   // Find last COMM entry (most recent communication)
-  const commEntries = noteLines.filter(n => n.startsWith('COMM|'))
+  const commEntries = noteLines.filter((n: string) => n.startsWith('COMM|'))
   const lastComm = commEntries.length > 0 ? commEntries[commEntries.length - 1] : null
 
   // Parse a COMM entry into structured fields
@@ -1940,9 +1960,9 @@ function ClientSidebar({ client, workItems, fmt, fmtDate, onTagsSaved, onNoteSav
         <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 12, padding: '1.25rem' }}>
           <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Notes</h3>
           {/* Existing plain notes */}
-          {noteLines.filter(n => !n.startsWith('COMM|') && !n.startsWith('PAYMENT:') && !n.startsWith('CONTACT:')).length > 0 && (
+          {noteLines.filter((n: string) => !n.startsWith('COMM|') && !n.startsWith('PAYMENT:') && !n.startsWith('CONTACT:')).length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-              {noteLines.filter(n => !n.startsWith('COMM|') && !n.startsWith('PAYMENT:') && !n.startsWith('CONTACT:')).map((note, i) => (
+              {noteLines.filter((n: string) => !n.startsWith('COMM|') && !n.startsWith('PAYMENT:') && !n.startsWith('CONTACT:')).map((note: string, i: number) => (
                 <div key={i} style={{ background: '#1e293b', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#94a3b8', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>{note}</div>
               ))}
             </div>

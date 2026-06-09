@@ -423,7 +423,7 @@ export default function TeamPage() {
             filing_status: inviteFilingStatus||null,
             employee_type: inviteEmpType,
             paperwork_files: paperworkFiles.length > 0 ? JSON.stringify(paperworkFiles) : null,
-          }).catch(() => null) // table may not exist yet — silent fail
+          })
         }
         setSuccess(`${inviteName} added successfully! They can log in with their email and the password you set.`)
       }

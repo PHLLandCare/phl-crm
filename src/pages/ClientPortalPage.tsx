@@ -23,7 +23,7 @@ export default function ClientPortalPage() {
   const [paid, setPaid]         = useState(false)
   const [approved, setApproved] = useState(false)
   const [declined, setDeclined] = useState(false)
-  const [view, setView]         = useState<'details'|'pay'|'sign'>('details')
+  const [view, setView]         = useState<'details'|'pay'|'sign'|'card'|'other'>('details')
   const [signMode, setSignMode] = useState<'draw'|'type'>('draw')
   const [typedSig, setTypedSig] = useState('')
   const [squareLoaded, setSquareLoaded] = useState(false)
