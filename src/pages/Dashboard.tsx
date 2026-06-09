@@ -575,6 +575,7 @@ export default function Dashboard() {
 
           <SectionLabel title="Tools" />
           <NavItem label="Time Clock"    id="timeclock"  icon="⏰" onClick={()=>{ window.open('https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html','_blank'); }} />
+          <NavItem label="Employee Portal" id="emp-portal" icon="👷" onClick={()=>{ window.open('https://phllandcare.github.io/phl-crm/#/employee','_blank'); }} />
           {can(userRole,'view_payroll')   && <NavItem label="Payroll"           id="payroll"   icon="💵" />}
           {can(userRole,'view_team')      && <NavItem label="All Employees"     id="team"      icon="👤" />}
           {can(userRole,'view_expenses')  && <NavItem label="Expenses"          id="expenses"  icon="🧾" />}

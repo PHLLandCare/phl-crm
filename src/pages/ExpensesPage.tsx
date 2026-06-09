@@ -237,8 +237,15 @@ export default function ExpensesPage() {
                       const file = e.target.files?.[0]; if (!file) return
                       const path = `receipts/${Date.now()}_${file.name.replace(/\s/g,"_")}`
                       const { error } = await supabase.storage.from("expense-receipts").upload(path, file, {upsert:true})
-                      if (!error) { const { data: { publicUrl } } = supabase.storage.from("expense-receipts").getPublicUrl(path); setForm({...form,receipt_url:publicUrl}) }
-                      else setForm({...form,receipt_url:file.name})
+                      if (!error) {
+                        const { data: { publicUrl } } = supabase.storage.from("expense-receipts").getPublicUrl(path)
+                        setForm({...form,receipt_url:publicUrl})
+                      } else {
+                        // Bucket missing — fall back to base64
+                        const reader = new FileReader()
+                        reader.onload = (ev) => setForm(f => ({...f, receipt_url: ev.target?.result as string}))
+                        reader.readAsDataURL(file)
+                      }
                     }} />
                   </label>
                   {form.receipt_url ? (<span style={{fontSize:13,color:"#4ade80"}}>✓ Receipt attached <button onClick={()=>setForm({...form,receipt_url:""})} style={{background:"none",border:"none",color:"#f87171",cursor:"pointer",fontSize:14,marginLeft:4}}>×</button></span>) : (<span style={{fontSize:13,color:"#475569"}}>No file chosen</span>)}

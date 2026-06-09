@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage'
 import ChangePasswordPage from './pages/ChangePasswordPage'
 import Dashboard from './pages/Dashboard'
 import ClockInPage from './pages/ClockInPage'
+import EmployeePortalPage from './pages/EmployeePortalPage'
 
 type AuthState = 'unauthenticated' | 'must_change_password' | 'authenticated'
 
@@ -31,6 +32,7 @@ export default function App() {
       <HashRouter>
         <Routes>
           <Route path="/clockin" element={<ClockInPage />} />
+          <Route path="/employee" element={<EmployeePortalPage />} />
         </Routes>
       </HashRouter>
     )
