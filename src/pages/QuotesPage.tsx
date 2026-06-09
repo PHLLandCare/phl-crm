@@ -40,6 +40,7 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   approved: { bg: 'rgba(74,222,128,0.15)',  color: '#4ade80' },
   declined: { bg: 'rgba(248,113,113,0.15)', color: '#f87171' },
   archived: { bg: 'rgba(100,116,139,0.1)',  color: '#64748b' },
+  converted:{ bg: 'rgba(96,165,250,0.15)',  color: '#60a5fa' },
 }
 
 const QUOTE_TEMPLATES = [
@@ -373,7 +374,22 @@ export default function QuotesPage() {
               </>
             )}
             {selectedQuote.status === 'approved' && (
-              <button onClick={() => navigate('/jobs', { state:{ openCreate:true, clientName:selectedQuote.client_name } })} style={{ padding:'8px 16px',background:'#3b82f6',color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Convert to Job</button>
+              <button onClick={async () => {
+                // Mark quote as converted
+                await supabase.from('quotes').update({ status: 'converted' }).eq('id', selectedQuote.id)
+                setQuotes(prev => prev.map(q => q.id === selectedQuote.id ? { ...q, status: 'converted' } : q))
+                setSelectedQuote({ ...selectedQuote, status: 'converted' })
+                navigate('/jobs', { state: {
+                  openCreate: true,
+                  clientName: selectedQuote.client_name,
+                  clientId: String(selectedQuote.client_id),
+                  title: selectedQuote.title,
+                  amount: selectedQuote.amount,
+                  description: selectedQuote.message || '',
+                  quoteId: selectedQuote.id,
+                  lineItems: lineItems.filter(li => !li.is_optional).map(li => ({ name: li.name, description: li.description, qty: li.qty, unit_price: li.unit_price })),
+                }})
+              }} style={{ padding:'8px 16px',background:'#3b82f6',color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Convert to Job</button>
             )}
             <button onClick={() => handleArchive(selectedQuote.id)} style={{ padding:'8px 16px',background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.3)',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>Archive</button>
           </div>

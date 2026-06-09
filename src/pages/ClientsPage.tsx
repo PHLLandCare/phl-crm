@@ -1120,14 +1120,19 @@ export default function ClientsPage() {
                     // Update the client's primary address fields
                     await supabase.from('clients').update({ address:propForm.address, city:propForm.city, zip:propForm.zip, lawn_size:propForm.lawn_size, irrigation:propForm.irrigation, pest_control:propForm.pest_control, locked_gate:propForm.locked_gate, has_dog:propForm.has_dog }).eq('id', selectedClient.id)
                     setSelectedClient({...selectedClient, address:propForm.address, city:propForm.city, zip:propForm.zip, lawn_size:propForm.lawn_size, irrigation:propForm.irrigation, pest_control:propForm.pest_control, locked_gate:propForm.locked_gate, has_dog:propForm.has_dog})
+                    setShowAddProperty(false)
                   } else if (editingPropId) {
                     await supabase.from('client_properties').update(propForm).eq('id', editingPropId)
                     setClientProperties(ps => ps.map(p => p.id===editingPropId ? {...p,...propForm} : p))
+                    setShowAddProperty(false)
                   } else {
                     const { data } = await supabase.from('client_properties').insert({ ...propForm, client_id: String(selectedClient.id) }).select().single()
-                    if (data) setClientProperties(ps => [...ps, data])
+                    if (data) {
+                      setClientProperties(ps => [...ps, data])
+                      setEditingPropId(String(data.id)) // allow Add Contact to use the new property's ID
+                    }
+                    setShowAddProperty(false)
                   }
-                  setShowAddProperty(false)
                 }} style={{ padding:'10px 28px',border:'none',borderRadius:9,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>
                   {editingPropId ? 'Update Property' : 'Add Property'}
                 </button>

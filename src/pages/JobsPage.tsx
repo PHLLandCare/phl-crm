@@ -107,7 +107,15 @@ export default function JobsPage() {
     if (f) setStatusFilter(f === 'in_progress' ? 'In Progress' : f === 'action_required' ? 'Action Required' : f)
     if ((location.state as any)?.openCreate) {
       const state = location.state as any
-      if (state.clientName) setForm((prev: any) => ({ ...prev, client_name: state.clientName, client_id: state.clientId || '' }))
+      const updates: any = {}
+      if (state.clientName) { updates.client_name = state.clientName; updates.client_id = state.clientId || '' }
+      if (state.title) updates.title = state.title
+      if (state.amount) updates.total_amount = state.amount
+      if (state.description) updates.description = state.description
+      if (state.division) updates.division = state.division
+      if (state.quoteId) updates.quote_id = state.quoteId
+      if (Object.keys(updates).length) setForm((prev: any) => ({ ...prev, ...updates }))
+      if (state.lineItems?.length) setLineItems(state.lineItems.map((li: any) => ({ name: li.name || '', description: li.description || '', qty: li.qty || 1, unit_price: li.unit_price || 0 })))
       setShowModal(true)
     }
   }, [location.state])
