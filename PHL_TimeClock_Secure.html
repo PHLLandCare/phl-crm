@@ -624,10 +624,16 @@ function renderArch() {
   });
 }
 
-// ── RENDER LOG ──
+// ── RENDER LOG — one row per employee, latest event only ──
 function renderLog() {
   var q = (document.getElementById('log-search')||{value:''}).value.toLowerCase();
-  var list = allClockEvents.filter(function(r) { return !q || (r.employee_name||'').toLowerCase().includes(q); });
+  // Deduplicate: keep only the most recent event per employee
+  var seen = {};
+  var deduped = [];
+  allClockEvents.forEach(function(r) {
+    if (!seen[r.employee_id]) { seen[r.employee_id] = true; deduped.push(r); }
+  });
+  var list = deduped.filter(function(r) { return !q || (r.employee_name||'').toLowerCase().includes(q); });
   var tb = document.getElementById('log-tbody');
   if (!tb) return;
   if (!list.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">No clock events today yet</td></tr>'; return; }
@@ -635,10 +641,10 @@ function renderLog() {
   tb.innerHTML = '';
   list.forEach(function(r) {
     var emp = allEmployees.find(function(e) { return e.employee_id === r.employee_id; }) || {};
-    var inTime = r.clock_in ? new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '—';
+    var inTime  = r.clock_in  ? new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '—';
     var outTime = r.clock_out ? new Date(r.clock_out).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '—';
     var hrs = '—';
-    if (r.clock_in && r.clock_out) { hrs = ((new Date(r.clock_out) - new Date(r.clock_in)) / 3600000).toFixed(1); }
+    if (r.clock_in && r.clock_out) { hrs = ((new Date(r.clock_out) - new Date(r.clock_in)) / 3600000).toFixed(1) + 'h'; }
     if (!r.clock_out) ins++; else outs++;
     var tr = document.createElement('tr');
     tr.innerHTML =
@@ -649,7 +655,7 @@ function renderLog() {
       '<td>' + (r.division||'—') + '</td>' +
       '<td style="color:var(--green);font-weight:600">' + inTime + '</td>' +
       '<td style="color:' + (r.clock_out?'var(--red)':'var(--muted)') + '">' + outTime + '</td>' +
-      '<td>' + hrs + '</td>' +
+      '<td style="font-weight:600">' + hrs + '</td>' +
       '<td><span class="b bm">' + (r.method||'QR scan') + '</span></td>' +
       '<td>' + (r.clock_out ? '<span class="b bs">Out</span>' : '<span class="b bg">In</span>') + '</td>';
     tb.appendChild(tr);
