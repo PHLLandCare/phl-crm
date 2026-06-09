@@ -818,8 +818,18 @@ async function saveEmployee() {
         ? '/employees?id=eq.' + patchId
         : '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId);
       var res = await sb('PATCH', patchUrl, data);
-      console.log('PATCH result:', res, 'patchUrl:', patchUrl);
-      console.log('Division saved as:', divisionValue);
+      console.log('PATCH result:', res, 'patchUrl:', patchUrl, 'division:', divisionValue);
+      
+      // Force-update allEmployees in memory immediately (don't wait for reload)
+      if (res && res.length > 0) {
+        var updatedEmp = res[0];
+        allEmployees = allEmployees.map(function(e) {
+          return e.id === patchId ? updatedEmp : e;
+        });
+        renderEmps();
+        console.log('Force-updated employee in memory, new division:', updatedEmp.division);
+      }
+      
       toast('✅ ' + fn + ' ' + ln + ' updated! Divisions: ' + divisionValue);
     } else {
       var res2 = await sb('POST', '/employees', data);
