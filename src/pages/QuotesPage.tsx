@@ -153,8 +153,13 @@ export default function QuotesPage() {
     if ((location.state as any)?.openCreate) {
       const state = location.state as any
       if (state.clientName) {
-        setForm(f => ({ ...f, client_name: state.clientName, client_id: state.clientId || '' }))
-        // Check for existing quotes for this client
+        setForm(f => ({
+          ...f,
+          client_name: state.clientName,
+          client_id: state.clientId || '',
+          title: state.title || f.title,
+          message: state.description || f.message,
+        }))
         supabase.from('quotes')
           .select('*')
           .eq('client_name', state.clientName)
@@ -374,22 +379,39 @@ export default function QuotesPage() {
               </>
             )}
             {selectedQuote.status === 'approved' && (
-              <button onClick={async () => {
-                // Mark quote as converted
-                await supabase.from('quotes').update({ status: 'converted' }).eq('id', selectedQuote.id)
-                setQuotes(prev => prev.map(q => q.id === selectedQuote.id ? { ...q, status: 'converted' } : q))
-                setSelectedQuote({ ...selectedQuote, status: 'converted' })
-                navigate('/jobs', { state: {
-                  openCreate: true,
-                  clientName: selectedQuote.client_name,
-                  clientId: String(selectedQuote.client_id),
-                  title: selectedQuote.title,
-                  amount: selectedQuote.amount,
-                  description: selectedQuote.message || '',
-                  quoteId: selectedQuote.id,
-                  lineItems: lineItems.filter(li => !li.is_optional).map(li => ({ name: li.name, description: li.description, qty: li.qty, unit_price: li.unit_price })),
-                }})
-              }} style={{ padding:'8px 16px',background:'#3b82f6',color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Convert to Job</button>
+              <>
+                <button onClick={async () => {
+                  await supabase.from('quotes').update({ status: 'converted' }).eq('id', selectedQuote.id)
+                  setQuotes(prev => prev.map(q => q.id === selectedQuote.id ? { ...q, status: 'converted' } : q))
+                  setSelectedQuote({ ...selectedQuote, status: 'converted' })
+                  navigate('/jobs', { state: {
+                    openCreate: true,
+                    clientName: selectedQuote.client_name,
+                    clientId: String(selectedQuote.client_id),
+                    title: selectedQuote.title,
+                    amount: selectedQuote.amount,
+                    description: selectedQuote.message || '',
+                    quoteId: selectedQuote.id,
+                    lineItems: lineItems.filter(li => !li.is_optional).map(li => ({ name: li.name, description: li.description, qty: li.qty, unit_price: li.unit_price })),
+                  }})
+                }} style={{ padding:'8px 16px',background:'#3b82f6',color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Convert to Job</button>
+                <button onClick={async () => {
+                  await supabase.from('quotes').update({ status: 'invoiced' }).eq('id', selectedQuote.id)
+                  setQuotes(prev => prev.map(q => q.id === selectedQuote.id ? { ...q, status: 'invoiced' } : q))
+                  setSelectedQuote({ ...selectedQuote, status: 'invoiced' })
+                  const invLineItems = lineItems.filter(li => !li.is_optional).map(li => ({ name: li.name, description: li.description, qty: li.qty, unit_price: li.unit_price }))
+                  navigate('/invoices', { state: {
+                    openCreate: true,
+                    clientName: selectedQuote.client_name,
+                    clientId: String(selectedQuote.client_id),
+                    quoteTitle: selectedQuote.title,
+                    amount: selectedQuote.amount,
+                    lineItems: invLineItems.length ? invLineItems : [{ name: selectedQuote.title || 'Services Rendered', description: '', qty: 1, unit_price: selectedQuote.amount || 0 }],
+                    sourceId: selectedQuote.id,
+                    sourceType: 'quote',
+                  }})
+                }} style={{ padding:'8px 16px',background:'#16a34a',color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Convert to Invoice</button>
+              </>
             )}
             <button onClick={() => handleArchive(selectedQuote.id)} style={{ padding:'8px 16px',background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.3)',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>Archive</button>
           </div>

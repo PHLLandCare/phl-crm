@@ -89,9 +89,24 @@ export default function ProductsServicesPage() {
     load()
   }
 
-  const handleImageUpload = (file: File) => {
+  const handleImageUpload = async (file: File) => {
     setUploading(true)
     setUploadError('')
+    try {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+      const path = `products/${Date.now()}_${safeName}`
+      const { error } = await supabase.storage.from('product-images').upload(path, file, { upsert: true })
+      if (!error) {
+        // Bucket upload succeeded — use public URL
+        const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(path)
+        setEditing(e => e ? { ...e, image_url: publicUrl } : e)
+        setUploading(false)
+        return
+      }
+    } catch (_) {
+      // Fall through to base64
+    }
+    // Fallback: store as base64 (bucket missing or upload failed)
     const reader = new FileReader()
     reader.onload = (e) => {
       const base64 = e.target?.result as string

@@ -611,12 +611,36 @@ export default function RequestsPage() {
               </div>
               <div style={{ display:'flex',gap:8 }}>
                 <button
-                  onClick={() => { navigate('/quotes', { state:{ openCreate:true, clientName:selectedRequest.client_name } }); setSelectedRequest(null) }}
+                  onClick={async () => {
+                    await supabase.from('requests').update({ status: 'Quoted' }).eq('id', selectedRequest.id)
+                    navigate('/quotes', { state:{
+                      openCreate: true,
+                      clientName: selectedRequest.client_name,
+                      clientId: String(selectedRequest.client_id || ''),
+                      title: selectedRequest.service || selectedRequest.title || '',
+                      description: selectedRequest.notes || '',
+                      sourceId: selectedRequest.id,
+                      sourceType: 'request',
+                    }})
+                    setSelectedRequest(null)
+                  }}
                   style={{ background:'rgba(168,85,247,0.12)',color:'#a855f7',border:'1px solid rgba(168,85,247,0.3)',borderRadius:7,padding:'6px 12px',fontSize:12,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>
                   → Quote
                 </button>
                 <button
-                  onClick={() => { navigate('/jobs', { state:{ openCreate:true, clientName:selectedRequest.client_name } }); setSelectedRequest(null) }}
+                  onClick={async () => {
+                    await supabase.from('requests').update({ status: 'Converted' }).eq('id', selectedRequest.id)
+                    navigate('/jobs', { state:{
+                      openCreate: true,
+                      clientName: selectedRequest.client_name,
+                      clientId: String(selectedRequest.client_id || ''),
+                      title: selectedRequest.service || selectedRequest.title || '',
+                      description: selectedRequest.notes || '',
+                      sourceId: selectedRequest.id,
+                      sourceType: 'request',
+                    }})
+                    setSelectedRequest(null)
+                  }}
                   style={{ background:'rgba(74,222,128,0.1)',color:'#4ade80',border:'1px solid rgba(74,222,128,0.2)',borderRadius:7,padding:'6px 12px',fontSize:12,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>
                   → Job
                 </button>

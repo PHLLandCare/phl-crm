@@ -71,13 +71,34 @@ export default function InvoicesPage() {
   const [internalNote, setInternalNote] = useState('')
   const [saving, setSaving]             = useState(false)
   const [sending, setSending]           = useState<string|null>(null)
+  const [selectedClientId, setSelectedClientId] = useState<string>('')
+  const [sourceId, setSourceId]         = useState<string>('')
+  const [sourceType, setSourceType]     = useState<string>('')
   const location = useLocation()
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 4000) }
 
   useEffect(() => {
-    if ((location.state as any)?.openCreate) setShowNew(true)
-    const f = (location.state as any)?.filter
+    const s = location.state as any
+    if (s?.openCreate) {
+      setShowNew(true)
+      // Pre-fill from Jobs or Quotes navigation
+      if (s.clientName) {
+        setClientSearch(s.clientName)
+        setSelectedClient(s.clientName)
+      }
+      if (s.clientId) setSelectedClientId(s.clientId)
+      if (s.jobTitle || s.quoteTitle) setSubject(s.jobTitle || s.quoteTitle || '')
+      if (s.amount) {
+        setLineItems([{ name: s.jobTitle || s.quoteTitle || 'Services Rendered', description: '', qty: 1, unit_price: Number(s.amount) || 0 }])
+      }
+      if (s.lineItems?.length) {
+        setLineItems(s.lineItems.map((li: any) => ({ name: li.name || '', description: li.description || '', qty: li.qty || 1, unit_price: li.unit_price || 0 })))
+      }
+      if (s.sourceId) setSourceId(s.sourceId)
+      if (s.sourceType) setSourceType(s.sourceType)
+    }
+    const f = s?.filter
     if (f) setStatusFilter(f)
   }, [location.state])
 

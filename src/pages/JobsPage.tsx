@@ -26,6 +26,8 @@ interface Job {
   customer_notes: string | null
   total_amount: number
   job_recurrence?: string | null
+  line_items?: any[]
+  invoiced?: boolean
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -382,8 +384,24 @@ export default function JobsPage() {
               try{await supabase.functions.invoke('send-sms',{body:{to:phone,message:msg}});setJobToastFn(`✅ SMS sent to ${phone}`)}
               catch{setJobToastFn('⚠️ SMS failed — check Twilio settings')}
             }} style={{ padding:'8px 16px',background:'rgba(167,139,250,0.1)',color:'#a78bfa',border:'1px solid rgba(167,139,250,0.3)',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>💬 SMS Client</button>
-            <button onClick={() => navigate('/invoices', { state:{ openCreate:true, clientName:selectedJob.client_name, clientId:selectedJob.client_id, jobTitle:selectedJob.title, amount:selectedJob.total_amount } })}
-              style={{ padding:'8px 16px',background:'rgba(96,165,250,0.15)',color:'#60a5fa',border:'1px solid rgba(96,165,250,0.3)',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>📄 Create Invoice</button>
+            <button onClick={async () => {
+              // Build line items from job's line_items or fall back to single total
+              const jobLineItems = selectedJob.line_items?.length
+                ? selectedJob.line_items.map((li: any) => ({ name: li.name || selectedJob.title, description: li.description || '', qty: li.qty || 1, unit_price: li.unit_price || 0 }))
+                : [{ name: selectedJob.title || 'Services Rendered', description: selectedJob.description || '', qty: 1, unit_price: selectedJob.total_amount || 0 }]
+              // Mark job as invoiced
+              await supabase.from('jobs').update({ invoiced: true, updated_at: new Date().toISOString() }).eq('id', selectedJob.id)
+              navigate('/invoices', { state:{
+                openCreate: true,
+                clientName: selectedJob.client_name,
+                clientId: String(selectedJob.client_id || ''),
+                jobTitle: selectedJob.title,
+                amount: selectedJob.total_amount,
+                lineItems: jobLineItems,
+                sourceId: selectedJob.id,
+                sourceType: 'job',
+              }})
+            }} style={{ padding:'8px 16px',background:'rgba(96,165,250,0.15)',color:'#60a5fa',border:'1px solid rgba(96,165,250,0.3)',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>📄 Create Invoice</button>
             <button onClick={() => setDeleteConfirm(selectedJob.id)} style={{ padding:'8px 16px',background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.3)',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>Delete</button>
           </div>
         </div>
