@@ -18,6 +18,7 @@ import ReportsPage from './ReportsPage'
 import ProductsServicesPage from './ProductsServicesPage'
 import DivisionPage from './DivisionPage'
 import RequestsPage from './RequestsPage'
+import DialerPage from './DialerPage'
 
 type UserRole = 'superadmin' | 'manager' | 'dispatcher' | 'worker' | 'worker_limited'
 
@@ -238,6 +239,7 @@ export default function Dashboard() {
       case 'div-farm':         return <DivisionPage divisionId="div-farm" />
       case 'div-hardscape':    return <DivisionPage divisionId="div-hardscape" />
       case 'portal':           return <ClientPortalPage />
+      case 'dialer':           return <DialerPage />
       default: return (
         <div style={{padding:'2rem',maxWidth:1400,margin:'0 auto'}}>
           <div style={{marginBottom:'1.75rem'}}>
@@ -563,6 +565,7 @@ export default function Dashboard() {
           {can(userRole,'view_jobs')     && <NavItem label="Jobs"      id="jobs"      icon="🔧" count={counts.jobs} />}
           {can(userRole,'view_invoices') && <NavItem label="Invoices"  id="invoices"  icon="💰" count={counts.invoices} />}
           {can(userRole,'manage_users')   && <NavItem label="Team Chat"         id="teamchat"  icon="💬" />}
+          {can(userRole,'manage_users')   && <NavItem label="Dialer"            id="dialer"    icon="📞" />}
           {can(userRole,'view_schedule') && <NavItem label="Routes"    id="routes"    icon="🗺️" />}
 
           <SectionLabel title="Divisions" />
@@ -607,4 +610,6 @@ function AccessDenied() {
     </div>
   )
 }
+
+
 
