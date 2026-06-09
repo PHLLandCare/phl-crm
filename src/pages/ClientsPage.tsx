@@ -83,6 +83,7 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('Leads and Active')
+  const [tagFilter, setTagFilter] = useState('')
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [activeTab, setActiveTab] = useState('info')
   const [showNewClient, setShowNewClient] = useState(false)
@@ -335,10 +336,11 @@ export default function ClientsPage() {
 
   const filtered = clients.filter(c => {
     const matchSearch = `${c.first_name} ${c.last_name} ${c.company} ${c.email} ${c.phone} ${c.address} ${c.tags}`.toLowerCase().includes(search.toLowerCase())
+    const matchTag = !tagFilter || (c.tags||'').split(',').map((t:string)=>t.trim()).includes(tagFilter)
     const matchStatus = statusFilter === 'All' ? true
       : statusFilter === 'Leads and Active' ? (c.status?.toLowerCase() === 'lead' || c.status?.toLowerCase() === 'active')
       : c.status?.toLowerCase() === statusFilter.toLowerCase()
-    return matchSearch && matchStatus
+    return matchSearch && matchStatus && matchTag
   })
 
   const now = new Date()
@@ -551,7 +553,8 @@ export default function ClientsPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>{addr}</span>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button style={{ background:'none',border:'none',color:'#4ade80',cursor:'pointer',fontSize:16 }}>📍</button>
+                      <button onClick={() => { if(addr) window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`, '_blank') }}
+                        style={{ background:'none',border:'none',color:'#4ade80',cursor:'pointer',fontSize:16 }} title="Open in Google Maps">📍</button>
                       <button onClick={() => setEditMode(true)} style={{ background:'none',border:'none',color:'#64748b',cursor:'pointer',fontSize:15 }}>✏️</button>
                     </div>
                   </div>
@@ -1123,14 +1126,47 @@ export default function ClientsPage() {
             style={{ ...inp, paddingLeft: 32, height: 38 }} />
           <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#475569', fontSize: 14 }}>🔍</span>
         </div>
-        {['Leads and Active', 'Active', 'Lead', 'Inactive', 'All'].map(s => (
-          <button key={s} onClick={() => setStatusFilter(s)} style={{
+        {/* Filter by tag — Jobber style */}
+        <div style={{ position: 'relative' }}>
+          <button onClick={() => setTagFilter(f => f ? '' : '__open__')} style={{
             padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-            background: statusFilter === s ? 'rgba(74,222,128,0.15)' : '#0f172a',
-            color: statusFilter === s ? '#4ade80' : '#64748b',
-            border: statusFilter === s ? '1px solid rgba(74,222,128,0.3)' : '1px solid #1e293b',
-          }}>{s}</button>
-        ))}
+            background: tagFilter && tagFilter!=='__open__' ? 'rgba(96,165,250,0.15)' : '#0f172a',
+            color: tagFilter && tagFilter!=='__open__' ? '#60a5fa' : '#64748b',
+            border: tagFilter && tagFilter!=='__open__' ? '1px solid rgba(96,165,250,0.3)' : '1px solid #1e293b',
+            display: 'flex', alignItems: 'center', gap: 6
+          }}>
+            🏷 Filter by tag {tagFilter && tagFilter!=='__open__' ? `· ${tagFilter}` : '+'} 
+          </button>
+          {tagFilter === '__open__' && (
+            <div style={{ position: 'absolute', top: '110%', left: 0, background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, padding: 8, zIndex: 50, minWidth: 180, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
+              <p style={{ margin: '0 0 6px', fontSize: 11, color: '#475569', padding: '0 4px' }}>SELECT A TAG</p>
+              {Array.from(new Set(
+                clients.flatMap(c => (c.tags||'').split(',').map((t:string)=>t.trim()).filter(Boolean))
+              )).sort().map((tag:string) => (
+                <button key={tag} onClick={() => setTagFilter(tag)} style={{
+                  display: 'block', width: '100%', textAlign: 'left', padding: '6px 10px',
+                  background: 'transparent', border: 'none', borderRadius: 6, color: '#cbd5e1',
+                  fontSize: 13, cursor: 'pointer', fontFamily: 'inherit'
+                }} onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
+                  {tag}
+                </button>
+              ))}
+              {clients.flatMap(c=>(c.tags||'').split(',').map((t:string)=>t.trim()).filter(Boolean)).length===0 && (
+                <p style={{ fontSize: 12, color: '#475569', padding: '4px 10px' }}>No tags found</p>
+              )}
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 4, background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, padding: 3 }}>
+          {['Leads and Active', 'Active', 'Lead', 'Inactive', 'All'].map(s => (
+            <button key={s} onClick={() => setStatusFilter(s)} style={{
+              padding: '5px 12px', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+              background: statusFilter === s ? '#1e293b' : 'transparent',
+              color: statusFilter === s ? '#f1f5f9' : '#475569',
+              border: 'none',
+            }}>{s}</button>
+          ))}
+        </div>
         <p style={{ margin: 0, fontSize: 12, color: '#475569' }}>{filtered.length} results</p>
       </div>
 
@@ -1151,36 +1187,73 @@ export default function ClientsPage() {
                 <tr><td colSpan={7} style={{ padding: '3rem', textAlign: 'center', color: '#475569', fontSize: 13 }}>No clients found</td></tr>
               ) : filtered.map(c => {
                 const scc = sc(c.status)
-                const addr = [c.address, c.city, c.state].filter(Boolean).join(', ')
-                const tagList = c.tags ? c.tags.split(',').map(t => t.trim()).filter(Boolean) : []
+                const addr = [c.address, c.city, c.state, c.zip].filter(Boolean).join(', ')
+                const tagList = c.tags ? c.tags.split(',').map((t:string) => t.trim()).filter(Boolean) : []
                 const div = DIVISIONS.find(d => d.label === c.divisions)
                 return (
                   <tr key={c.id} onClick={() => openClient(c)}
-                    style={{ borderBottom: '1px solid #1e293b', cursor: 'pointer', transition: 'background 0.1s' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                    style={{ borderBottom: '1px solid #1e293b', cursor: 'pointer' }}
+                    onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.03)'; (e.currentTarget.querySelector('.row-actions') as HTMLElement|null)?.style&&((e.currentTarget.querySelector('.row-actions') as HTMLElement).style.opacity='1') }}
+                    onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; (e.currentTarget.querySelector('.row-actions') as HTMLElement|null)?.style&&((e.currentTarget.querySelector('.row-actions') as HTMLElement).style.opacity='0') }}>
                     <td style={{ padding: '12px 14px' }}>
-                      <div style={{ fontWeight: 600, fontSize: 13, color: '#f1f5f9' }}>{c.first_name} {c.last_name}</div>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: '#f1f5f9' }}>{c.first_name} {c.last_name}</div>
                       {c.company && <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>{c.company}</div>}
-                      {c.phone && <div style={{ fontSize: 11, color: '#64748b' }}>{c.phone}</div>}
                     </td>
-                    <td style={{ padding: '12px 14px', fontSize: 12, color: '#64748b', maxWidth: 220 }}>{addr || '—'}</td>
+                    <td style={{ padding: '12px 14px', fontSize: 12, color: '#64748b', maxWidth: 220 }}>
+                      {addr ? (
+                        <span onClick={e => { e.stopPropagation(); window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`, '_blank') }}
+                          style={{ cursor: 'pointer', color: '#60a5fa', textDecoration: 'underline dotted' }} title="Open in Google Maps">
+                          {addr}
+                        </span>
+                      ) : '—'}
+                    </td>
                     <td style={{ padding: '12px 14px', fontSize: 12, color: '#64748b' }}>{div ? `${div.icon} ${div.label}` : c.divisions || '—'}</td>
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                         {tagList.length === 0 ? <span style={{ color: '#475569', fontSize: 12 }}>—</span>
-                          : tagList.slice(0, 3).map((t, i) => (
-                            <span key={i} style={{ background: 'rgba(100,116,139,0.15)', color: '#94a3b8', padding: '2px 8px', borderRadius: 99, fontSize: 10, fontWeight: 600 }}>{t}</span>
+                          : tagList.slice(0, 3).map((t:string, i:number) => (
+                            <span key={i} onClick={e => { e.stopPropagation(); setTagFilter(t) }}
+                              style={{ background: 'rgba(100,116,139,0.15)', color: '#94a3b8', padding: '2px 8px', borderRadius: 99, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}
+                              onMouseEnter={e=>(e.currentTarget.style.background='rgba(96,165,250,0.15)')}
+                              onMouseLeave={e=>(e.currentTarget.style.background='rgba(100,116,139,0.15)')}>{t}</span>
                           ))}
                         {tagList.length > 3 && <span style={{ color: '#475569', fontSize: 10 }}>+{tagList.length - 3}</span>}
                       </div>
                     </td>
                     <td style={{ padding: '12px 14px' }}>
-                      <span style={{ background: scc.bg, color: scc.color, padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 700, textTransform: 'capitalize' }}>{c.status}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <div style={{ width: 7, height: 7, borderRadius: '50%', background: scc.color, flexShrink: 0 }} />
+                        <span style={{ fontSize: 12, color: scc.color, fontWeight: 600, textTransform: 'capitalize' }}>{c.status}</span>
+                      </div>
                     </td>
                     <td style={{ padding: '12px 14px', fontSize: 12, color: '#64748b' }}>{fmtTime(c.updated_at || c.created_at)}</td>
                     <td style={{ padding: '12px 14px' }}>
-                      <button onClick={e => { e.stopPropagation(); handleArchive(c.id) }} style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 6, padding: '4px 10px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Archive</button>
+                      {/* Jobber-style hover action icons */}
+                      <div className="row-actions" style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: 0, transition: 'opacity 0.15s' }}>
+                        <button title="Tag" onClick={e => { e.stopPropagation(); openClient(c) }}
+                          style={{ background: 'none', border: '1px solid #1e293b', borderRadius: 6, color: '#64748b', cursor: 'pointer', padding: '4px 8px', fontSize: 13 }}>🏷</button>
+                        <button title="Email" onClick={e => { e.stopPropagation(); if(c.email) window.open(`mailto:${c.email}`) }}
+                          style={{ background: 'none', border: '1px solid #1e293b', borderRadius: 6, color: '#64748b', cursor: 'pointer', padding: '4px 8px', fontSize: 13 }}>✉️</button>
+                        <div style={{ position: 'relative' }}>
+                          <button title="More actions" onClick={e => { e.stopPropagation(); setShowDotsMenu(showDotsMenu===c.id?null:c.id as any) }}
+                            style={{ background: 'none', border: '1px solid #1e293b', borderRadius: 6, color: '#64748b', cursor: 'pointer', padding: '4px 10px', fontSize: 13 }}>···</button>
+                          {showDotsMenu === (c.id as any) && (
+                            <div onClick={e=>e.stopPropagation()} style={{ position: 'absolute', right: 0, top: '110%', background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, zIndex: 100, minWidth: 160, boxShadow: '0 8px 32px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+                              <button onClick={() => { setShowDotsMenu(null); handleArchive(c.id) }}
+                                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', color: '#cbd5e1', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+                                onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='none')}>Archive</button>
+                              <button onClick={() => { setShowDotsMenu(null); handleArchive(c.id) }}
+                                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', color: '#f87171', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+                                onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='none')}>Delete</button>
+                              <button onClick={() => { setShowDotsMenu(null); window.open(`${window.location.origin}${window.location.pathname}#/clients?id=${c.id}`, '_blank') }}
+                                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', background: 'none', border: 'none', color: '#cbd5e1', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                                onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='none')}>
+                                Open in New Tab <span style={{ fontSize: 11 }}>↗</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </td>
                   </tr>
                 )
@@ -1209,53 +1282,105 @@ export default function ClientsPage() {
         </div>
       )}
 
-      {/* New Client Modal */}
+      {/* New / Edit Client Modal — Jobber layout */}
       {showNewClient && (
         <>
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 500 }} onClick={() => setShowNewClient(false)} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 560, maxHeight: '90vh', overflowY: 'auto', background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 501, padding: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 540, maxHeight: '92vh', overflowY: 'auto', background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 501, padding: '28px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#f1f5f9' }}>New Client</h2>
               <button onClick={() => setShowNewClient(false)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 22, cursor: 'pointer' }}>×</button>
             </div>
-            <p style={{ fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px', paddingBottom: 6, borderBottom: '1px solid #1e293b' }}>Primary Contact</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-              <div><label style={lbl}>First Name *</label><input style={inp} value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} placeholder="First name" /></div>
-              <div><label style={lbl}>Last Name *</label><input style={inp} value={form.last_name} onChange={e => setForm({...form, last_name: e.target.value})} placeholder="Last name" /></div>
-              <div><label style={lbl}>Company</label><input style={inp} value={form.company} onChange={e => setForm({...form, company: e.target.value})} placeholder="Company name" /></div>
-              <div><label style={lbl}>Phone</label><input style={inp} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="(561) 000-0000" /></div>
-              <div style={{ gridColumn:'1/-1' }}><label style={lbl}>Email</label><input style={inp} value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="email@example.com" /></div>
-              <div><label style={lbl}>Lead Source</label><input style={inp} value={form.lead_source} onChange={e => setForm({...form, lead_source: e.target.value})} placeholder="Referral, Google..." /></div>
-            </div>
-            <p style={{ fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px', paddingBottom: 6, borderBottom: '1px solid #1e293b' }}>Property Address</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-              <div style={{ gridColumn:'1/-1' }}><label style={lbl}>Street Address</label><input style={inp} value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="123 Main St" /></div>
-              <div><label style={lbl}>City</label><input style={inp} value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder="Port St. Lucie" /></div>
-              <div><label style={lbl}>ZIP</label><input style={inp} value={form.zip} onChange={e => setForm({...form, zip: e.target.value})} placeholder="34986" /></div>
-            </div>
-            <p style={{ fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px', paddingBottom: 6, borderBottom: '1px solid #1e293b' }}>Details</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-              <div><label style={lbl}>Division</label><select style={inp} value={form.divisions} onChange={e => setForm({...form, divisions: e.target.value})}>{DIVISIONS.map(d=><option key={d.label}>{d.icon} {d.label}</option>)}</select></div>
-              <div><label style={lbl}>Status</label><select style={inp} value={form.status} onChange={e => setForm({...form, status: e.target.value})}>{['lead','active','inactive','overdue'].map(s=><option key={s}>{s}</option>)}</select></div>
-              <div style={{ gridColumn:'1/-1' }}><label style={lbl}>Tags (comma separated)</label><input style={inp} value={form.tags} onChange={e => setForm({...form, tags: e.target.value})} placeholder="HOA, Monthly bill, PGA POA" /></div>
-            </div>
-            <p style={{ fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 10px', paddingBottom: 6, borderBottom: '1px solid #1e293b' }}>Property Details</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-              <div><label style={lbl}>Lawn Size</label><select style={inp} value={form.lawn_size} onChange={e => setForm({...form, lawn_size: e.target.value})}>{['Small','Medium','Large','Extra Large'].map(s=><option key={s}>{s}</option>)}</select></div>
-              <div><label style={lbl}>Irrigation</label><select style={inp} value={form.irrigation} onChange={e => setForm({...form, irrigation: e.target.value})}><option>No</option><option>Yes</option></select></div>
-              <div><label style={lbl}>Pest Control</label><select style={inp} value={form.pest_control} onChange={e => setForm({...form, pest_control: e.target.value})}><option>No</option><option>Yes</option></select></div>
-              <div style={{ display:'flex', gap:16, alignItems:'center', paddingTop:20 }}>
-                <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'#94a3b8', cursor:'pointer' }}>
-                  <input type="checkbox" checked={form.has_dog} onChange={e => setForm({...form, has_dog: e.target.checked})} /> Dog
-                </label>
-                <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'#94a3b8', cursor:'pointer' }}>
-                  <input type="checkbox" checked={form.locked_gate} onChange={e => setForm({...form, locked_gate: e.target.checked})} /> Locked Gate
-                </label>
+
+            {/* Primary contact details */}
+            <div style={{ marginBottom: 24 }}>
+              <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700, color: '#f1f5f9' }}>Primary contact details</h3>
+              <p style={{ margin: '0 0 16px', fontSize: 12, color: '#64748b' }}>Provide the main point of contact to ensure smooth communication and reliable client records</p>
+              <div style={{ border: '1px solid #1e293b', borderRadius: 10, overflow: 'hidden', marginBottom: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 1fr', borderBottom: '1px solid #1e293b' }}>
+                  <div style={{ borderRight: '1px solid #1e293b' }}>
+                    <select style={{ ...inp, border: 'none', borderRadius: 0, background: 'transparent', height: 44 }} value={form.title||'No title'} onChange={e => setForm({...form, title: e.target.value})}>
+                      {['No title','Mr.','Mrs.','Ms.','Dr.','Prof.'].map(t=><option key={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div style={{ borderRight: '1px solid #1e293b' }}>
+                    <input style={{ ...inp, border: 'none', borderRadius: 0, background: 'transparent', height: 44 }} value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} placeholder="First name" />
+                  </div>
+                  <div>
+                    <input style={{ ...inp, border: 'none', borderRadius: 0, background: 'transparent', height: 44 }} value={form.last_name} onChange={e => setForm({...form, last_name: e.target.value})} placeholder="Last name" />
+                  </div>
+                </div>
+                <div style={{ borderBottom: '1px solid #1e293b' }}>
+                  <input style={{ ...inp, border: 'none', borderRadius: 0, background: 'transparent' }} value={form.company} onChange={e => setForm({...form, company: e.target.value})} placeholder="Company name" />
+                </div>
+                <div>
+                  <input style={{ ...inp, border: 'none', borderRadius: 0, background: 'transparent' }} value={form.role||''} onChange={e => setForm({...form, role: e.target.value})} placeholder="Role" />
+                </div>
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#94a3b8', cursor: 'pointer', marginBottom: 16 }}>
+                <input type="checkbox" checked={form.billing_contact||false} onChange={e => setForm({...form, billing_contact: e.target.checked})} /> Set as billing contact
+              </label>
+
+              {/* Communication */}
+              <p style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Communication</p>
+              <div style={{ border: '1px solid #1e293b', borderRadius: 10, overflow: 'hidden', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid #1e293b' }}>
+                  <input style={{ ...inp, border: 'none', borderRadius: 0, background: 'transparent', flex: 1 }} value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} placeholder="Phone number" />
+                  <div style={{ borderLeft: '1px solid #1e293b', padding: '10px 14px', fontSize: 12, color: '#64748b', whiteSpace: 'nowrap' }}>Main ▾</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <input style={{ ...inp, border: 'none', borderRadius: 0, background: 'transparent', flex: 1 }} type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="Email" />
+                  <div style={{ borderLeft: '1px solid #1e293b', padding: '10px 14px', fontSize: 12, color: '#64748b', whiteSpace: 'nowrap' }}>Main ▾</div>
+                </div>
               </div>
             </div>
+
+            {/* Property Address */}
+            <div style={{ marginBottom: 20 }}>
+              <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Property Address</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div style={{ gridColumn: '1/-1' }}><label style={lbl}>Street Address</label><input style={inp} value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="123 Main St" /></div>
+                <div><label style={lbl}>City</label><input style={inp} value={form.city} onChange={e => setForm({...form, city: e.target.value})} placeholder="Port St. Lucie" /></div>
+                <div><label style={lbl}>State / ZIP</label><div style={{ display: 'flex', gap: 6 }}><input style={{ ...inp, width: 60 }} value={form.state||''} onChange={e => setForm({...form, state: e.target.value})} placeholder="FL" maxLength={2} /><input style={{ ...inp, flex: 1 }} value={form.zip} onChange={e => setForm({...form, zip: e.target.value})} placeholder="34986" /></div></div>
+              </div>
+            </div>
+
+            {/* Payment terms */}
+            <div style={{ marginBottom: 16 }}>
+              <h3 style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Payment terms</h3>
+              <select style={inp} value={form.payment_terms||'Net 7'} onChange={e => setForm({...form, payment_terms: e.target.value})}>
+                {['Upon receipt','Net 7','Net 15','Net 30','Net 45','Net 60','Residential default (Net 7)','Commercial default (Net 30)'].map(t=><option key={t}>{t}</option>)}
+              </select>
+            </div>
+
+            {/* Lead information */}
+            <div style={{ marginBottom: 16 }}>
+              <h3 style={{ margin: '0 0 8px', fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Lead information</h3>
+              <input style={inp} value={form.lead_source} onChange={e => setForm({...form, lead_source: e.target.value})} placeholder="Lead source (Referral, Google, etc.)" />
+            </div>
+
+            {/* Additional client details */}
+            <details style={{ marginBottom: 20 }}>
+              <summary style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', cursor: 'pointer', padding: '10px 0', borderTop: '1px solid #1e293b', userSelect: 'none' }}>Additional client details ▾</summary>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, paddingTop: 12 }}>
+                <div><label style={lbl}>Division</label><select style={inp} value={form.divisions} onChange={e => setForm({...form, divisions: e.target.value})}>{DIVISIONS.map(d=><option key={d.label}>{d.label}</option>)}</select></div>
+                <div><label style={lbl}>Status</label><select style={inp} value={form.status} onChange={e => setForm({...form, status: e.target.value})}>{['lead','active','inactive'].map(s=><option key={s}>{s}</option>)}</select></div>
+                <div style={{ gridColumn:'1/-1' }}><label style={lbl}>Tags (comma separated)</label><input style={inp} value={form.tags} onChange={e => setForm({...form, tags: e.target.value})} placeholder="HOA, Monthly bill, PGA POA" /></div>
+                <div><label style={lbl}>Lawn Size</label><select style={inp} value={form.lawn_size} onChange={e => setForm({...form, lawn_size: e.target.value})}>{['Small','Medium','Large','Extra Large'].map(s=><option key={s}>{s}</option>)}</select></div>
+                <div style={{ display:'flex', gap:16, alignItems:'center', paddingTop:20 }}>
+                  <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'#94a3b8', cursor:'pointer' }}>
+                    <input type="checkbox" checked={form.has_dog} onChange={e => setForm({...form, has_dog: e.target.checked})} /> Dog
+                  </label>
+                  <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'#94a3b8', cursor:'pointer' }}>
+                    <input type="checkbox" checked={form.locked_gate} onChange={e => setForm({...form, locked_gate: e.target.checked})} /> Locked Gate
+                  </label>
+                </div>
+              </div>
+            </details>
+
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowNewClient(false)} style={{ padding:'10px 20px',border:'1px solid #1e293b',borderRadius:9,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Cancel</button>
-              <button onClick={handleSaveNew} style={{ padding:'10px 20px',border:'none',borderRadius:9,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Save Client</button>
+              <button onClick={() => setShowNewClient(false)} style={{ padding:'10px 24px',border:'1px solid #1e293b',borderRadius:9,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Cancel</button>
+              <button onClick={handleSaveNew} style={{ padding:'10px 28px',border:'none',borderRadius:9,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Save Client</button>
             </div>
           </div>
         </>

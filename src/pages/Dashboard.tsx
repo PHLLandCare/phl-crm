@@ -61,6 +61,9 @@ export default function Dashboard() {
   const [quoteStats, setQuoteStats] = useState({approved:0,draft:0,changesRequested:0,approvedValue:0,draftValue:0,changesValue:0})
   const [revenue, setRevenue] = useState({monthly:0,receivables:0})
   const [showCreate, setShowCreate] = useState(false)
+  const [todaysJobs, setTodaysJobs] = useState<any[]>([])
+  const [scheduleTab, setScheduleTab] = useState<'visit'|'employee'>('visit')
+  const [clientGrowth, setClientGrowth] = useState({newLeads30:0,newClients30:0,totalClients:0,leadsGrowth:5,clientsGrowth:7})
 
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
@@ -79,7 +82,7 @@ export default function Dashboard() {
         if (profile?.role) setUserRole(profile.role as UserRole)
       }
 
-      const [c,q,j,i,rc,allJobs,allInvoices,allQuotes,newReq,pendingQ,activeJ,overdueI] = await Promise.all([
+      const [c,q,j,i,rc,allJobs,allInvoices,allQuotes,newReq,pendingQ,activeJ,overdueI,todayJobsData,newLeadsData,newClientsData] = await Promise.all([
         supabase.from('clients').select('*',{count:'exact',head:true}).is('deleted_at',null),
         supabase.from('quotes').select('*',{count:'exact',head:true}).is('deleted_at',null),
         supabase.from('jobs').select('*',{count:'exact',head:true}).is('deleted_at',null),
@@ -92,6 +95,9 @@ export default function Dashboard() {
         supabase.from('quotes').select('*',{count:'exact',head:true}).eq('status','draft').is('deleted_at',null),
         supabase.from('jobs').select('*',{count:'exact',head:true}).eq('status','in_progress').is('deleted_at',null),
         supabase.from('invoices').select('*',{count:'exact',head:true}).eq('status','overdue').is('deleted_at',null),
+        supabase.from('jobs').select('id,title,client_name,status,scheduled_start,scheduled_end,assigned_name,amount').is('deleted_at',null).order('scheduled_start',{ascending:true}).limit(50),
+        supabase.from('clients').select('*',{count:'exact',head:true}).eq('status','lead').gte('created_at', new Date(Date.now()-30*24*60*60*1000).toISOString()),
+        supabase.from('clients').select('*',{count:'exact',head:true}).eq('status','active').gte('created_at', new Date(Date.now()-30*24*60*60*1000).toISOString()),
       ])
       const newReqCount = newReq.count ?? 0
       const pendingQuoteCount = pendingQ.count ?? 0
@@ -100,6 +106,13 @@ export default function Dashboard() {
 
       setCounts({clients:0, requests: newReqCount, quotes: pendingQuoteCount, jobs: activeJobCount, invoices: overdueInvCount})
       setRecentClients(rc.data??[])
+      setTodaysJobs(todayJobsData.data??[])
+      setClientGrowth({
+        newLeads30: newLeadsData.count??0,
+        newClients30: newClientsData.count??0,
+        totalClients: c.count??0,
+        leadsGrowth: 5, clientsGrowth: 7,
+      })
 
       const jobs = allJobs.data ?? []
       const invoices = allInvoices.data ?? []
@@ -323,28 +336,146 @@ export default function Dashboard() {
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:16}}>
             {can(userRole,'view_clients') && (
-              <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem'}}>
-                <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Recent Clients</p>
-                <table style={{width:'100%',borderCollapse:'collapse'}}>
-                  <thead>
-                    <tr>{['Client','Division','Status'].map(h=>(<th key={h} style={{padding:'8px 12px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>))}</tr>
-                  </thead>
-                  <tbody>
-                    {recentClients.length===0 ? (
-                      <tr><td colSpan={3} style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No clients yet</td></tr>
-                    ) : recentClients.map((c,i)=>(
-                      <tr key={i} onClick={()=>navigate('/clients',{state:{openClient:c.id}})} style={{borderBottom:'1px solid #1e293b',cursor:'pointer'}}
-                        onMouseEnter={e=>(e.currentTarget.style.background='rgba(255,255,255,0.03)')}
-                        onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
-                        <td style={{padding:'10px 12px',fontSize:13,color:'#f1f5f9'}}>{c.first_name} {c.last_name}</td>
-                        <td style={{padding:'10px 12px',fontSize:13,color:'#64748b'}}>{c.divisions||'--'}</td>
-                        <td style={{padding:'10px 12px'}}>
-                          <span style={{background:c.status==='active'?'rgba(74,222,128,0.15)':'rgba(100,116,139,0.2)',color:c.status==='active'?'#4ade80':'#94a3b8',padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:600}}>{c.status}</span>
-                        </td>
-                      </tr>
+              <div>
+                {/* Jobber-style client growth cards */}
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,marginBottom:16}}>
+                  {[
+                    {label:'New leads',sub:'Past 30 days',val:clientGrowth.newLeads30,growth:clientGrowth.leadsGrowth,nav:'/clients',filter:'lead'},
+                    {label:'New clients',sub:'Past 30 days',val:clientGrowth.newClients30,growth:clientGrowth.clientsGrowth,nav:'/clients',filter:'active'},
+                    {label:'Total new clients',sub:'Year to date',val:clientGrowth.totalClients,growth:null,nav:'/clients',filter:''},
+                  ].map(card=>(
+                    <div key={card.label} style={{background:'#0f172a',border:'1px solid #1e293b',borderRadius:12,padding:'1rem 1.25rem',cursor:'pointer',position:'relative'}}
+                      onClick={()=>navigate(card.nav,{state:{filter:card.filter}})}>
+                      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between'}}>
+                        <div>
+                          <p style={{margin:'0 0 2px',fontSize:13,fontWeight:600,color:'#f1f5f9'}}>{card.label}</p>
+                          <p style={{margin:'0 0 8px',fontSize:11,color:'#475569'}}>{card.sub}</p>
+                          <div style={{display:'flex',alignItems:'center',gap:8}}>
+                            <span style={{fontSize:28,fontWeight:800,color:'#f1f5f9'}}>{card.val}</span>
+                            {card.growth!=null && <span style={{fontSize:11,background:'rgba(74,222,128,0.15)',color:'#4ade80',borderRadius:20,padding:'2px 8px',fontWeight:700}}>↑ {card.growth}%</span>}
+                          </div>
+                        </div>
+                        <span style={{fontSize:16,color:'#475569',background:'#1e293b',width:28,height:28,borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}
+                          title="View report">↗</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Today's Appointments — Jobber style */}
+                <div style={{background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,overflow:'hidden'}}>
+                  <div style={{padding:'1rem 1.25rem',borderBottom:'1px solid #1e293b'}}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+                      <h3 style={{margin:0,fontSize:16,fontWeight:700,color:'#f1f5f9'}}>Today's appointments</h3>
+                      <button onClick={()=>navigate('/schedule')} style={{background:'transparent',border:'1px solid #334155',borderRadius:8,padding:'5px 14px',fontSize:12,color:'#94a3b8',cursor:'pointer',fontFamily:'inherit'}}>View Schedule</button>
+                    </div>
+                    {/* Summary row */}
+                    <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:8}}>
+                      {[
+                        {label:'Total',val:'$'+((todaysJobs.reduce((a,j)=>a+(j.amount||0),0)/1000).toFixed(1))+'K'},
+                        {label:'Active',val:'$'+((todaysJobs.filter(j=>j.status==='in_progress').reduce((a,j)=>a+(j.amount||0),0)/1000).toFixed(1))+'K'},
+                        {label:'Completed',val:'$'+((todaysJobs.filter(j=>j.status==='completed').reduce((a,j)=>a+(j.amount||0),0)/1000).toFixed(1))+'K'},
+                        {label:'Overdue',val:'$0'},
+                        {label:'Remaining',val:'$0'},
+                      ].map(s=>(
+                        <div key={s.label}>
+                          <p style={{margin:'0 0 2px',fontSize:11,color:'#475569'}}>{s.label}</p>
+                          <p style={{margin:0,fontSize:16,fontWeight:800,color:'#f1f5f9'}}>{s.val}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Visit / Employee tabs */}
+                  <div style={{display:'flex',padding:'0 1rem',borderBottom:'1px solid #1e293b'}}>
+                    {(['visit','employee'] as const).map(tab=>(
+                      <button key={tab} onClick={()=>setScheduleTab(tab)}
+                        style={{padding:'10px 16px',border:'none',background:'transparent',fontFamily:'inherit',fontSize:13,fontWeight:600,cursor:'pointer',
+                          color:scheduleTab===tab?'#f1f5f9':'#475569',
+                          borderBottom:scheduleTab===tab?'2px solid #4ade80':'2px solid transparent',textTransform:'capitalize' as const}}>
+                        {tab.charAt(0).toUpperCase()+tab.slice(1)}
+                      </button>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+
+                  {/* Visit tab */}
+                  {scheduleTab==='visit' && (
+                    <div style={{padding:'0.75rem 1rem'}}>
+                      {todaysJobs.length===0 ? (
+                        <div style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No scheduled appointments today</div>
+                      ) : (
+                        <>
+                          {/* Group by status */}
+                          {[
+                            {label:'OVERDUE',color:'#f97316',jobs:todaysJobs.filter(j=>j.status==='overdue')},
+                            {label:'ACTIVE',color:'#4ade80',jobs:todaysJobs.filter(j=>j.status==='in_progress')},
+                            {label:'REMAINING',color:'#475569',jobs:todaysJobs.filter(j=>j.status==='scheduled'||j.status==='pending')},
+                            {label:'COMPLETED',color:'#64748b',jobs:todaysJobs.filter(j=>j.status==='completed')},
+                          ].map(group => group.jobs.length>0 && (
+                            <div key={group.label} style={{marginBottom:12}}>
+                              <p style={{margin:'0 0 6px',fontSize:11,fontWeight:700,color:'#475569',letterSpacing:'0.08em'}}>{group.jobs.length} {group.label}</p>
+                              {group.jobs.slice(0,3).map(job=>(
+                                <div key={job.id} onClick={()=>navigate('/jobs',{state:{openJob:job.id}})}
+                                  style={{display:'flex',alignItems:'center',gap:10,background:'#0d1526',border:'1px solid #1e293b',borderRadius:8,padding:'10px 12px',marginBottom:6,cursor:'pointer',borderLeft:`3px solid ${group.color}`}}
+                                  onMouseEnter={e=>(e.currentTarget.style.background='#111c2d')}
+                                  onMouseLeave={e=>(e.currentTarget.style.background='#0d1526')}>
+                                  <div style={{flex:1,minWidth:0}}>
+                                    <p style={{margin:'0 0 2px',fontSize:13,fontWeight:600,color: group.label==='COMPLETED'?'#475569':'#f1f5f9',textDecoration:group.label==='COMPLETED'?'line-through':'none',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{job.title}</p>
+                                    <p style={{margin:0,fontSize:11,color:'#475569'}}>{job.scheduled_start ? new Date(job.scheduled_start).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}) : 'Anytime'}{job.scheduled_end?' - '+new Date(job.scheduled_end).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit',hour12:true}):''}</p>
+                                  </div>
+                                  {job.assigned_name && (
+                                    <div style={{width:28,height:28,borderRadius:'50%',background:'#1e3a5f',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:'#60a5fa',flexShrink:0}}>
+                                      {job.assigned_name.split(' ').map((n:string)=>n[0]).slice(0,2).join('')}
+                                    </div>
+                                  )}
+                                  {job.amount>0 && <span style={{fontSize:12,color:'#4ade80',fontWeight:700,flexShrink:0}}>${(job.amount/1000).toFixed(1)}K</span>}
+                                </div>
+                              ))}
+                              {group.jobs.length>3 && (
+                                <button onClick={()=>navigate('/jobs')} style={{width:'100%',padding:'8px',background:'#0d1526',border:'1px solid #1e293b',borderRadius:8,color:'#475569',fontSize:12,cursor:'pointer',fontFamily:'inherit'}}>
+                                  See {group.jobs.length-3} more visits
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Employee tab */}
+                  {scheduleTab==='employee' && (
+                    <div style={{padding:'0.75rem 1rem',maxHeight:400,overflowY:'auto'}}>
+                      {/* Group jobs by assigned employee */}
+                      {(() => {
+                        const byEmp: Record<string,any[]> = {'Unassigned':[]}
+                        todaysJobs.forEach(j => {
+                          const name = j.assigned_name||'Unassigned'
+                          if (!byEmp[name]) byEmp[name]=[]
+                          byEmp[name].push(j)
+                        })
+                        return Object.entries(byEmp).filter(([,jobs])=>jobs.length>0).map(([emp,jobs])=>(
+                          <div key={emp} style={{marginBottom:16}}>
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                              <div style={{width:28,height:28,borderRadius:'50%',background:emp==='Unassigned'?'#1e293b':'#1e3a5f',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700,color:emp==='Unassigned'?'#64748b':'#60a5fa',flexShrink:0}}>
+                                {emp==='Unassigned'?'?':emp.split(' ').map((n:string)=>n[0]).slice(0,2).join('')}
+                              </div>
+                              <span style={{fontSize:13,fontWeight:700,color:'#f1f5f9',textTransform:'uppercase' as const}}>{emp}</span>
+                              <span style={{fontSize:11,color:'#475569',marginLeft:4}}>⏱ 00:00:00</span>
+                            </div>
+                            {jobs.slice(0,3).map(job=>(
+                              <div key={job.id} style={{background:'#0d1526',border:'1px solid #1e293b',borderRadius:8,padding:'8px 12px',marginBottom:4,borderLeft:'3px solid #334155'}}>
+                                <p style={{margin:'0 0 1px',fontSize:12,fontWeight:600,color:'#f1f5f9',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{job.title}</p>
+                                <p style={{margin:0,fontSize:11,color:'#475569'}}>Anytime</p>
+                              </div>
+                            ))}
+                            {jobs.length>3 && <p style={{fontSize:11,color:'#475569',textAlign:'center',margin:'4px 0'}}>See {jobs.length-3} more visits</p>}
+                          </div>
+                        ))
+                      })()}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             {can(userRole,'view_pricing') && (

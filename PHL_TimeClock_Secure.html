@@ -809,9 +809,16 @@ async function saveEmployee() {
   if (zipEl && zipEl.value) data.zip = zipEl.value.trim();
 
   try {
+    // Find the row's UUID primary key for reliable PATCH
+    var empRow = allEmployees.find(function(x){ return x.employee_id === editingEmpId; });
+    var patchId = empRow ? empRow.id : null;
+
     if (editingEmpId) {
-      var res = await sb('PATCH', '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId), data);
-      console.log('PATCH result:', res);
+      var patchUrl = patchId
+        ? '/employees?id=eq.' + patchId
+        : '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId);
+      var res = await sb('PATCH', patchUrl, data);
+      console.log('PATCH result:', res, 'patchUrl:', patchUrl);
       console.log('Division saved as:', divisionValue);
       toast('✅ ' + fn + ' ' + ln + ' updated! Divisions: ' + divisionValue);
     } else {
@@ -836,7 +843,10 @@ async function saveEmployee() {
         if (data.city) coreData.city = data.city;
         if (data.state) coreData.state = data.state;
         if (data.zip) coreData.zip = data.zip;
-        if (editingEmpId) { await sb('PATCH', '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId), coreData); }
+        if (editingEmpId) { 
+          var fbUrl = patchId ? '/employees?id=eq.' + patchId : '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId);
+          await sb('PATCH', fbUrl, coreData); 
+        }
         else { await sb('POST', '/employees', coreData); }
         toast('✅ Saved! (Note: add employee_type/hourly_rate columns to unlock pay features)');
         closeEmpDrawer();
@@ -856,7 +866,8 @@ async function archiveEmp(eid) {
   if (!e) return;
   if (!confirm('Archive ' + fullName(e) + '?\n\nThis removes their clock-in access but KEEPS all their time records permanently. You can restore them at any time.')) return;
   try {
-    await sb('PATCH', '/employees?employee_id=eq.' + encodeURIComponent(eid), {active: false});
+    var url = e.id ? '/employees?id=eq.' + e.id : '/employees?employee_id=eq.' + encodeURIComponent(eid);
+    await sb('PATCH', url, {active: false});
     toast(fullName(e) + ' archived — all records preserved');
     await loadEmployees();
   } catch(e2) { toast('Error: ' + e2.message); }
@@ -865,7 +876,8 @@ async function restoreEmp(eid) {
   var e = allEmployees.find(function(x){return x.employee_id===eid;});
   if (!e) return;
   try {
-    await sb('PATCH', '/employees?employee_id=eq.' + encodeURIComponent(eid), {active: true});
+    var url = e.id ? '/employees?id=eq.' + e.id : '/employees?employee_id=eq.' + encodeURIComponent(eid);
+    await sb('PATCH', url, {active: true});
     toast(fullName(e) + ' restored — clock-in access re-enabled');
     await loadEmployees();
   } catch(e2) { toast('Error: ' + e2.message); }
