@@ -14,7 +14,7 @@ const BUSINESS_HOURS_DEFAULT = [
   { day:'Saturday',  open:false, from:'8:00 AM', to:'4:00 PM' },
 ]
 
-type NavSection = 'company' | 'business-profile' | 'profile' | 'autobilling' | 'divisions'
+type NavSection = 'company' | 'business-profile' | 'profile' | 'autobilling' | 'divisions' | 'integrations'
 
 export default function SettingsPage() {
   const [toast, setToast]     = useState('')
@@ -227,6 +227,7 @@ export default function SettingsPage() {
     { id:'profile', label:'My profile' },
     { id:'autobilling', label:'Autobilling' },
     { id:'divisions', label:'Divisions' },
+    { id:'integrations', label:'Integrations' },
   ]
 
   // ── INVOICE PREVIEW (used in doc settings modal) ──
@@ -450,154 +451,8 @@ export default function SettingsPage() {
                 <button onClick={()=>setShowDocSettings(true)} style={{ padding:'9px 18px',background:'none',border:'1px solid #4ade80',borderRadius:8,color:'#4ade80',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Edit Settings</button>
               </div>
             </div>
-
-            {/* ── SQUARE INTEGRATION ── */}
-            <div style={card}>
-              <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
-                <div style={{ background:'#fff',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#000' }}>■ Square</div>
-                <div>
-                  <h2 style={{ ...secTitle,margin:0 }}>Square Payments</h2>
-                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Accept credit card payments from clients</p>
-                </div>
-                <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:'#1a1000',color:'#fcd34d',padding:'3px 10px',borderRadius:20,border:'1px solid #d97706' }}>Setup needed</span>
-              </div>
-              <div style={{ background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:12 }}>
-                <p style={{ margin:'0 0 8px',fontSize:13,color:'#94a3b8' }}>Connect your Square account to enable:</p>
-                <ul style={{ margin:0,padding:'0 0 0 20px',fontSize:13,color:'#cbd5e1' }}>
-                  <li>Credit card payments on invoices (client portal)</li>
-                  <li>Auto-charge clients after job completion</li>
-                  <li>Collect payments in the field</li>
-                </ul>
-              </div>
-              <div style={{ display:'grid',gridTemplateColumns:'1fr',gap:10,marginBottom:12 }}>
-                <div>
-                  <label style={lbl}>Square Access Token</label>
-                  <input style={inp} type="password" placeholder="sq0atp-..." value={squareToken} onChange={e=>setSquareToken(e.target.value)} />
-                  <p style={{ margin:'4px 0 0',fontSize:11,color:'#475569' }}>Found in Square Dashboard → Developer → Applications → Access Token</p>
-                </div>
-                <div>
-                  <label style={lbl}>Square Application ID</label>
-                  <input style={inp} placeholder="sq0idp-..." value={squareAppId} onChange={e=>setSquareAppId(e.target.value)} />
-                </div>
-                <div>
-                  <label style={lbl}>Square Location ID</label>
-                  <input style={inp} placeholder="LXXXXXXXXXXXXXXXX" value={squareLocationId} onChange={e=>setSquareLocationId(e.target.value)} />
-                </div>
-              </div>
-              <div style={{ display:'flex',gap:8 }}>
-                <a href="https://developer.squareup.com/apps" target="_blank" rel="noreferrer"
-                  style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
-                  ↗ Open Square Developer Dashboard
-                </a>
-                <button onClick={()=>saveApiKeys({square_access_token:squareToken,square_app_id:squareAppId,square_location_id:squareLocationId},'Square settings')} disabled={keysSaving} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save Square Settings</button>
-              </div>
-            </div>
-
-            {/* ── RESEND EMAIL ── */}
-            <div style={card}>
-              <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
-                <div style={{ background:'#000',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#fff' }}>✉ Resend</div>
-                <div>
-                  <h2 style={{ ...secTitle,margin:0 }}>Email Delivery</h2>
-                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Send invoices, quotes, and reminders via email</p>
-                </div>
-                <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:'#1a1000',color:'#fcd34d',padding:'3px 10px',borderRadius:20,border:'1px solid #d97706' }}>Setup needed</span>
-              </div>
-              <div style={{ background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:12 }}>
-                <p style={{ margin:'0 0 4px',fontSize:13,color:'#94a3b8' }}>Once connected, emails will be sent from:</p>
-                <p style={{ margin:0,fontSize:13,color:'#4ade80',fontWeight:600 }}>admin@phllandcare.com</p>
-              </div>
-              <div>
-                <label style={lbl}>Resend API Key</label>
-                <input style={{ ...inp,marginBottom:8 }} type="password" placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value={resendKey} onChange={e=>setResendKey(e.target.value)} />
-                <p style={{ margin:'0 0 12px',fontSize:11,color:'#475569' }}>Get your API key at resend.com/api-keys — requires domain verification for phllandcare.com</p>
-              </div>
-              <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
-                <a href="https://resend.com/api-keys" target="_blank" rel="noreferrer"
-                  style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
-                  ↗ Open Resend Dashboard
-                </a>
-                <button onClick={()=>saveApiKeys({resend_api_key:resendKey},'Resend email settings')} disabled={keysSaving} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save Email Settings</button>
-                <button onClick={async()=>{
-                  try {
-                    const user = (await supabase.auth.getUser()).data.user
-                    const to = user?.email || 'romy.cruz@live.com'
-                    await supabase.functions.invoke('send-email',{body:{to,subject:'PHL CRM — Test Email ✅',html:'<div style="font-family:sans-serif;padding:24px"><h2 style="color:#16a34a">PHL Land Care CRM</h2><p>Your email integration is working correctly! 🎉</p></div>'}})
-                    showToast('✅ Test email sent to ' + to)
-                  } catch { showToast('⚠️ Test failed — check API key') }
-                }} style={{ padding:'9px 18px',border:'1px solid #0ea5e9',borderRadius:8,background:'rgba(14,165,233,0.1)',color:'#7dd3fc',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>
-                  📧 Send Test Email
-                </button>
-              </div>
-            </div>
-
-            {/* ── TWILIO SMS ── */}
-            <div style={card}>
-              <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
-                <div style={{ background:'#f22f46',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#fff' }}>💬 Twilio</div>
-                <div>
-                  <h2 style={{ ...secTitle,margin:0 }}>SMS Notifications</h2>
-                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Send text reminders and notifications to clients and staff</p>
-                </div>
-                <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:twilioSid?'#052e16':'#1a1000',color:twilioSid?'#4ade80':'#fcd34d',padding:'3px 10px',borderRadius:20,border:`1px solid ${twilioSid?'#16a34a':'#d97706'}` }}>{twilioSid?'Configured':'Setup needed'}</span>
-              </div>
-              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12 }}>
-                <div>
-                  <label style={lbl}>Twilio Account SID</label>
-                  <input style={inp} type="password" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value={twilioSid} onChange={e=>setTwilioSid(e.target.value)} />
-                </div>
-                <div>
-                  <label style={lbl}>Twilio Auth Token</label>
-                  <input style={inp} type="password" placeholder="your_auth_token" value={twilioToken} onChange={e=>setTwilioToken(e.target.value)} />
-                </div>
-                <div>
-                  <label style={lbl}>From Phone Number</label>
-                  <input style={inp} placeholder="+17724660000" value={twilioPhone} onChange={e=>setTwilioPhone(e.target.value)} />
-                  <p style={{ margin:'4px 0 0',fontSize:11,color:'#475569' }}>Must be a Twilio-verified number in E.164 format</p>
-                </div>
-              </div>
-              <div style={{ display:'flex',gap:8 }}>
-                <a href="https://console.twilio.com" target="_blank" rel="noreferrer"
-                  style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
-                  ↗ Open Twilio Console
-                </a>
-                <button onClick={()=>saveApiKeys({twilio_account_sid:twilioSid,twilio_auth_token:twilioToken,twilio_phone_number:twilioPhone},'Twilio SMS settings')} disabled={keysSaving}
-                  style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save SMS Settings</button>
-                <button onClick={async()=>{
-                  const to = prompt('Enter a phone number to test (e.g. +17725551234):')
-                  if (!to) return
-                  try {
-                    await supabase.functions.invoke('send-sms',{body:{to,message:'PHL Land Care CRM — SMS test successful! 🎉'}})
-                    showToast('✅ Test SMS sent to ' + to)
-                  } catch { showToast('⚠️ SMS test failed — check Twilio settings') }
-                }} style={{ padding:'9px 18px',border:'1px solid rgba(167,139,250,0.4)',borderRadius:8,background:'rgba(167,139,250,0.1)',color:'#a78bfa',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>
-                  💬 Send Test SMS
-                </button>
-              </div>
-            </div>
-
-            {/* ── OTHER INTEGRATIONS ── */}
-            <div style={card}>
-              <h2 style={{ ...secTitle,marginBottom:12 }}>Other Integrations</h2>
-              <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
-                {[
-                  {name:'Supabase',      desc:'Database & realtime sync',  status:'Connected',    ok:true},
-                  {name:'GitHub Pages',  desc:'Hosting & deployment',      status:'Active',       ok:true},
-                  {name:'Twilio',        desc:'SMS notifications',         status:'Setup needed', ok:false},
-                ].map(item=>(
-                  <div key={item.name} style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'#1e293b',borderRadius:10,border:'1px solid #334155' }}>
-                    <div>
-                      <p style={{ margin:'0 0 2px',fontSize:14,fontWeight:600,color:'#f1f5f9' }}>{item.name}</p>
-                      <p style={{ margin:0,fontSize:12,color:'#64748b' }}>{item.desc}</p>
-                    </div>
-                    <span style={{ fontSize:12,fontWeight:600,background:item.ok?'#052e16':'#1a1000',color:item.ok?'#4ade80':'#fcd34d',padding:'3px 10px',borderRadius:20,border:`1px solid ${item.ok?'#16a34a':'#d97706'}` }}>{item.status}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         )}
-
         {/* ── BUSINESS PROFILE ── */}
         {activeNav === 'business-profile' && (
           <div>
@@ -902,6 +757,158 @@ export default function SettingsPage() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {activeNav === 'integrations' && (
+          <div>
+            {/* ── SQUARE INTEGRATION ── */}
+            <div style={card}>
+              <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
+                <div style={{ background:'#fff',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#000' }}>■ Square</div>
+                <div>
+                  <h2 style={{ ...secTitle,margin:0 }}>Square Payments</h2>
+                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Accept credit card payments from clients</p>
+                </div>
+                <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:squareToken?'#052e16':'#1a1000',color:squareToken?'#4ade80':'#fcd34d',padding:'3px 10px',borderRadius:20,border:`1px solid ${squareToken?'#16a34a':'#d97706'}` }}>{squareToken?'Configured':'Setup needed'}</span>
+              </div>
+              <div style={{ background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:12 }}>
+                <p style={{ margin:'0 0 8px',fontSize:13,color:'#94a3b8' }}>Connect your Square account to enable:</p>
+                <ul style={{ margin:0,padding:'0 0 0 20px',fontSize:13,color:'#cbd5e1' }}>
+                  <li>Credit card payments on invoices (client portal)</li>
+                  <li>Auto-charge clients after job completion</li>
+                  <li>Collect payments in the field</li>
+                </ul>
+              </div>
+              <div style={{ display:'grid',gridTemplateColumns:'1fr',gap:10,marginBottom:12 }}>
+                <div>
+                  <label style={lbl}>Square Access Token</label>
+                  <input style={inp} type="password" placeholder="sq0atp-..." value={squareToken} onChange={e=>setSquareToken(e.target.value)} />
+                  <p style={{ margin:'4px 0 0',fontSize:11,color:'#475569' }}>Found in Square Dashboard → Developer → Applications → Access Token</p>
+                </div>
+                <div>
+                  <label style={lbl}>Square Application ID</label>
+                  <input style={inp} placeholder="sq0idp-..." value={squareAppId} onChange={e=>setSquareAppId(e.target.value)} />
+                </div>
+                <div>
+                  <label style={lbl}>Square Location ID</label>
+                  <input style={inp} placeholder="LXXXXXXXXXXXXXXXX" value={squareLocationId} onChange={e=>setSquareLocationId(e.target.value)} />
+                </div>
+              </div>
+              <div style={{ display:'flex',gap:8 }}>
+                <a href="https://developer.squareup.com/apps" target="_blank" rel="noreferrer"
+                  style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
+                  ↗ Open Square Developer Dashboard
+                </a>
+                <button onClick={()=>saveApiKeys({square_access_token:squareToken,square_app_id:squareAppId,square_location_id:squareLocationId},'Square settings')} disabled={keysSaving} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save Square Settings</button>
+              </div>
+            </div>
+
+            {/* ── RESEND EMAIL ── */}
+            <div style={card}>
+              <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
+                <div style={{ background:'#000',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#fff' }}>✉ Resend</div>
+                <div>
+                  <h2 style={{ ...secTitle,margin:0 }}>Email Delivery</h2>
+                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Send invoices, quotes, and reminders via email</p>
+                </div>
+                <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:resendKey?'#052e16':'#1a1000',color:resendKey?'#4ade80':'#fcd34d',padding:'3px 10px',borderRadius:20,border:`1px solid ${resendKey?'#16a34a':'#d97706'}` }}>{resendKey?'Configured':'Setup needed'}</span>
+              </div>
+              <div style={{ background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:12 }}>
+                <p style={{ margin:'0 0 4px',fontSize:13,color:'#94a3b8' }}>Once connected, emails will be sent from:</p>
+                <p style={{ margin:0,fontSize:13,color:'#4ade80',fontWeight:600 }}>admin@phllandcare.com</p>
+              </div>
+              <div>
+                <label style={lbl}>Resend API Key</label>
+                <input style={{ ...inp,marginBottom:8 }} type="password" placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value={resendKey} onChange={e=>setResendKey(e.target.value)} />
+                <p style={{ margin:'0 0 12px',fontSize:11,color:'#475569' }}>Get your API key at resend.com/api-keys — requires domain verification for phllandcare.com</p>
+              </div>
+              <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
+                <a href="https://resend.com/api-keys" target="_blank" rel="noreferrer"
+                  style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
+                  ↗ Open Resend Dashboard
+                </a>
+                <button onClick={()=>saveApiKeys({resend_api_key:resendKey},'Resend email settings')} disabled={keysSaving} style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save Email Settings</button>
+                <button onClick={async()=>{
+                  try {
+                    const user = (await supabase.auth.getUser()).data.user
+                    const to = user?.email || 'romy.cruz@live.com'
+                    const testHtml = '<div style="font-family:sans-serif;padding:24px"><h2 style="color:#16a34a">PHL Land Care CRM</h2><p>Email working!</p></div>'
+                    await supabase.functions.invoke('send-email',{body:{to,subject:'PHL CRM — Test Email',html:testHtml}})
+                    showToast('✅ Test email sent to ' + to)
+                  } catch { showToast('⚠️ Test failed — check API key') }
+                }} style={{ padding:'9px 18px',border:'1px solid #0ea5e9',borderRadius:8,background:'rgba(14,165,233,0.1)',color:'#7dd3fc',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>
+                  📧 Send Test Email
+                </button>
+              </div>
+            </div>
+
+            {/* ── TWILIO SMS ── */}
+            <div style={card}>
+              <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
+                <div style={{ background:'#f22f46',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#fff' }}>💬 Twilio</div>
+                <div>
+                  <h2 style={{ ...secTitle,margin:0 }}>SMS Notifications</h2>
+                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Send text reminders and notifications to clients and staff</p>
+                </div>
+                <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:twilioSid?'#052e16':'#1a1000',color:twilioSid?'#4ade80':'#fcd34d',padding:'3px 10px',borderRadius:20,border:`1px solid ${twilioSid?'#16a34a':'#d97706'}` }}>{twilioSid?'Configured':'Setup needed'}</span>
+              </div>
+              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12 }}>
+                <div>
+                  <label style={lbl}>Twilio Account SID</label>
+                  <input style={inp} type="password" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" value={twilioSid} onChange={e=>setTwilioSid(e.target.value)} />
+                </div>
+                <div>
+                  <label style={lbl}>Twilio Auth Token</label>
+                  <input style={inp} type="password" placeholder="your_auth_token" value={twilioToken} onChange={e=>setTwilioToken(e.target.value)} />
+                </div>
+                <div>
+                  <label style={lbl}>From Phone Number</label>
+                  <input style={inp} placeholder="+17724660000" value={twilioPhone} onChange={e=>setTwilioPhone(e.target.value)} />
+                  <p style={{ margin:'4px 0 0',fontSize:11,color:'#475569' }}>Must be a Twilio-verified number in E.164 format</p>
+                </div>
+              </div>
+              <div style={{ display:'flex',gap:8 }}>
+                <a href="https://console.twilio.com" target="_blank" rel="noreferrer"
+                  style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
+                  ↗ Open Twilio Console
+                </a>
+                <button onClick={()=>saveApiKeys({twilio_account_sid:twilioSid,twilio_auth_token:twilioToken,twilio_phone_number:twilioPhone},'Twilio SMS settings')} disabled={keysSaving}
+                  style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save SMS Settings</button>
+                <button onClick={async()=>{
+                  const to = prompt('Enter a phone number to test (e.g. +17725551234):')
+                  if (!to) return
+                  try {
+                    await supabase.functions.invoke('send-sms',{body:{to,message:'PHL Land Care CRM — SMS test successful! 🎉'}})
+                    showToast('✅ Test SMS sent to ' + to)
+                  } catch { showToast('⚠️ SMS test failed — check Twilio settings') }
+                }} style={{ padding:'9px 18px',border:'1px solid rgba(167,139,250,0.4)',borderRadius:8,background:'rgba(167,139,250,0.1)',color:'#a78bfa',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>
+                  💬 Send Test SMS
+                </button>
+              </div>
+            </div>
+
+            {/* ── STATUS OVERVIEW ── */}
+            <div style={card}>
+              <h2 style={{ ...secTitle,marginBottom:12 }}>Connection Status</h2>
+              <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
+                {[
+                  {name:'Supabase',      desc:'Database & realtime sync',  status:'Connected',    ok:true},
+                  {name:'GitHub Pages',  desc:'Hosting & deployment',      status:'Active',       ok:true},
+                  {name:'Square',        desc:'Payment processing',        status: squareToken ? 'Configured' : 'Setup needed', ok:!!squareToken},
+                  {name:'Resend',        desc:'Email delivery',            status: resendKey ? 'Configured' : 'Setup needed',   ok:!!resendKey},
+                  {name:'Twilio',        desc:'SMS notifications',         status: twilioSid ? 'Configured' : 'Setup needed',   ok:!!twilioSid},
+                ].map(item=>(
+                  <div key={item.name} style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'#1e293b',borderRadius:10,border:'1px solid #334155' }}>
+                    <div>
+                      <p style={{ margin:'0 0 2px',fontSize:14,fontWeight:600,color:'#f1f5f9' }}>{item.name}</p>
+                      <p style={{ margin:0,fontSize:12,color:'#64748b' }}>{item.desc}</p>
+                    </div>
+                    <span style={{ fontSize:12,fontWeight:600,background:item.ok?'#052e16':'#1a1000',color:item.ok?'#4ade80':'#fcd34d',padding:'3px 10px',borderRadius:20,border:`1px solid ${item.ok?'#16a34a':'#d97706'}` }}>{item.status}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

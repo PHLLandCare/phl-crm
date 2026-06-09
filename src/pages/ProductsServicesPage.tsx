@@ -93,13 +93,21 @@ export default function ProductsServicesPage() {
     setUploading(true)
     setUploadError('')
     try {
-      // Sanitize filename — no spaces or special chars
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
       const path = `products/${Date.now()}_${safeName}`
       const { error } = await supabase.storage.from('product-images').upload(path, file, { upsert: true })
       if (error) {
-        if (error.message?.includes('not found') || error.message?.includes('does not exist')) {
-          setUploadError('Storage bucket "product-images" not found. Create it in Supabase Storage with public access.')
+        if (error.message?.includes('not found') || error.message?.includes('does not exist') || error.message?.includes('Bucket')) {
+          // Bucket doesn't exist — fall back to base64 data URL stored directly
+          const reader = new FileReader()
+          reader.onload = (e) => {
+            const base64 = e.target?.result as string
+            setEditing(prev => prev ? { ...prev, image_url: base64 } : prev)
+            setUploadError('')
+            setUploading(false)
+          }
+          reader.readAsDataURL(file)
+          return
         } else {
           setUploadError('Upload failed: ' + error.message)
         }

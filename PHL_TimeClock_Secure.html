@@ -814,17 +814,24 @@ async function saveEmployee() {
     var patchId = empRow ? empRow.id : null;
 
     if (editingEmpId) {
-      if (!patchId) { alert('WARNING: Could not find UUID for employee_id=' + editingEmpId + '. Will attempt PATCH by employee_id string.'); }
+      // Try PATCH by UUID first, fall back to employee_id string
       var patchUrl = patchId
         ? '/employees?id=eq.' + patchId
         : '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId);
       var res = await sb('PATCH', patchUrl, data);
 
       if (!res || res.length === 0) {
-        alert('PATCH matched 0 rows!\nURL tried: ' + patchUrl + '\nDivision: ' + divisionValue + '\n\nThe record was NOT updated in Supabase.');
-        btn.disabled = false;
-        document.getElementById('emp-save-lbl').textContent = 'Save changes';
-        return;
+        // PATCH returned 0 rows — likely RLS blocking UPDATE for anon key.
+        // Workaround: try updating via employee_id fallback
+        try {
+          res = await sb('PATCH', '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId), data);
+        } catch(rlsErr) { /* ignore */ }
+        if (!res || res.length === 0) {
+          toast('⚠️ Division save blocked by database permissions. Ask your admin to run: ALTER POLICY ... or grant UPDATE to anon role on employees table.');
+          btn.disabled = false;
+          document.getElementById('emp-save-lbl').textContent = 'Save changes';
+          return;
+        }
       }
 
       // Force-update allEmployees in memory immediately
@@ -881,17 +888,29 @@ async function manualClockIn() {
   if (!emp) { toast('Employee ID not found or inactive'); return; }
   var now = new Date().toISOString();
   try {
-    await sb('POST', '/clock_events', {
-      employee_id: emp.employee_id,
-      employee_name: fullName(emp),
-      division: emp.division,
-      clock_in: now,
-      method: 'Manual ID',
-      flagged: false
-    });
-    document.getElementById('m-eid').value = '';
-    document.getElementById('manual-form').classList.remove('open');
-    toast('✓ ' + fullName(emp) + ' clocked in!');
+    // Check if employee already has an open clock-in (no clock_out)
+    var openEvents = await sb('GET', '/clock_events?employee_id=eq.' + encodeURIComponent(emp.employee_id) + '&clock_out=is.null&clock_in=not.is.null&order=clock_in.desc&limit=1');
+    if (openEvents && openEvents.length > 0) {
+      // Clock OUT the open event
+      var openEvent = openEvents[0];
+      await sb('PATCH', '/clock_events?id=eq.' + openEvent.id, { clock_out: now });
+      document.getElementById('m-eid').value = '';
+      document.getElementById('manual-form').classList.remove('open');
+      toast('✓ ' + fullName(emp) + ' clocked out!');
+    } else {
+      // Clock IN — no open event found
+      await sb('POST', '/clock_events', {
+        employee_id: emp.employee_id,
+        employee_name: fullName(emp),
+        division: emp.division,
+        clock_in: now,
+        method: 'Manual ID',
+        flagged: false
+      });
+      document.getElementById('m-eid').value = '';
+      document.getElementById('manual-form').classList.remove('open');
+      toast('✓ ' + fullName(emp) + ' clocked in!');
+    }
     await loadClockEvents();
   } catch(e) { toast('Error: ' + e.message); }
 }
