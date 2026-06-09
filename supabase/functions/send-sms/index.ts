@@ -8,40 +8,51 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
   try {
     const { to, message } = await req.json()
-    if (!to || !message) throw new Error('Missing required fields: to, message')
+    if (!to || !message) throw new Error('Missing to or message')
 
+    // Load credentials from org_settings
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
-    const { data: settings } = await supabase.from('org_settings').select('*').limit(1).single()
+    const { data: s } = await supabase.from('org_settings').select(
+      'signalwire_project_id,signalwire_api_token,signalwire_space_url,signalwire_phone_number'
+    ).limit(1).single()
 
-    const sid   = settings?.twilio_account_sid  || Deno.env.get('TWILIO_ACCOUNT_SID')  || ''
-    const token = settings?.twilio_auth_token   || Deno.env.get('TWILIO_AUTH_TOKEN')   || ''
-    const from  = settings?.twilio_phone_number || Deno.env.get('TWILIO_PHONE_NUMBER') || ''
+    if (!s?.signalwire_project_id) throw new Error('SignalWire not configured')
 
-    if (!sid || !token) throw new Error('Twilio credentials not configured. Add them in Settings → Integrations.')
+    const spaceUrl = s.signalwire_space_url.replace(/^https?:\/\//, '')
+    const url = `https://${spaceUrl}/api/laml/2010-04-01/Accounts/${s.signalwire_project_id}/Messages.json`
 
-    const form = new URLSearchParams()
-    form.append('To', to)
-    form.append('From', from)
-    form.append('Body', message)
+    const body = new URLSearchParams({
+      To:   to,
+      From: s.signalwire_phone_number,
+      Body: message,
+    })
 
-    const res = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`,
-      { method: 'POST', headers: { 'Authorization': `Basic ${btoa(`${sid}:${token}`)}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: form }
-    )
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.message || 'Twilio API error')
+    const auth = btoa(`${s.signalwire_project_id}:${s.signalwire_api_token}`)
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: body.toString(),
+    })
 
-    return new Response(JSON.stringify({ success: true, sid: data.sid }), {
+    const result = await resp.json()
+    if (!resp.ok) throw new Error(result.message || 'SignalWire SMS failed')
+
+    return new Response(JSON.stringify({ success: true, sid: result.sid }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
-  } catch (err) {
+  } catch (err: any) {
     return new Response(JSON.stringify({ error: err.message }), {
-      status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
   }
 })
