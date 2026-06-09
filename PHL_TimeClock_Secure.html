@@ -814,57 +814,37 @@ async function saveEmployee() {
     var patchId = empRow ? empRow.id : null;
 
     if (editingEmpId) {
+      if (!patchId) { alert('WARNING: Could not find UUID for employee_id=' + editingEmpId + '. Will attempt PATCH by employee_id string.'); }
       var patchUrl = patchId
         ? '/employees?id=eq.' + patchId
         : '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId);
       var res = await sb('PATCH', patchUrl, data);
-      console.log('PATCH result:', res, 'patchUrl:', patchUrl, 'division:', divisionValue);
-      
-      // Force-update allEmployees in memory immediately (don't wait for reload)
-      if (res && res.length > 0) {
-        var updatedEmp = res[0];
-        allEmployees = allEmployees.map(function(e) {
-          return e.id === patchId ? updatedEmp : e;
-        });
-        renderEmps();
-        console.log('Force-updated employee in memory, new division:', updatedEmp.division);
+
+      if (!res || res.length === 0) {
+        alert('PATCH matched 0 rows!\nURL tried: ' + patchUrl + '\nDivision: ' + divisionValue + '\n\nThe record was NOT updated in Supabase.');
+        btn.disabled = false;
+        document.getElementById('emp-save-lbl').textContent = 'Save changes';
+        return;
       }
-      
+
+      // Force-update allEmployees in memory immediately
+      var updatedEmp = res[0];
+      allEmployees = allEmployees.map(function(x) {
+        return x.id === updatedEmp.id ? updatedEmp : x;
+      });
+      renderEmps();
       toast('✅ ' + fn + ' ' + ln + ' updated! Divisions: ' + divisionValue);
     } else {
       var res2 = await sb('POST', '/employees', data);
-      console.log('POST result:', res2);
       toast('✅ ' + fn + ' ' + ln + ' added!');
     }
-    closeEmpDrawer();
+    // Load fresh from DB then close so drawer always shows current data
     await loadEmployees();
-  } catch(e) { 
+    closeEmpDrawer();
+  } catch(e) {
     console.error('saveEmployee error:', e);
-    // If it failed because of unknown columns, try saving with just the core fields
-    if (e.message && (e.message.includes('column') || e.message.includes('42703'))) {
-      try {
-        var coreData = { fname:fn, lname:ln, employee_id:data.employee_id, phone:data.phone, division:divisionValue, crew:data.crew, role:data.role, active:true };
-        if (!editingEmpId) coreData.color = data.color;
-        if (data.employee_type) coreData.employee_type = data.employee_type;
-        if (data.hourly_rate) coreData.hourly_rate = data.hourly_rate;
-        if (data.filing_status) coreData.filing_status = data.filing_status;
-        if (data.personal_email) coreData.personal_email = data.personal_email;
-        if (data.address) coreData.address = data.address;
-        if (data.city) coreData.city = data.city;
-        if (data.state) coreData.state = data.state;
-        if (data.zip) coreData.zip = data.zip;
-        if (editingEmpId) { 
-          var fbUrl = patchId ? '/employees?id=eq.' + patchId : '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId);
-          await sb('PATCH', fbUrl, coreData); 
-        }
-        else { await sb('POST', '/employees', coreData); }
-        toast('✅ Saved! (Note: add employee_type/hourly_rate columns to unlock pay features)');
-        closeEmpDrawer();
-        await loadEmployees();
-      } catch(e2) { toast('Error saving: ' + e2.message); }
-    } else {
-      toast('Error: ' + e.message); 
-    }
+    alert('Save failed: ' + e.message);
+    toast('Error: ' + e.message);
   }
   btn.disabled = false;
   document.getElementById('emp-save-lbl').textContent = editingEmpId ? 'Save changes' : 'Add employee';
