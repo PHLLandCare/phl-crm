@@ -23,8 +23,39 @@ interface Client {
   has_dog: boolean
   irrigation: string
   pest_control: string
+  title: string
+  role: string
+  billing_contact: boolean
+  payment_terms: string
   created_at: string
   updated_at: string
+}
+
+interface ClientProperty {
+  id: string
+  client_id: string
+  address: string
+  city: string
+  state: string
+  zip: string
+  is_primary: boolean
+  lawn_size: string
+  irrigation: string
+  pest_control: string
+  locked_gate: boolean
+  has_dog: boolean
+  notes: string
+}
+
+interface PropertyContact {
+  id: string
+  client_id: string
+  property_id: string | null
+  first_name: string
+  last_name: string
+  phone: string
+  email: string
+  role: string
 }
 
 interface ClientFile {
@@ -122,9 +153,13 @@ export default function ClientsPage() {
   const [showCreateMenu, setShowCreateMenu] = useState(false)
   const [showAddProperty, setShowAddProperty] = useState(false)
   const [showAddContact, setShowAddContact] = useState(false)
+  const [clientProperties, setClientProperties] = useState<ClientProperty[]>([])
+  const [propertyContacts, setPropertyContacts] = useState<PropertyContact[]>([])
+  const [propForm, setPropForm] = useState({ address:'', city:'', state:'FL', zip:'', lawn_size:'Medium', irrigation:'No', pest_control:'No', locked_gate:false, has_dog:false, notes:'' })
+  const [contactForm, setContactForm] = useState({ first_name:'', last_name:'', phone:'', email:'', role:'' })
+  const [editingPropId, setEditingPropId] = useState<string|null>(null)
   const [showEmailModal, setShowEmailModal] = useState(false)
   const [emailForm, setEmailForm] = useState({ subject: '', body: '', to: '' })
-  const [contactForm, setContactForm] = useState({ name: '', phone: '', email: '', role: '' })
 
   const [form, setForm] = useState({
     first_name: '', last_name: '', company: '', phone: '', email: '',
@@ -229,8 +264,13 @@ export default function ClientsPage() {
       status: c.status || 'lead', divisions: c.divisions || 'Lawn & Tree',
       tags: c.tags || '', notes: c.notes || '', lead_source: c.lead_source || '',
       lawn_size: c.lawn_size || 'Small', locked_gate: c.locked_gate || false,
-      has_dog: c.has_dog || false, irrigation: c.irrigation || 'No', pest_control: c.pest_control || 'No'
+      has_dog: c.has_dog || false, irrigation: c.irrigation || 'No', pest_control: c.pest_control || 'No',
+      title: c.title || 'No title', role: c.role || '', billing_contact: c.billing_contact || false,
+      payment_terms: c.payment_terms || 'Net 7'
     })
+    // Load properties and contacts
+    supabase.from('client_properties').select('*').eq('client_id', c.id).order('is_primary', {ascending:false}).then(({data}) => setClientProperties(data ?? []))
+    supabase.from('property_contacts').select('*').eq('client_id', c.id).then(({data}) => setPropertyContacts(data ?? []))
   }
 
   const openNewClient = () => {
@@ -546,42 +586,123 @@ export default function ClientsPage() {
             <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Properties</h3>
-                <button onClick={() => setShowAddProperty(true)} style={{ width: 36, height: 36, borderRadius: 8, background: '#1e293b', border: '1px solid #4ade80', color: '#4ade80', cursor: 'pointer', fontSize: 20, fontWeight: 700, display:'flex',alignItems:'center',justifyContent:'center' }}>+</button>
+                <button onClick={() => { setEditingPropId(null); setPropForm({ address:'', city:'', state:'FL', zip:'', lawn_size:'Medium', irrigation:'No', pest_control:'No', locked_gate:false, has_dog:false, notes:'' }); setShowAddProperty(true) }}
+                  style={{ color: '#4ade80', fontSize: 13, fontWeight: 600, background: 'none', border: '1px solid #4ade80', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  Add Property
+                </button>
               </div>
+
+              {/* Primary property from client record */}
               {addr && (
-                <div style={{ border: '1px solid #1e293b', borderRadius: 10, padding: '1rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>{addr}</span>
+                <div style={{ border: '1px solid #1e293b', borderRadius: 10, marginBottom: 10, overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#0d1526', borderBottom: '1px solid #1e293b' }}>
+                    <div>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>{addr}</span>
+                      <span style={{ marginLeft: 8, fontSize: 10, background: 'rgba(74,222,128,0.12)', color: '#4ade80', borderRadius: 99, padding: '2px 7px', fontWeight: 700 }}>Primary</span>
+                    </div>
                     <div style={{ display: 'flex', gap: 8 }}>
-                      <button onClick={() => { if(addr) window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`, '_blank') }}
-                        style={{ background:'none',border:'none',color:'#4ade80',cursor:'pointer',fontSize:16 }} title="Open in Google Maps">📍</button>
-                      <button onClick={() => setEditMode(true)} style={{ background:'none',border:'none',color:'#64748b',cursor:'pointer',fontSize:15 }}>✏️</button>
+                      <button onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`, '_blank')}
+                        style={{ background:'none',border:'none',color:'#4ade80',cursor:'pointer',fontSize:15 }} title="Open in Google Maps">📍</button>
+                      <button onClick={() => { setEditingPropId('primary'); setShowAddProperty(true) }}
+                        style={{ background:'none',border:'1px solid #1e293b',color:'#64748b',cursor:'pointer',fontSize:12,borderRadius:6,padding:'3px 8px',fontFamily:'inherit' }}>Edit</button>
                     </div>
                   </div>
-                  {editMode ? (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                      <div><label style={lbl}>Lawn Size</label><select style={inp} value={form.lawn_size} onChange={e => setForm({...form, lawn_size: e.target.value})}>{['Small','Medium','Large','Extra Large'].map(s=><option key={s}>{s}</option>)}</select></div>
-                      <div><label style={lbl}>Locked Gate</label><select style={inp} value={form.locked_gate ? 'Yes' : 'No'} onChange={e => setForm({...form, locked_gate: e.target.value==='Yes'})}><option>No</option><option>Yes</option></select></div>
-                      <div><label style={lbl}>Dog</label><select style={inp} value={form.has_dog ? 'Yes' : 'No'} onChange={e => setForm({...form, has_dog: e.target.value==='Yes'})}><option>No</option><option>Yes</option></select></div>
-                      <div><label style={lbl}>Irrigation</label><select style={inp} value={form.irrigation} onChange={e => setForm({...form, irrigation: e.target.value})}><option>No</option><option>Yes</option></select></div>
-                      <div><label style={lbl}>Pest Control</label><select style={inp} value={form.pest_control} onChange={e => setForm({...form, pest_control: e.target.value})}><option>No</option><option>Yes</option></select></div>
+                  <div style={{ padding: '10px 14px', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+                    {[
+                      { label: 'Lawn Size', value: selectedClient.lawn_size },
+                      { label: 'Irrigation', value: selectedClient.irrigation },
+                      { label: 'Pest Control', value: selectedClient.pest_control },
+                      { label: 'Locked Gate', value: selectedClient.locked_gate ? '🔒 Yes' : 'No' },
+                      { label: 'Dog', value: selectedClient.has_dog ? '🐕 Yes' : 'No' },
+                    ].map(row => (
+                      <div key={row.label}>
+                        <p style={{ margin: '0 0 2px', fontSize: 10, color: '#475569', fontWeight: 700, textTransform: 'uppercase' }}>{row.label}</p>
+                        <p style={{ margin: 0, fontSize: 13, color: '#f1f5f9' }}>{row.value || '—'}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Property contacts for primary */}
+                  <div style={{ borderTop: '1px solid #1e293b', padding: '10px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: propertyContacts.filter(c=>!c.property_id).length > 0 ? 8 : 0 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b' }}>Property contacts</span>
+                      <button onClick={() => { setContactForm({ first_name:'', last_name:'', phone:'', email:'', role:'' }); setShowAddContact(true) }}
+                        style={{ background:'none',border:'1px solid #1e293b',color:'#4ade80',cursor:'pointer',fontSize:11,borderRadius:6,padding:'3px 8px',fontFamily:'inherit',fontWeight:600 }}>+ Add Contact</button>
                     </div>
-                  ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 32px' }}>
-                      {[
-                        { label: 'Lawn Size', value: selectedClient.lawn_size },
-                        { label: 'Locked Gate', value: selectedClient.locked_gate ? 'Yes' : 'No' },
-                        { label: 'Dog', value: selectedClient.has_dog ? 'Yes' : 'No' },
-                        { label: 'Irrigation', value: selectedClient.irrigation },
-                        { label: 'Pest Control', value: selectedClient.pest_control },
-                      ].map(row => (
-                        <div key={row.label} style={{ borderBottom: '1px solid #1e293b', paddingBottom: 8 }}>
-                          <p style={{ margin: '0 0 2px', fontSize: 11, color: '#475569', fontWeight: 600 }}>{row.label}</p>
-                          <p style={{ margin: 0, fontSize: 13, color: '#f1f5f9' }}>{row.value || 'No'}</p>
+                    {propertyContacts.filter(c=>!c.property_id).map(pc => (
+                      <div key={pc.id} style={{ display:'flex',alignItems:'center',gap:10,padding:'6px 0',borderBottom:'1px solid #0d1526' }}>
+                        <div style={{ width:28,height:28,borderRadius:'50%',background:'#1e293b',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#64748b',flexShrink:0 }}>
+                          {(pc.first_name[0]||'?').toUpperCase()}
+                        </div>
+                        <div style={{ flex:1 }}>
+                          <p style={{ margin:0,fontSize:13,fontWeight:600,color:'#f1f5f9' }}>{pc.first_name} {pc.last_name}</p>
+                          {pc.role && <p style={{ margin:0,fontSize:11,color:'#64748b' }}>{pc.role}</p>}
+                        </div>
+                        <div style={{ fontSize:12,color:'#64748b' }}>
+                          {pc.phone && <span>{pc.phone}</span>}
+                        </div>
+                      </div>
+                    ))}
+                    {propertyContacts.filter(c=>!c.property_id).length === 0 && (
+                      <p style={{ margin:0,fontSize:12,color:'#334155',fontStyle:'italic' }}>No contacts yet — add contacts with access limited to this property</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Additional properties from client_properties table */}
+              {clientProperties.map(prop => {
+                const propAddr = [prop.address, prop.city, prop.state, prop.zip].filter(Boolean).join(', ')
+                const propContacts = propertyContacts.filter(c => c.property_id === prop.id)
+                return (
+                  <div key={prop.id} style={{ border: '1px solid #1e293b', borderRadius: 10, marginBottom: 10, overflow: 'hidden' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: '#0d1526', borderBottom: '1px solid #1e293b' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>{propAddr}</span>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(propAddr)}`, '_blank')}
+                          style={{ background:'none',border:'none',color:'#4ade80',cursor:'pointer',fontSize:15 }}>📍</button>
+                        <button onClick={() => { setEditingPropId(prop.id); setPropForm({ address:prop.address, city:prop.city||'', state:prop.state||'FL', zip:prop.zip||'', lawn_size:prop.lawn_size||'Medium', irrigation:prop.irrigation||'No', pest_control:prop.pest_control||'No', locked_gate:prop.locked_gate||false, has_dog:prop.has_dog||false, notes:prop.notes||'' }); setShowAddProperty(true) }}
+                          style={{ background:'none',border:'1px solid #1e293b',color:'#64748b',cursor:'pointer',fontSize:12,borderRadius:6,padding:'3px 8px',fontFamily:'inherit' }}>Edit</button>
+                        <button onClick={async () => { if(confirm('Remove this property?')) { await supabase.from('client_properties').delete().eq('id',prop.id); setClientProperties(p => p.filter(x=>x.id!==prop.id)) }}}
+                          style={{ background:'none',border:'none',color:'#475569',cursor:'pointer',fontSize:16 }}>×</button>
+                      </div>
+                    </div>
+                    <div style={{ padding: '10px 14px', display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:8 }}>
+                      {[{label:'Lawn Size',value:prop.lawn_size},{label:'Irrigation',value:prop.irrigation},{label:'Pest Control',value:prop.pest_control},{label:'Locked Gate',value:prop.locked_gate?'🔒 Yes':'No'},{label:'Dog',value:prop.has_dog?'🐕 Yes':'No'}].map(row=>(
+                        <div key={row.label}>
+                          <p style={{ margin:'0 0 2px',fontSize:10,color:'#475569',fontWeight:700,textTransform:'uppercase' as const }}>{row.label}</p>
+                          <p style={{ margin:0,fontSize:13,color:'#f1f5f9' }}>{row.value||'—'}</p>
                         </div>
                       ))}
                     </div>
-                  )}
+                    {/* Property contacts */}
+                    <div style={{ borderTop:'1px solid #1e293b', padding:'10px 14px' }}>
+                      <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:propContacts.length>0?8:0 }}>
+                        <span style={{ fontSize:12,fontWeight:600,color:'#64748b' }}>Property contacts</span>
+                        <button onClick={() => { setContactForm({ first_name:'', last_name:'', phone:'', email:'', role:'' }); setShowAddContact(true) }}
+                          style={{ background:'none',border:'1px solid #1e293b',color:'#4ade80',cursor:'pointer',fontSize:11,borderRadius:6,padding:'3px 8px',fontFamily:'inherit',fontWeight:600 }}>+ Add Contact</button>
+                      </div>
+                      {propContacts.map(pc => (
+                        <div key={pc.id} style={{ display:'flex',alignItems:'center',gap:10,padding:'6px 0' }}>
+                          <div style={{ width:28,height:28,borderRadius:'50%',background:'#1e293b',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#64748b' }}>
+                            {(pc.first_name[0]||'?').toUpperCase()}
+                          </div>
+                          <div style={{ flex:1 }}>
+                            <p style={{ margin:0,fontSize:13,fontWeight:600,color:'#f1f5f9' }}>{pc.first_name} {pc.last_name}</p>
+                            {pc.role && <p style={{ margin:0,fontSize:11,color:'#64748b' }}>{pc.role}</p>}
+                          </div>
+                          {pc.phone && <span style={{ fontSize:12,color:'#64748b' }}>{pc.phone}</span>}
+                        </div>
+                      ))}
+                      {propContacts.length === 0 && <p style={{ margin:0,fontSize:12,color:'#334155',fontStyle:'italic' }}>No contacts for this property</p>}
+                    </div>
+                  </div>
+                )
+              })}
+
+              {!addr && clientProperties.length === 0 && (
+                <div style={{ padding:'1.5rem',textAlign:'center',color:'#475569',fontSize:13 }}>
+                  <p style={{ margin:'0 0 8px',fontSize:24 }}>🏠</p>
+                  <p style={{ margin:0 }}>No properties yet — click "Add Property" to add one</p>
                 </div>
               )}
             </div>
@@ -935,58 +1056,77 @@ export default function ClientsPage() {
         {showAddProperty && (
           <>
             <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:500 }} onClick={() => setShowAddProperty(false)} />
-            <div style={{ position:'fixed',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:520,maxHeight:'90vh',overflowY:'auto',background:'#0d1526',border:'1px solid #1e293b',borderRadius:16,zIndex:501,padding:24 }}>
+            <div style={{ position:'fixed',top:'50%',left:'50%',transform:'translate(-50%,-50%)',width:540,maxHeight:'90vh',overflowY:'auto',background:'#0d1526',border:'1px solid #1e293b',borderRadius:16,zIndex:501,padding:28 }}>
               <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20 }}>
-                <h2 style={{ margin:0,fontSize:17,fontWeight:700,color:'#f1f5f9' }}>Edit Property Details</h2>
+                <h2 style={{ margin:0,fontSize:17,fontWeight:700,color:'#f1f5f9' }}>{editingPropId ? 'Edit Property' : 'Add Property'}</h2>
                 <button onClick={() => setShowAddProperty(false)} style={{ background:'none',border:'none',color:'#64748b',fontSize:22,cursor:'pointer' }}>×</button>
               </div>
-              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16 }}>
-                <div style={{ gridColumn:'1/-1' }}>
-                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>Street Address</label>
-                  <input style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.address} onChange={e => setForm({...form, address: e.target.value})} placeholder="123 Main St" />
-                </div>
-                <div>
-                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>City</label>
-                  <input style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.city} onChange={e => setForm({...form, city: e.target.value})} />
-                </div>
-                <div>
-                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>ZIP</label>
-                  <input style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.zip} onChange={e => setForm({...form, zip: e.target.value})} />
-                </div>
-                <div>
-                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>Lawn Size</label>
-                  <select style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.lawn_size} onChange={e => setForm({...form, lawn_size: e.target.value})}>
-                    {['Small','Medium','Large','Extra Large'].map(s=><option key={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>Irrigation</label>
-                  <select style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.irrigation} onChange={e => setForm({...form, irrigation: e.target.value})}>
-                    <option>No</option><option>Yes</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>Pest Control</label>
-                  <select style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.pest_control} onChange={e => setForm({...form, pest_control: e.target.value})}>
-                    <option>No</option><option>Yes</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>Locked Gate</label>
-                  <select style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.locked_gate ? 'Yes' : 'No'} onChange={e => setForm({...form, locked_gate: e.target.value==='Yes'})}>
-                    <option>No</option><option>Yes</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em',marginBottom:4,display:'block' }}>Dog on Property</label>
-                  <select style={{ width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' as const }} value={form.has_dog ? 'Yes' : 'No'} onChange={e => setForm({...form, has_dog: e.target.value==='Yes'})}>
-                    <option>No</option><option>Yes</option>
-                  </select>
+
+              {/* Address */}
+              <div style={{ marginBottom:16 }}>
+                <h4 style={{ margin:'0 0 10px',fontSize:13,fontWeight:700,color:'#f1f5f9' }}>Property address</h4>
+                <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
+                  <div style={{ gridColumn:'1/-1' }}><label style={lbl}>Street Address *</label><input style={inp} value={propForm.address} onChange={e=>setPropForm({...propForm,address:e.target.value})} placeholder="123 Main St" /></div>
+                  <div><label style={lbl}>City</label><input style={inp} value={propForm.city} onChange={e=>setPropForm({...propForm,city:e.target.value})} placeholder="Port St. Lucie" /></div>
+                  <div><label style={lbl}>State / ZIP</label>
+                    <div style={{ display:'flex',gap:6 }}>
+                      <input style={{ ...inp,width:60 }} value={propForm.state} onChange={e=>setPropForm({...propForm,state:e.target.value})} placeholder="FL" maxLength={2} />
+                      <input style={{ ...inp,flex:1 }} value={propForm.zip} onChange={e=>setPropForm({...propForm,zip:e.target.value})} placeholder="34986" />
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* Property details */}
+              <div style={{ marginBottom:16 }}>
+                <h4 style={{ margin:'0 0 10px',fontSize:13,fontWeight:700,color:'#f1f5f9' }}>Property details</h4>
+                <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:10 }}>
+                  <div><label style={lbl}>Lawn Size</label><select style={inp} value={propForm.lawn_size} onChange={e=>setPropForm({...propForm,lawn_size:e.target.value})}>{['Small','Medium','Large','Extra Large'].map(s=><option key={s}>{s}</option>)}</select></div>
+                  <div><label style={lbl}>Irrigation</label><select style={inp} value={propForm.irrigation} onChange={e=>setPropForm({...propForm,irrigation:e.target.value})}><option>No</option><option>Yes</option></select></div>
+                  <div><label style={lbl}>Pest Control</label><select style={inp} value={propForm.pest_control} onChange={e=>setPropForm({...propForm,pest_control:e.target.value})}><option>No</option><option>Yes</option></select></div>
+                  <div style={{ display:'flex',gap:16,alignItems:'center',paddingTop:18 }}>
+                    <label style={{ display:'flex',alignItems:'center',gap:6,fontSize:12,color:'#94a3b8',cursor:'pointer' }}>
+                      <input type="checkbox" checked={propForm.locked_gate} onChange={e=>setPropForm({...propForm,locked_gate:e.target.checked})} /> 🔒 Locked Gate
+                    </label>
+                    <label style={{ display:'flex',alignItems:'center',gap:6,fontSize:12,color:'#94a3b8',cursor:'pointer' }}>
+                      <input type="checkbox" checked={propForm.has_dog} onChange={e=>setPropForm({...propForm,has_dog:e.target.checked})} /> 🐕 Dog
+                    </label>
+                  </div>
+                </div>
+                <div style={{ marginTop:10 }}><label style={lbl}>Notes</label><textarea style={{ ...inp,height:60,resize:'vertical' } as React.CSSProperties} value={propForm.notes} onChange={e=>setPropForm({...propForm,notes:e.target.value})} placeholder="Gate code, access instructions..." /></div>
+              </div>
+
+              {/* Property contacts */}
+              <div style={{ marginBottom:20, background:'#0f172a',border:'1px solid #1e293b',borderRadius:10,padding:'1rem' }}>
+                <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between' }}>
+                  <div>
+                    <h4 style={{ margin:'0 0 4px',fontSize:13,fontWeight:700,color:'#f1f5f9' }}>Property contacts</h4>
+                    <p style={{ margin:0,fontSize:11,color:'#64748b' }}>For contacts with access limited to this property, e.g., tenants.</p>
+                  </div>
+                  <button style={{ background:'none',border:'1px solid #1e293b',borderRadius:8,padding:'6px 12px',color:'#4ade80',fontSize:12,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>Add Contact</button>
+                </div>
+              </div>
+
               <div style={{ display:'flex',gap:8,justifyContent:'flex-end' }}>
                 <button onClick={() => setShowAddProperty(false)} style={{ padding:'10px 20px',border:'1px solid #1e293b',borderRadius:9,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Cancel</button>
-                <button onClick={() => { handleSaveEdit(); setShowAddProperty(false) }} style={{ padding:'10px 20px',border:'none',borderRadius:9,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>Save Property</button>
+                <button onClick={async () => {
+                  if (!propForm.address.trim()) return
+                  if (!selectedClient) return
+                  if (editingPropId === 'primary') {
+                    // Update the client's primary address fields
+                    await supabase.from('clients').update({ address:propForm.address, city:propForm.city, zip:propForm.zip, lawn_size:propForm.lawn_size, irrigation:propForm.irrigation, pest_control:propForm.pest_control, locked_gate:propForm.locked_gate, has_dog:propForm.has_dog }).eq('id', selectedClient.id)
+                    setSelectedClient({...selectedClient, address:propForm.address, city:propForm.city, zip:propForm.zip, lawn_size:propForm.lawn_size, irrigation:propForm.irrigation, pest_control:propForm.pest_control, locked_gate:propForm.locked_gate, has_dog:propForm.has_dog})
+                  } else if (editingPropId) {
+                    await supabase.from('client_properties').update(propForm).eq('id', editingPropId)
+                    setClientProperties(ps => ps.map(p => p.id===editingPropId ? {...p,...propForm} : p))
+                  } else {
+                    const { data } = await supabase.from('client_properties').insert({ ...propForm, client_id: selectedClient.id }).select().single()
+                    if (data) setClientProperties(ps => [...ps, data])
+                  }
+                  setShowAddProperty(false)
+                }} style={{ padding:'10px 28px',border:'none',borderRadius:9,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>
+                  {editingPropId ? 'Update Property' : 'Add Property'}
+                </button>
               </div>
             </div>
           </>

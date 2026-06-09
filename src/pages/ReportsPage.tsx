@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts'
 
 type Tab = 'overview' | 'revenue' | 'labor' | 'expenses' | 'jobs' | 'tags'
 type Range = '7d' | '30d' | '90d' | 'ytd'
@@ -146,99 +147,166 @@ export default function ReportsPage() {
       {/* Tab content */}
       {tab === 'overview' && (
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+          {/* Invoice status pie chart */}
           <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem'}}>
-            <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Invoice Status Breakdown</p>
-            {[
-              {label:'Paid', count:invoices.filter(i=>i.status==='paid').length, amt:invoices.filter(i=>i.status==='paid').reduce((a,i)=>a+(i.amount||0),0), color:'#4ade80'},
-              {label:'Awaiting Payment', count:invoices.filter(i=>i.status==='sent').length, amt:invoices.filter(i=>i.status==='sent').reduce((a,i)=>a+(i.amount||0),0), color:'#fbbf24'},
-              {label:'Overdue', count:invoices.filter(i=>i.status==='overdue').length, amt:invoices.filter(i=>i.status==='overdue').reduce((a,i)=>a+(i.amount||0),0), color:'#f87171'},
-              {label:'Draft', count:invoices.filter(i=>i.status==='draft').length, amt:invoices.filter(i=>i.status==='draft').reduce((a,i)=>a+(i.amount||0),0), color:'#64748b'},
-            ].map(r=>(
-              <div key={r.label} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #1e293b'}}>
-                <div style={{display:'flex',alignItems:'center',gap:8}}>
-                  <div style={{width:8,height:8,borderRadius:'50%',background:r.color}} />
-                  <span style={{fontSize:13,color:'#cbd5e1'}}>{r.label}</span>
-                  <span style={{fontSize:12,color:'#475569'}}>({r.count})</span>
-                </div>
-                <span style={{fontSize:13,fontWeight:600,color:r.color}}>{fmt(r.amt)}</span>
-              </div>
-            ))}
+            <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Invoice Status</p>
+            {(() => {
+              const data = [
+                {name:'Paid', value:invoices.filter(i=>i.status==='paid').reduce((a,i)=>a+(i.amount||0),0), color:'#4ade80'},
+                {name:'Awaiting', value:invoices.filter(i=>i.status==='sent').reduce((a,i)=>a+(i.amount||0),0), color:'#fbbf24'},
+                {name:'Overdue', value:invoices.filter(i=>i.status==='overdue').reduce((a,i)=>a+(i.amount||0),0), color:'#f87171'},
+                {name:'Draft', value:invoices.filter(i=>i.status==='draft').reduce((a,i)=>a+(i.amount||0),0), color:'#64748b'},
+              ].filter(d=>d.value>0)
+              return data.length === 0 ? (
+                <p style={{color:'#475569',fontSize:13,textAlign:'center',padding:'2rem'}}>No invoice data yet</p>
+              ) : (
+                <>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie data={data} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={3} dataKey="value">
+                        {data.map((entry,i) => <Cell key={i} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip formatter={(v:any) => fmt(Number(v))} contentStyle={{background:'#0d1526',border:'1px solid #1e293b',borderRadius:8,color:'#f1f5f9'}} />
+                      <Legend formatter={(v) => <span style={{color:'#94a3b8',fontSize:12}}>{v}</span>} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  {data.map(d => (
+                    <div key={d.name} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'6px 0',borderBottom:'1px solid #0d1526'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:7}}>
+                        <div style={{width:8,height:8,borderRadius:'50%',background:d.color}} />
+                        <span style={{fontSize:12,color:'#94a3b8'}}>{d.name} ({invoices.filter(i=>i.status===(d.name==='Awaiting'?'sent':d.name.toLowerCase())).length})</span>
+                      </div>
+                      <span style={{fontSize:13,fontWeight:600,color:d.color}}>{fmt(d.value)}</span>
+                    </div>
+                  ))}
+                </>
+              )
+            })()}
           </div>
+
+          {/* Jobs status bar chart */}
           <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem'}}>
-            <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Job Status Breakdown</p>
-            {[
-              {label:'Completed', count:jobs.filter(j=>j.status==='completed').length, color:'#4ade80'},
-              {label:'In Progress', count:jobs.filter(j=>j.status==='in_progress').length, color:'#60a5fa'},
-              {label:'Scheduled', count:jobs.filter(j=>j.status==='scheduled').length, color:'#fbbf24'},
-              {label:'Cancelled', count:jobs.filter(j=>j.status==='cancelled').length, color:'#f87171'},
-            ].map(r=>(
-              <div key={r.label} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #1e293b'}}>
-                <div style={{display:'flex',alignItems:'center',gap:8}}>
-                  <div style={{width:8,height:8,borderRadius:'50%',background:r.color}} />
-                  <span style={{fontSize:13,color:'#cbd5e1'}}>{r.label}</span>
-                </div>
-                <span style={{fontSize:13,fontWeight:600,color:r.color}}>{r.count}</span>
-              </div>
-            ))}
+            <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Jobs by Status</p>
+            {(() => {
+              const data = [
+                {name:'Completed', count:jobs.filter(j=>j.status==='completed').length, fill:'#4ade80'},
+                {name:'In Progress', count:jobs.filter(j=>j.status==='in_progress').length, fill:'#60a5fa'},
+                {name:'Scheduled', count:jobs.filter(j=>j.status==='scheduled').length, fill:'#fbbf24'},
+                {name:'Cancelled', count:jobs.filter(j=>j.status==='cancelled').length, fill:'#f87171'},
+              ].filter(d=>d.count>0)
+              return data.length === 0 ? (
+                <p style={{color:'#475569',fontSize:13,textAlign:'center',padding:'2rem'}}>No job data yet</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={data} margin={{top:5,right:10,left:-20,bottom:5}}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis dataKey="name" tick={{fill:'#64748b',fontSize:11}} axisLine={false} tickLine={false} />
+                    <YAxis tick={{fill:'#64748b',fontSize:11}} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{background:'#0d1526',border:'1px solid #1e293b',borderRadius:8,color:'#f1f5f9'}} cursor={{fill:'rgba(255,255,255,0.04)'}} />
+                    <Bar dataKey="count" radius={[6,6,0,0]}>
+                      {data.map((entry,i) => <Cell key={i} fill={entry.fill} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )
+            })()}
           </div>
-          {/* Division revenue breakdown */}
+
+          {/* Revenue by Division bar chart */}
           <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem',gridColumn:'1/-1'}}>
             <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Revenue by Division</p>
             {(() => {
-              const divColors: Record<string,string> = {'Lawn & Tree':'#4ade80','Irrigation':'#60a5fa','Extermination':'#f59e0b','Nursery':'#a78bfa','Farm':'#fb923c','Hardscape':'#94a3b8','Other':'#64748b'}
-              const divRevenue = ['Lawn & Tree','Irrigation','Extermination','Nursery','Farm','Hardscape'].map(div => {
-                const divJobs = jobs.filter((j:any)=>j.division===div)
-                const revenue = divJobs.filter((j:any)=>j.status==='completed').reduce((a:number,j:any)=>a+(j.total_amount||0),0)
-                return {div, revenue, jobs:divJobs.length, color:divColors[div]||'#64748b'}
-              }).filter(d=>d.jobs>0).sort((a,b)=>b.revenue-a.revenue)
-              const maxRev = Math.max(...divRevenue.map(d=>d.revenue),1)
-              return divRevenue.length === 0 ? (
-                <p style={{color:'#475569',fontSize:13}}>No division data yet — set division on jobs to see breakdown</p>
-              ) : divRevenue.map(d=>(
-                <div key={d.div} style={{marginBottom:12}}>
-                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-                    <span style={{fontSize:13,color:'#cbd5e1',fontWeight:600}}>{d.div}</span>
-                    <span style={{fontSize:13,color:d.color,fontWeight:700}}>{fmt(d.revenue)} <span style={{color:'#475569',fontWeight:400,fontSize:11}}>({d.jobs} jobs)</span></span>
-                  </div>
-                  <div style={{background:'#1e293b',borderRadius:4,height:8,overflow:'hidden'}}>
-                    <div style={{width:`${(d.revenue/maxRev)*100}%`,height:'100%',background:d.color,borderRadius:4,transition:'width .5s'}} />
-                  </div>
-                </div>
-              ))
+              const divColors: Record<string,string> = {'Lawn & Tree':'#4ade80','Irrigation':'#60a5fa','Extermination':'#f59e0b','Nursery':'#a78bfa','Farm':'#fb923c','Hardscape':'#94a3b8'}
+              const data = ['Lawn & Tree','Irrigation','Extermination','Nursery','Farm','Hardscape'].map(div => ({
+                name: div,
+                revenue: invoices.filter((i:any)=>i.division===div&&i.status==='paid').reduce((a:number,i:any)=>a+(i.amount||0),0),
+                jobs: jobs.filter((j:any)=>j.division===div).length,
+                fill: divColors[div]
+              })).filter(d => d.jobs > 0 || d.revenue > 0)
+              return data.length === 0 ? (
+                <p style={{color:'#475569',fontSize:13}}>No division data yet — set division on jobs and invoices to see breakdown</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={data} margin={{top:5,right:20,left:0,bottom:5}}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis dataKey="name" tick={{fill:'#64748b',fontSize:11}} axisLine={false} tickLine={false} />
+                    <YAxis tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} tick={{fill:'#64748b',fontSize:11}} axisLine={false} tickLine={false} />
+                    <Tooltip formatter={(v:any) => fmt(Number(v))} contentStyle={{background:'#0d1526',border:'1px solid #1e293b',borderRadius:8,color:'#f1f5f9'}} cursor={{fill:'rgba(255,255,255,0.04)'}} />
+                    <Bar dataKey="revenue" radius={[6,6,0,0]}>
+                      {data.map((entry,i) => <Cell key={i} fill={entry.fill} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )
             })()}
           </div>
         </div>
       )}
 
       {tab === 'revenue' && (
-        <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',overflow:'hidden'}}>
-          <div style={{padding:'1rem 1.25rem',borderBottom:'1px solid #1e293b'}}>
-            <p style={{margin:0,fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Invoice History</p>
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+          {/* Revenue trend line chart */}
+          <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem'}}>
+            <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Revenue Trend</p>
+            {(() => {
+              // Build daily revenue data from paid invoices
+              const byDay: Record<string,{date:string,revenue:number,invoiced:number}> = {}
+              invoices.forEach((inv:any) => {
+                const d = inv.created_at?.slice(0,10)
+                if (!d) return
+                if (!byDay[d]) byDay[d] = {date:d, revenue:0, invoiced:0}
+                byDay[d].invoiced += inv.amount||0
+                if (inv.status==='paid') byDay[d].revenue += inv.amount||0
+              })
+              const data = Object.values(byDay).sort((a,b)=>a.date.localeCompare(b.date)).slice(-30).map(d=>({
+                ...d, date: new Date(d.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})
+              }))
+              return data.length < 2 ? (
+                <p style={{color:'#475569',fontSize:13,textAlign:'center',padding:'2rem'}}>Not enough data — invoices will appear here once recorded</p>
+              ) : (
+                <ResponsiveContainer width="100%" height={240}>
+                  <LineChart data={data} margin={{top:5,right:20,left:0,bottom:5}}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                    <XAxis dataKey="date" tick={{fill:'#64748b',fontSize:11}} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                    <YAxis tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} tick={{fill:'#64748b',fontSize:11}} axisLine={false} tickLine={false} />
+                    <Tooltip formatter={(v:any) => fmt(Number(v))} contentStyle={{background:'#0d1526',border:'1px solid #1e293b',borderRadius:8,color:'#f1f5f9'}} />
+                    <Legend formatter={(v) => <span style={{color:'#94a3b8',fontSize:12}}>{v}</span>} />
+                    <Line type="monotone" dataKey="invoiced" stroke="#60a5fa" strokeWidth={2} dot={false} name="Invoiced" />
+                    <Line type="monotone" dataKey="revenue" stroke="#4ade80" strokeWidth={2} dot={false} name="Collected" />
+                  </LineChart>
+                </ResponsiveContainer>
+              )
+            })()}
           </div>
-          <table style={{width:'100%',borderCollapse:'collapse'}}>
-            <thead>
-              <tr style={{background:'#0a0f1a'}}>
-                {['Invoice #','Client','Amount','Status','Date'].map(h=>(
-                  <th key={h} style={{padding:'10px 16px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.length === 0 ? (
-                <tr><td colSpan={5} style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No invoices in this period</td></tr>
-              ) : invoices.slice(0,50).map((inv,i)=>(
-                <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
-                  <td style={{padding:'10px 16px',fontSize:13,color:'#f1f5f9'}}>{inv.invoice_number||'—'}</td>
-                  <td style={{padding:'10px 16px',fontSize:13,color:'#cbd5e1'}}>{inv.client_name||inv.client||'—'}</td>
-                  <td style={{padding:'10px 16px',fontSize:13,fontWeight:600,color:'#4ade80'}}>${(inv.amount||0).toLocaleString()}</td>
-                  <td style={{padding:'10px 16px'}}>
-                    <span style={{background:inv.status==='paid'?'rgba(74,222,128,0.15)':inv.status==='overdue'?'rgba(248,113,113,0.15)':'rgba(251,191,36,0.15)',color:inv.status==='paid'?'#4ade80':inv.status==='overdue'?'#f87171':'#fbbf24',padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:600}}>{inv.status}</span>
-                  </td>
-                  <td style={{padding:'10px 16px',fontSize:13,color:'#64748b'}}>{inv.created_at ? new Date(inv.created_at).toLocaleDateString() : '—'}</td>
+          <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',overflow:'hidden'}}>
+            <div style={{padding:'1rem 1.25rem',borderBottom:'1px solid #1e293b'}}>
+              <p style={{margin:0,fontSize:15,fontWeight:600,color:'#f1f5f9'}}>Invoice History</p>
+            </div>
+            <table style={{width:'100%',borderCollapse:'collapse'}}>
+              <thead>
+                <tr style={{background:'#0a0f1a'}}>
+                  {['Invoice #','Client','Amount','Status','Date'].map(h=>(
+                    <th key={h} style={{padding:'10px 16px',textAlign:'left',fontSize:11,fontWeight:600,color:'#475569',borderBottom:'1px solid #1e293b'}}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {invoices.length === 0 ? (
+                  <tr><td colSpan={5} style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No invoices in this period</td></tr>
+                ) : invoices.slice(0,50).map((inv,i)=>(
+                  <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
+                    <td style={{padding:'10px 16px',fontSize:13,color:'#f1f5f9'}}>{inv.invoice_number||'—'}</td>
+                    <td style={{padding:'10px 16px',fontSize:13,color:'#cbd5e1'}}>{inv.client_name||inv.client||'—'}</td>
+                    <td style={{padding:'10px 16px',fontSize:13,fontWeight:600,color:'#4ade80'}}>${(inv.amount||0).toLocaleString()}</td>
+                    <td style={{padding:'10px 16px'}}>
+                      <span style={{background:inv.status==='paid'?'rgba(74,222,128,0.15)':inv.status==='overdue'?'rgba(248,113,113,0.15)':'rgba(251,191,36,0.15)',color:inv.status==='paid'?'#4ade80':inv.status==='overdue'?'#f87171':'#fbbf24',padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:600}}>{inv.status}</span>
+                    </td>
+                    <td style={{padding:'10px 16px',fontSize:13,color:'#64748b'}}>{inv.created_at ? new Date(inv.created_at).toLocaleDateString() : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
