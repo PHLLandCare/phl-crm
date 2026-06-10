@@ -109,7 +109,7 @@ export default function EmployeePortalPage() {
         .order('scheduled_start', { ascending: true }).limit(20),
       supabase.from('clock_events').select('*').eq('employee_id', e.employee_id)
         .is('clock_out', null).not('clock_in', 'is', null)
-        .gte('clock_in', todayStart).order('clock_in', { ascending: false }).limit(1),
+        .order('clock_in', { ascending: false }).limit(1),
     ])
     setClockEvents(evtRes.data ?? [])
     setJobs(jobRes.data ?? [])
