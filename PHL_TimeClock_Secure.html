@@ -1072,14 +1072,14 @@ function editPunch(id) {
     '<div style="background:#111827;border:1px solid #1f2d3d;border-radius:14px;padding:24px;width:100%;max-width:420px;color:#f1f5f9">' +
       '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">' +
         '<h2 style="margin:0;font-size:17px;font-weight:700">Edit Punch — ' + (r.employee_name||r.employee_id) + '</h2>' +
-        '<button onclick="document.getElementById('punch-edit-modal').remove()" style="background:none;border:none;color:#64748b;font-size:22px;cursor:pointer">×</button>' +
+        '<button onclick="document.getElementById(&quot;punch-edit-modal&quot;).remove()" style="background:none;border:none;color:#64748b;font-size:22px;cursor:pointer">×</button>' +
       '</div>' +
       '<label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px">Clock In</label>' +
       '<input id="pe-in" type="datetime-local" value="' + fmtForInput(r.clock_in) + '" style="width:100%;padding:9px 12px;background:#1a2332;border:1px solid #2d3f55;border-radius:7px;font-size:14px;color:#f1f5f9;box-sizing:border-box;margin-bottom:14px;outline:none">' +
       '<label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px">Clock Out</label>' +
       '<input id="pe-out" type="datetime-local" value="' + fmtForInput(r.clock_out) + '" style="width:100%;padding:9px 12px;background:#1a2332;border:1px solid #2d3f55;border-radius:7px;font-size:14px;color:#f1f5f9;box-sizing:border-box;margin-bottom:20px;outline:none">' +
       '<div style="display:flex;gap:8px;justify-content:flex-end">' +
-        '<button onclick="document.getElementById('punch-edit-modal').remove()" style="padding:9px 18px;border:1px solid #334155;border-radius:7px;background:transparent;color:#94a3b8;cursor:pointer;font-size:13px">Cancel</button>' +
+        '<button onclick="document.getElementById(&quot;punch-edit-modal&quot;).remove()" style="padding:9px 18px;border:1px solid #334155;border-radius:7px;background:transparent;color:#94a3b8;cursor:pointer;font-size:13px">Cancel</button>' +
         '<button onclick="savePunch(\''+id+'\')" style="padding:9px 18px;border:none;border-radius:7px;background:#16a34a;color:#fff;cursor:pointer;font-size:13px;font-weight:700">Save</button>' +
       '</div>' +
     '</div>';
