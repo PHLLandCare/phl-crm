@@ -49,7 +49,11 @@ export default function RoutePage() {
     setOptimized(false)
   }
 
-  useEffect(() => { load() }, [date])
+  useEffect(() => {
+    load()
+    const ch = supabase.channel('route-rt').on('postgres_changes',{event:'*',schema:'public',table:'schedules'},load).subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [date])
 
   const filtered = stops.filter(s => {
     if (division !== 'All' && s.division !== division) return false
