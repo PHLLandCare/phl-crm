@@ -102,7 +102,7 @@ export default function EmployeePortalPage() {
 
     const [evtRes, jobRes, openRes] = await Promise.all([
       supabase.from('clock_events').select('*').eq('employee_id', e.employee_id)
-        .gte('clock_in', weekStart.toISOString()).lt('clock_in', weekEnd).order('clock_in', { ascending: false }),
+        .or(`clock_in.gte.${weekStart.toISOString()},clock_out.gte.${weekStart.toISOString()}`).lt('clock_in', weekEnd).order('clock_in', { ascending: false }),
       supabase.from('jobs').select('id,title,client_name,scheduled_start,status,service_address,instructions')
         .or(`assigned_name.ilike.%${e.fname}%,assigned_to.eq.${e.employee_id}`)
         .not('status', 'in', '("Cancelled","completed","Completed")')
