@@ -146,6 +146,53 @@ export default function ReportsPage() {
 
       {/* Tab content */}
       {tab === 'overview' && (
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+
+          {/* P&L Summary */}
+          <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem'}}>
+            <p style={{margin:'0 0 1rem',fontSize:15,fontWeight:700,color:'#f1f5f9'}}>Profit & Loss Summary <span style={{fontSize:12,color:'#64748b',fontWeight:400}}>— {range === '7d' ? 'Last 7 days' : range === '30d' ? 'Last 30 days' : range === '90d' ? 'Last 90 days' : 'Year to date'}</span></p>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:12,marginBottom:16}}>
+              {[
+                {label:'Revenue',     value:stats.revenue,                          color:'#4ade80',  sign:'+'},
+                {label:'Receivables', value:stats.receivables,                       color:'#fbbf24',  sign:''},
+                {label:'Expenses',    value:stats.expenses,                          color:'#f87171',  sign:'-'},
+                {label:'Labor Cost',  value:stats.labor * 15,                        color:'#f87171',  sign:'-', note:'est. @$15/hr'},
+                {label:'Gross Profit',value:stats.revenue - stats.expenses - (stats.labor*15), color: (stats.revenue - stats.expenses - stats.labor*15) >= 0 ? '#4ade80' : '#f87171', sign:''},
+                {label:'Jobs',        value:stats.jobs,                              color:'#60a5fa',  sign:'', isCnt:true},
+              ].map(s=>(
+                <div key={s.label} style={{background:'#0a0f1a',borderRadius:10,padding:'12px 14px',borderTop:`3px solid ${s.color}`}}>
+                  <p style={{margin:'0 0 2px',fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase' as const,letterSpacing:'0.05em'}}>{s.label}</p>
+                  {(s as any).note && <p style={{margin:'0 0 4px',fontSize:9,color:'#334155'}}>{(s as any).note}</p>}
+                  <p style={{margin:0,fontSize:18,fontWeight:800,color:s.color}}>
+                    {(s as any).isCnt ? s.value : `${s.sign}${fmt(Math.abs(s.value))}`}
+                  </p>
+                </div>
+              ))}
+            </div>
+            {/* Profit bar */}
+            {stats.revenue > 0 && (() => {
+              const costs = stats.expenses + stats.labor * 15
+              const profitPct = Math.max(0, Math.min(100, ((stats.revenue - costs) / stats.revenue) * 100))
+              const expPct = Math.min(100, (costs / stats.revenue) * 100)
+              return (
+                <div>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                    <span style={{fontSize:11,color:'#64748b'}}>Profit margin</span>
+                    <span style={{fontSize:12,fontWeight:700,color: profitPct >= 20 ? '#4ade80' : '#fbbf24'}}>{profitPct.toFixed(1)}%</span>
+                  </div>
+                  <div style={{height:8,background:'#1e293b',borderRadius:99,overflow:'hidden',display:'flex'}}>
+                    <div style={{width:`${expPct}%`,background:'#f87171',transition:'width .4s'}} />
+                    <div style={{width:`${profitPct}%`,background:'#4ade80',transition:'width .4s'}} />
+                  </div>
+                  <div style={{display:'flex',gap:16,marginTop:6}}>
+                    <span style={{fontSize:10,color:'#f87171'}}>■ Costs {fmt(costs)}</span>
+                    <span style={{fontSize:10,color:'#4ade80'}}>■ Profit {fmt(Math.max(0,stats.revenue-costs))}</span>
+                  </div>
+                </div>
+              )
+            })()}
+          </div>
+
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
           {/* Invoice status pie chart */}
           <div style={{background:'#0f172a',borderRadius:14,border:'1px solid #1e293b',padding:'1.25rem'}}>
@@ -240,6 +287,7 @@ export default function ReportsPage() {
               )
             })()}
           </div>
+        </div>
         </div>
       )}
 

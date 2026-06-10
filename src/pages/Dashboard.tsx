@@ -66,6 +66,8 @@ export default function Dashboard() {
   const [scheduleTab, setScheduleTab] = useState<'visit'|'employee'>('visit')
   const [clientGrowth, setClientGrowth] = useState({newLeads30:0,newClients30:0,totalClients:0,leadsGrowth:5,clientsGrowth:7})
 
+  const [recentClockEvents, setRecentClockEvents] = useState<any[]>([])
+
   const hour = new Date().getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const dateStr = new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})
@@ -82,6 +84,14 @@ export default function Dashboard() {
         }
         if (profile?.role) setUserRole(profile.role as UserRole)
       }
+
+      const todayLocal = new Date().toLocaleDateString('en-CA') // YYYY-MM-DD local
+      const todayStart = new Date(todayLocal + 'T00:00:00').toISOString()
+      const todayEnd   = new Date(todayLocal + 'T23:59:59.999').toISOString()
+      const clockRes = await supabase.from('clock_events').select('*')
+        .gte('clock_in', todayStart).lte('clock_in', todayEnd)
+        .order('clock_in', { ascending: false }).limit(20)
+      setRecentClockEvents(clockRes.data ?? [])
 
       const [c,q,j,i,rc,allJobs,allInvoices,allQuotes,newReq,pendingQ,activeJ,overdueI,todayJobsData,newLeadsData,newClientsData] = await Promise.all([
         supabase.from('clients').select('*',{count:'exact',head:true}).is('deleted_at',null),
@@ -501,6 +511,70 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+
+          {/* Today's Clock Events widget */}
+          {can(userRole,'view_payroll') && (
+            <div style={{background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,overflow:'hidden',marginTop:16}}>
+              <div style={{padding:'1rem 1.25rem',borderBottom:'1px solid #1e293b',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                <div>
+                  <h3 style={{margin:0,fontSize:15,fontWeight:700,color:'#f1f5f9'}}>⏱ Today's Clock Events</h3>
+                  <p style={{margin:'2px 0 0',fontSize:12,color:'#64748b'}}>{new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</p>
+                </div>
+                <div style={{display:'flex',gap:12,alignItems:'center'}}>
+                  <span style={{fontSize:12,color:'#4ade80',fontWeight:600}}>
+                    🟢 {new Set(recentClockEvents.filter((e:any)=>e.clock_in&&!e.clock_out).map((e:any)=>e.employee_id)).size} clocked in
+                  </span>
+                  <button onClick={()=>navigate('/payroll')} style={{background:'transparent',border:'1px solid #334155',borderRadius:8,padding:'5px 14px',fontSize:12,color:'#94a3b8',cursor:'pointer',fontFamily:'inherit'}}>View Payroll →</button>
+                </div>
+              </div>
+              {recentClockEvents.length === 0 ? (
+                <div style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No clock events today yet</div>
+              ) : (
+                <table style={{width:'100%',borderCollapse:'collapse'}}>
+                  <thead>
+                    <tr style={{background:'#0a0f1a'}}>
+                      {['Employee','Division','Clock In','Clock Out','Hours','Status'].map(h=>(
+                        <th key={h} style={{padding:'9px 14px',textAlign:'left',fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase' as const,letterSpacing:'0.05em',borderBottom:'1px solid #1e293b'}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentClockEvents.slice(0,10).map((e:any,i:number)=>{
+                      const isOpen = e.clock_in && !e.clock_out
+                      const hrs = e.clock_in && e.clock_out
+                        ? ((new Date(e.clock_out).getTime()-new Date(e.clock_in).getTime())/3600000).toFixed(1)+'h'
+                        : '—'
+                      return (
+                        <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
+                          <td style={{padding:'10px 14px'}}>
+                            <div style={{display:'flex',alignItems:'center',gap:8}}>
+                              <div style={{width:26,height:26,borderRadius:'50%',background:'#16a34a',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700,color:'#fff',flexShrink:0}}>
+                                {(e.employee_name||'?').split(' ').map((n:string)=>n[0]).slice(0,2).join('').toUpperCase()}
+                              </div>
+                              <span style={{fontSize:13,fontWeight:600,color:'#f1f5f9'}}>{e.employee_name||e.employee_id||'—'}</span>
+                            </div>
+                          </td>
+                          <td style={{padding:'10px 14px',fontSize:12,color:'#64748b'}}>{e.division||'—'}</td>
+                          <td style={{padding:'10px 14px',fontSize:13,color:'#4ade80',fontWeight:600}}>
+                            {e.clock_in ? new Date(e.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '—'}
+                          </td>
+                          <td style={{padding:'10px 14px',fontSize:13,color:isOpen?'#475569':'#f87171'}}>
+                            {isOpen ? '—' : e.clock_out ? new Date(e.clock_out).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '—'}
+                          </td>
+                          <td style={{padding:'10px 14px',fontSize:13,fontWeight:600,color:'#f1f5f9'}}>{hrs}</td>
+                          <td style={{padding:'10px 14px'}}>
+                            <span style={{background:isOpen?'rgba(74,222,128,0.15)':'rgba(100,116,139,0.15)',color:isOpen?'#4ade80':'#94a3b8',padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600}}>
+                              {isOpen?'🟢 In':'⏹ Out'}
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
         </div>
       )
     }

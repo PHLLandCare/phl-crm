@@ -67,6 +67,11 @@ export default function EmployeePortalPage() {
     return () => clearInterval(t)
   }, [])
 
+  // Reload clock data whenever weekOffset changes (after login)
+  useEffect(() => {
+    if (emp) loadData(emp)
+  }, [weekOffset])
+
   // ── LOGIN ──
   const handleLogin = async () => {
     if (!empId.trim()) return
