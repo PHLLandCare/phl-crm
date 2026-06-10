@@ -93,6 +93,8 @@ export default function RequestsPage() {
     else if (state?.filter === 'overdue') setStatusFilter('Overdue')
     if (state?.clientName) setForm((f: any) => ({ ...f, client_name: state.clientName }))
     if (state?.openCreate) setShowNew(true)
+    const ch = supabase.channel('requests-rt').on('postgres_changes',{event:'*',schema:'public',table:'requests'},loadRequests).subscribe()
+    return () => { supabase.removeChannel(ch) }
   }, [location.state])
 
   const handleClientSelect = (clientId: string) => {
