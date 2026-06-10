@@ -363,14 +363,14 @@ export default function PayrollPage() {
             <table style={{ width:'100%', borderCollapse:'collapse' }}>
               <thead>
                 <tr style={{ background:'#0a0f1a', borderBottom:'1px solid #1e293b' }}>
-                  {['Employee','Division','Clock In','Clock Out','Hours','Method','Status'].map(h => (
+                  {['Employee','Division','Clock In','Clock Out','Hours','Method','Status',''].map(h => (
                     <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontSize:10, fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.05em' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {latestToday.length === 0 ? (
-                  <tr><td colSpan={7} style={{ padding:'3rem', textAlign:'center', color:'#475569', fontSize:13 }}>
+                  <tr><td colSpan={8} style={{ padding:'3rem', textAlign:'center', color:'#475569', fontSize:13 }}>
                     <div style={{ fontSize:32, marginBottom:8 }}>⏰</div>
                     <p style={{ margin:0 }}>No clock events today yet</p>
                   </td></tr>
@@ -406,6 +406,15 @@ export default function PayrollPage() {
                           {isOpen ? '🟢 Clocked In' : '⏹ Clocked Out'}
                         </span>
                         {!isOpen && isCurrentIn && <span style={{ marginLeft:6, fontSize:10, color:'#4ade80' }}>re-clocked in</span>}
+                      </td>
+                      <td style={{ padding:'11px 10px' }}>
+                        <button onClick={async () => {
+                          if (!confirm('Delete this clock entry?')) return
+                          await supabase.from('clock_events').delete().eq('id', e.id)
+                          setTodayEvents(prev => prev.filter(ev => ev.id !== e.id))
+                        }} style={{ background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.3)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>
+                          🗑
+                        </button>
                       </td>
                     </tr>
                   )
