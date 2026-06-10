@@ -32,7 +32,7 @@ interface Job {
   instructions: string | null
 }
 
-type Screen = 'login' | 'home' | 'schedule' | 'timeclock' | 'pay' | 'docs'
+type Screen = 'login' | 'home' | 'schedule' | 'timeclock' | 'pay' | 'qr'
 
 const CARD: React.CSSProperties = {
   background: '#0f172a', border: '1px solid #1e293b', borderRadius: 16, padding: '1.25rem',
@@ -423,12 +423,75 @@ export default function EmployeePortalPage() {
         </div>
       )}
 
+      {/* ── QR CODE ── */}
+      {screen === 'qr' && (
+        <div style={{ padding:16 }}>
+          <h2 style={{ margin:'0 0 4px', fontSize:18, fontWeight:700, color:'#f1f5f9' }}>My Clock-In QR</h2>
+          <p style={{ margin:'0 0 20px', fontSize:13, color:'#64748b' }}>Show or scan this at the kiosk to clock in instantly</p>
+
+          {/* Big QR code card */}
+          <div style={{ ...CARD, textAlign:'center', padding:'2rem 1rem', marginBottom:16 }}>
+            <div style={{ fontSize:13, fontWeight:600, color:'#94a3b8', marginBottom:12 }}>{emp.fname} {emp.lname} · {emp.employee_id}</div>
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(emp.employee_id)}&color=f1f5f9&bgcolor=0f172a&margin=2`}
+              alt="QR Code"
+              style={{ width:220, height:220, borderRadius:12, border:'2px solid #1e293b' }}
+            />
+            <div style={{ marginTop:16, fontSize:12, color:'#475569', fontFamily:'monospace', letterSpacing:'0.1em' }}>{emp.employee_id}</div>
+          </div>
+
+          {/* Employee Info card */}
+          <div style={{ ...CARD, marginBottom:16 }}>
+            <div style={{ fontSize:13, fontWeight:700, color:'#f1f5f9', marginBottom:12 }}>My Info</div>
+            {[
+              { label:'Full Name',    value:`${emp.fname} ${emp.lname}` },
+              { label:'Employee ID',  value:emp.employee_id },
+              { label:'Division',     value:emp.division },
+              { label:'Type',         value:emp.employee_type },
+              { label:'Phone',        value:emp.phone || '—' },
+              { label:'Email',        value:emp.personal_email || '—' },
+            ].map(row => (
+              <div key={row.label} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid #1e293b' }}>
+                <span style={{ fontSize:12, color:'#64748b', fontWeight:600 }}>{row.label}</span>
+                <span style={{ fontSize:13, color:'#f1f5f9' }}>{row.value}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Print button */}
+          <button onClick={() => {
+            const w = window.open('', '_blank')
+            if (!w) return
+            w.document.write(`<!DOCTYPE html><html><head><title>Clock-In Badge — ${emp.fname} ${emp.lname}</title>
+            <style>body{font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f4f6f9;}
+            .badge{background:#fff;border:2px solid #1e293b;border-radius:16px;padding:32px;text-align:center;max-width:300px;width:100%;}
+            .name{font-size:22px;font-weight:800;color:#0a2540;margin:16px 0 4px;}
+            .id{font-size:13px;color:#64748b;font-family:monospace;letter-spacing:.1em;}
+            .div{font-size:13px;color:#16a34a;font-weight:600;margin-top:6px;}
+            @media print{button{display:none!important}}</style></head><body>
+            <div class="badge">
+              <img src="https://phllandcare.github.io/phl-crm/phl_logo.jpg" style="width:60px;height:60px;border-radius:10px;object-fit:cover;margin-bottom:8px;" />
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(emp.employee_id)}&color=0a2540&bgcolor=ffffff&margin=2" style="width:200px;height:200px;border-radius:8px;" />
+              <div class="name">${emp.fname} ${emp.lname}</div>
+              <div class="id">${emp.employee_id}</div>
+              <div class="div">${emp.division}</div>
+              <p style="font-size:11px;color:#94a3b8;margin-top:12px">Scan at kiosk to clock in/out</p>
+              <button onclick="window.print()" style="margin-top:12px;padding:8px 20px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🖨️ Print Badge</button>
+            </div></body></html>`)
+            w.document.close()
+          }} style={{ width:'100%', padding:'14px', background:'#1e293b', border:'1px solid #334155', borderRadius:12, color:'#f1f5f9', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>
+            🖨️ Print / Save My Badge
+          </button>
+        </div>
+      )}
+
       {/* Bottom nav */}
       <div style={{ position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:480, background:'#0a1628', borderTop:'1px solid #1e293b', display:'flex' }}>
         {nav('Home', '🏠', 'home')}
         {nav('Schedule', '📋', 'schedule')}
         {nav('Clock', '⏱', 'timeclock')}
         {nav('Pay', '💰', 'pay')}
+        {nav('My QR', '⊞', 'qr')}
       </div>
     </div>
   )
