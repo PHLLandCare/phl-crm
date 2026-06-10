@@ -44,6 +44,14 @@ export default function ClockInPage() {
       setOpenEvents(open)
     }
     load()
+    // Realtime — kiosk stays in sync if another device clocks someone in/out
+    const ch = supabase.channel('clockin-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clock_events' }, async () => {
+        const { data } = await supabase.from('clock_events').select('employee_id').is('clock_out', null).not('clock_in', 'is', null)
+        setOpenEvents(new Set((data ?? []).map((e: any) => e.employee_id as string)))
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
   }, [])
 
   const handleTap = async (emp: Employee) => {
