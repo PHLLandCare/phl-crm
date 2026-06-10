@@ -922,14 +922,25 @@ async function manualClockIn() {
     // Check if employee already has an open clock-in (no clock_out)
     var openEvents = await sb('GET', '/clock_events?employee_id=eq.' + encodeURIComponent(emp.employee_id) + '&clock_out=is.null&clock_in=not.is.null&order=clock_in.desc&limit=10');
     if (openEvents && openEvents.length > 0) {
-      // Clock OUT — close ALL open events for this employee (handles duplicate open sessions)
-      var closeErrors = [];
+      // Close ALL open sessions
       for (var oe of openEvents) {
-        var result = await sb('PATCH', '/clock_events?id=eq.' + oe.id, { clock_out: now });
-        if (!result && result !== null) closeErrors.push(oe.id);
+        await sb('PATCH', '/clock_events?id=eq.' + oe.id, { clock_out: now });
       }
-      if (closeErrors.length > 0) {
-        toast('⚠️ Clock-out may not have saved — check with admin. IDs: ' + closeErrors.join(', '));
+      // Check if the open session started on a PREVIOUS day — if so, also create a new clock-in for today
+      var oldestOpen = openEvents[openEvents.length - 1];
+      var openDate = oldestOpen.clock_in ? new Date(oldestOpen.clock_in).toDateString() : '';
+      var todayStr = new Date(now).toDateString();
+      if (openDate && openDate !== todayStr) {
+        // Overnight session — close it AND start a fresh clock-in for today
+        await sb('POST', '/clock_events', {
+          employee_id: emp.employee_id,
+          employee_name: fullName(emp),
+          division: emp.division,
+          clock_in: now,
+          method: 'Manual ID',
+          flagged: false
+        });
+        toast('✓ ' + fullName(emp) + ' — overnight session closed & clocked in at ' + new Date(now).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) + '!');
       } else {
         toast('✓ ' + fullName(emp) + ' clocked out at ' + new Date(now).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) + '!');
       }
