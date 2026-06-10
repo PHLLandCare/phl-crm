@@ -97,7 +97,7 @@ export default function ReportsPage() {
             const rows = [['Type','Date','Client','Amount','Status']]
             invoices.forEach(i=>rows.push(['Invoice',i.created_at?.slice(0,10)||'',i.client_name||'',String(i.amount||0),i.status||'']))
             expenses.forEach(e=>rows.push(['Expense',e.created_at?.slice(0,10)||'',e.description||'',String(e.amount||0),e.category||'']))
-            jobs.forEach(j=>rows.push(['Job',j.created_at?.slice(0,10)||'',j.client_name||j.title||'',String(j.amount||0),j.status||'']))
+            jobs.forEach(j=>rows.push(['Job',j.created_at?.slice(0,10)||'',j.client_name||j.title||'',String(j.total_amount||0),j.status||'']))
             const csv=rows.map(r=>r.join(',')).join('\n')
             const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='phl_report.csv';a.click()
           }} style={{padding:'8px 14px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,color:'#f1f5f9',cursor:'pointer',fontSize:13,fontFamily:'inherit',fontWeight:600}}>
@@ -412,7 +412,7 @@ export default function ReportsPage() {
                   <td style={{padding:'10px 16px'}}>
                     <span style={{background:job.status==='completed'?'rgba(74,222,128,0.15)':'rgba(100,116,139,0.15)',color:job.status==='completed'?'#4ade80':'#94a3b8',padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:600}}>{job.status}</span>
                   </td>
-                  <td style={{padding:'10px 16px',fontSize:13,fontWeight:600,color:'#f1f5f9'}}>${(job.amount||0).toLocaleString()}</td>
+                  <td style={{padding:'10px 16px',fontSize:13,fontWeight:600,color:'#f1f5f9'}}>${(job.total_amount||0).toLocaleString()}</td>
                   <td style={{padding:'10px 16px',fontSize:13,color:'#64748b'}}>{job.created_at ? new Date(job.created_at).toLocaleDateString() : '—'}</td>
                 </tr>
               ))}
