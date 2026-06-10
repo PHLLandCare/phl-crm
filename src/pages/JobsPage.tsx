@@ -319,7 +319,8 @@ export default function JobsPage() {
       updated_at: new Date().toISOString(),
     }
     if (editingJob) {
-      await supabase.from('jobs').update(payload).eq('id', editingJob.id)
+      const { job_number: _jn, ...editPayload } = payload
+      await supabase.from('jobs').update(editPayload).eq('id', editingJob.id)
     } else {
       await supabase.from('jobs').insert(payload)
     }
