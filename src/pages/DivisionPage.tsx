@@ -69,6 +69,11 @@ export default function DivisionPage({ divisionId }: Props) {
       setLoading(false)
     }
     load()
+    const ch = supabase.channel('division-rt')
+      .on('postgres_changes',{event:'*',schema:'public',table:'jobs'},load)
+      .on('postgres_changes',{event:'*',schema:'public',table:'clients'},load)
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
   }, [divisionId])
 
   if (!div) return (
