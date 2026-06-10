@@ -41,6 +41,7 @@ const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   declined: { bg: 'rgba(248,113,113,0.15)', color: '#f87171' },
   archived: { bg: 'rgba(100,116,139,0.1)',  color: '#64748b' },
   converted:{ bg: 'rgba(96,165,250,0.15)',  color: '#60a5fa' },
+  invoiced: { bg: 'rgba(167,139,250,0.15)', color: '#a78bfa' },
 }
 
 const QUOTE_TEMPLATES = [
@@ -414,6 +415,26 @@ export default function QuotesPage() {
               </>
             )}
             <button onClick={() => handleArchive(selectedQuote.id)} style={{ padding:'8px 16px',background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.3)',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>Archive</button>
+            <button onClick={() => {
+              // Pre-fill new quote form from selected quote for editing
+              setForm({
+                client_id: String(selectedQuote.client_id||''),
+                client_name: selectedQuote.client_name||'',
+                title: selectedQuote.title||'',
+                message: selectedQuote.message||'',
+                status: selectedQuote.status||'draft',
+                salesperson: selectedQuote.salesperson||'Romy Cruz',
+                irrigation: selectedQuote.irrigation||'No',
+                pest_control: selectedQuote.pest_control||'No',
+                discount: selectedQuote.discount||0,
+                discount_type: selectedQuote.discount_type||'percent',
+                tax: selectedQuote.tax||0,
+                contract_text: selectedQuote.contract_text||'This quote is valid for the next 30 days, after which values may be subject to change.',
+                internal_notes: selectedQuote.internal_notes||'',
+              })
+              setNewLineItems(lineItems.length ? lineItems.map(li=>({...li})) : [{name:'',description:'',qty:1,unit_price:0,is_optional:false}])
+              setShowNew(true)
+            }} style={{ padding:'8px 16px',background:'rgba(74,222,128,0.1)',color:'#4ade80',border:'1px solid rgba(74,222,128,0.3)',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>✏️ Edit</button>
           </div>
         </div>
 
