@@ -74,6 +74,7 @@ export default function InvoicesPage() {
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [sourceId, setSourceId]         = useState<string>('')
   const [sourceType, setSourceType]     = useState<string>('')
+  const [openInvoiceLineItems, setOpenInvoiceLineItems] = useState<LineItem[]>([])
   const location = useLocation()
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 4000) }
@@ -122,6 +123,12 @@ export default function InvoicesPage() {
   }, [])
 
   useEffect(() => {
+    if (!openInvoice) { setOpenInvoiceLineItems([]); return }
+    supabase.from('invoice_line_items').select('*').eq('invoice_id', openInvoice.id).order('id')
+      .then(({ data }) => setOpenInvoiceLineItems(data ?? []))
+  }, [openInvoice])
+
+  useEffect(() => {
     if (clientSearch.length < 2) { setClientSuggestions([]); return }
     const t = setTimeout(async () => {
       const { data } = await supabase.from('clients').select('id,first_name,last_name,company').ilike('last_name',`%${clientSearch}%`).limit(8)
@@ -138,7 +145,7 @@ export default function InvoicesPage() {
   const handleSaveInvoice = async () => {
     if (!selectedClient && !clientSearch) return
     setSaving(true)
-    await supabase.from('invoices').insert({
+    const { data: newInv } = await supabase.from('invoices').insert({
       invoice_number: invoiceNum, subject,
       client_name: selectedClient||clientSearch,
       amount: total, balance: total, status: 'draft',
@@ -148,7 +155,15 @@ export default function InvoicesPage() {
               : paymentTerms==='Net 14' ? new Date(Date.now()+14*86400000).toISOString().slice(0,10)
               : paymentTerms==='Net 30' ? new Date(Date.now()+30*86400000).toISOString().slice(0,10)
               : new Date().toISOString().slice(0,10),
-    })
+    }).select().single()
+    if (newInv) {
+      const validItems = lineItems.filter(li => li.name)
+      if (validItems.length > 0) {
+        await supabase.from('invoice_line_items').insert(
+          validItems.map(li => ({ invoice_id: newInv.id, name: li.name, description: li.description, qty: li.qty, unit_price: li.unit_price }))
+        )
+      }
+    }
     setSaving(false); setShowNew(false); resetForm(); loadInvoices()
     showToast('✅ Invoice created!')
   }
@@ -362,13 +377,23 @@ export default function InvoicesPage() {
                 {['Service','Description','Qty','Unit Price','Total'].map(h=><th key={h} style={{padding:'8px 12px',textAlign:'left',fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase'}}>{h}</th>)}
               </tr></thead>
               <tbody>
-                <tr style={{borderBottom:'1px solid #1e293b'}}>
-                  <td style={{padding:'10px 12px',fontSize:13,color:'#f1f5f9',fontWeight:600}}>{inv.subject||'Services'}</td>
-                  <td style={{padding:'10px 12px',fontSize:12,color:'#64748b'}}></td>
-                  <td style={{padding:'10px 12px',fontSize:13,color:'#f1f5f9'}}>1</td>
-                  <td style={{padding:'10px 12px',fontSize:13,color:'#f1f5f9'}}>{fmt(inv.amount||0)}</td>
-                  <td style={{padding:'10px 12px',fontSize:13,color:'#4ade80',fontWeight:700}}>{fmt(inv.amount||0)}</td>
-                </tr>
+                {openInvoiceLineItems.length > 0 ? openInvoiceLineItems.map((li, i) => (
+                  <tr key={i} style={{borderBottom:'1px solid #1e293b'}}>
+                    <td style={{padding:'10px 12px',fontSize:13,color:'#f1f5f9',fontWeight:600}}>{li.name||'—'}</td>
+                    <td style={{padding:'10px 12px',fontSize:12,color:'#64748b'}}>{li.description||'—'}</td>
+                    <td style={{padding:'10px 12px',fontSize:13,color:'#f1f5f9'}}>{li.qty}</td>
+                    <td style={{padding:'10px 12px',fontSize:13,color:'#f1f5f9'}}>{fmt(li.unit_price)}</td>
+                    <td style={{padding:'10px 12px',fontSize:13,color:'#4ade80',fontWeight:700}}>{fmt(li.qty * li.unit_price)}</td>
+                  </tr>
+                )) : (
+                  <tr style={{borderBottom:'1px solid #1e293b'}}>
+                    <td style={{padding:'10px 12px',fontSize:13,color:'#f1f5f9',fontWeight:600}}>{inv.subject||'Services'}</td>
+                    <td style={{padding:'10px 12px',fontSize:12,color:'#64748b'}}></td>
+                    <td style={{padding:'10px 12px',fontSize:13,color:'#f1f5f9'}}>1</td>
+                    <td style={{padding:'10px 12px',fontSize:13,color:'#f1f5f9'}}>{fmt(inv.amount||0)}</td>
+                    <td style={{padding:'10px 12px',fontSize:13,color:'#4ade80',fontWeight:700}}>{fmt(inv.amount||0)}</td>
+                  </tr>
+                )}
               </tbody>
             </table>
             <div style={{marginTop:12,paddingTop:12,borderTop:'1px solid #1e293b',display:'flex',flexDirection:'column',gap:6,alignItems:'flex-end'}}>
