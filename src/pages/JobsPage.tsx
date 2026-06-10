@@ -92,6 +92,593 @@ const EMPTY_FORM = {
   internal_notes: '',
 }
 
+// ══════════════════════════════════════════════════════════
+// JOB DETAIL VIEW — Jobber-style full detail page
+// ══════════════════════════════════════════════════════════
+function JobDetailView({ job, isLate, svcAddress, sc, statusLabel, fmtDate, fmt, JOB_TYPES, ALL_STATUSES, onBack, onEdit, onDelete, onStatusChange, onSmsClient, onCreateInvoice, setToast }: any) {
+  const [detailTab, setDetailTab] = useState<'overview'|'visits'|'billing'|'reminders'>('overview')
+  const [billingTab, setBillingTab] = useState<'invoicing'|'reminders'>('invoicing')
+  const [jobInvoices, setJobInvoices] = useState<any[]>([])
+  const [loadingInvoices, setLoadingInvoices] = useState(false)
+  const [jobNotes, setJobNotes] = useState<string>('')
+  const [savingNote, setSavingNote] = useState(false)
+  const [noteText, setNoteText] = useState('')
+  const [showNoteInput, setShowNoteInput] = useState(false)
+  const [showLateVisit, setShowLateVisit] = useState(false)
+
+  // profitability: revenue vs costs
+  const revenue = job.total_amount || 0
+  const profitPct = revenue > 0 ? 100 : 0
+
+  useEffect(() => {
+    if (detailTab === 'billing') loadInvoices()
+  }, [detailTab])
+
+  const loadInvoices = async () => {
+    setLoadingInvoices(true)
+    const { data } = await supabase
+      .from('invoices')
+      .select('id,invoice_number,status,amount,due_date,title,created_at')
+      .or(`client_id.eq.${job.client_id},title.ilike.%${job.title?.replace(/'/g,"''")}%`)
+      .order('due_date', { ascending: false })
+    setJobInvoices(data ?? [])
+    setLoadingInvoices(false)
+  }
+
+  const INV_STATUS: Record<string, { bg: string; color: string; label: string }> = {
+    draft:     { bg:'rgba(100,116,139,0.15)', color:'#94a3b8', label:'Draft' },
+    sent:      { bg:'rgba(251,191,36,0.15)',  color:'#fbbf24', label:'Awaiting payment' },
+    partial:   { bg:'rgba(251,146,60,0.15)',  color:'#fb923c', label:'Partial' },
+    paid:      { bg:'rgba(74,222,128,0.15)',  color:'#4ade80', label:'Paid' },
+    overdue:   { bg:'rgba(248,113,113,0.15)', color:'#f87171', label:'Overdue' },
+    void:      { bg:'rgba(100,116,139,0.1)',  color:'#475569', label:'Void' },
+  }
+
+  // Scheduled visits — derived from job recurrence or just the job itself
+  const visits = (() => {
+    if (!job.scheduled_start) return []
+    const visits: any[] = []
+    const start = new Date(job.scheduled_start)
+    const end = job.scheduled_end ? new Date(job.scheduled_end) : null
+    if (!job.job_recurrence || job.job_recurrence === 'Does not repeat') {
+      visits.push({ date: start, status: job.status })
+    } else {
+      // Generate up to 20 visits from recurrence
+      const now = new Date()
+      let cur = new Date(start)
+      let count = 0
+      while (count < 20 && (!end || cur <= end)) {
+        visits.push({ date: new Date(cur), status: cur < now && job.status !== 'completed' ? 'overdue' : job.status })
+        if (job.job_recurrence === 'Weekly') cur.setDate(cur.getDate() + 7)
+        else if (job.job_recurrence === 'Every 2 weeks') cur.setDate(cur.getDate() + 14)
+        else if (job.job_recurrence === 'Every 4 weeks') cur.setDate(cur.getDate() + 28)
+        else if (job.job_recurrence === 'Monthly') cur.setMonth(cur.getMonth() + 1)
+        else if (job.job_recurrence === 'Daily') cur.setDate(cur.getDate() + 1)
+        else break
+        count++
+      }
+    }
+    return visits
+  })()
+
+  const lateVisits = visits.filter(v => v.status === 'overdue')
+  const upcomingVisits = visits.filter(v => v.status !== 'overdue' && v.status !== 'completed')
+
+  const card: React.CSSProperties = { background:'#0f172a', border:'1px solid #1e293b', borderRadius:14, padding:'1.25rem', marginBottom:16 }
+  const tabBtn = (active: boolean): React.CSSProperties => ({
+    padding:'8px 18px', border:'none', borderRadius:0, background:'transparent', cursor:'pointer', fontFamily:'inherit',
+    fontSize:13, fontWeight:700, color: active ? '#f1f5f9' : '#64748b',
+    borderBottom: active ? '2px solid #16a34a' : '2px solid transparent',
+  })
+
+  return (
+    <div style={{ background:'#0a0f1a', minHeight:'100vh', display:'flex', flexDirection:'column' }}>
+      {/* ── TOP HEADER ── */}
+      <div style={{ background:'#0f172a', borderBottom:'1px solid #1e293b', padding:'0 2rem' }}>
+        {/* breadcrumb */}
+        <div style={{ paddingTop:16, paddingBottom:8 }}>
+          <button onClick={onBack} style={{ background:'none',border:'none',color:'#64748b',fontSize:13,cursor:'pointer',fontFamily:'inherit',padding:0 }}>
+            ← Jobs
+          </button>
+        </div>
+        {/* title row */}
+        <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:12, paddingBottom:12 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+            <div style={{ width:36, height:36, background:'rgba(22,163,74,0.15)', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', fontSize:18 }}>🔧</div>
+            <div>
+              <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                {isLate && <span style={{ background:'rgba(239,68,68,0.15)', color:'#f87171', padding:'2px 8px', borderRadius:99, fontSize:11, fontWeight:700 }}>● Late</span>}
+                <h1 style={{ margin:0, fontSize:22, fontWeight:800, color:'#f1f5f9' }}>{job.title}</h1>
+              </div>
+              <p style={{ margin:'2px 0 0', fontSize:13, color:'#64748b' }}>{job.client_name}{svcAddress ? ` · ${svcAddress}` : ''}</p>
+            </div>
+          </div>
+          {/* action buttons */}
+          <div style={{ display:'flex', gap:8, flexWrap:'wrap', alignItems:'center' }}>
+            <button onClick={onSmsClient} style={{ padding:'7px 14px', background:'rgba(167,139,250,0.1)', color:'#a78bfa', border:'1px solid rgba(167,139,250,0.3)', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>💬 SMS</button>
+            <button onClick={onCreateInvoice} style={{ padding:'7px 14px', background:'rgba(96,165,250,0.1)', color:'#60a5fa', border:'1px solid rgba(96,165,250,0.3)', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>📄 Invoice</button>
+            {lateVisits.length > 0 && (
+              <button onClick={() => setShowLateVisit(!showLateVisit)} style={{ padding:'7px 14px', background:'rgba(74,222,128,0.15)', color:'#4ade80', border:'1px solid rgba(74,222,128,0.3)', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>📍 Show Late Visit</button>
+            )}
+            <button onClick={onEdit} style={{ padding:'7px 16px', background:'rgba(100,116,139,0.15)', color:'#94a3b8', border:'1px solid #1e293b', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>••• More</button>
+            <button onClick={onEdit} style={{ padding:'7px 16px', background:'#16a34a', color:'#fff', border:'none', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>Edit Job</button>
+          </div>
+        </div>
+        {/* nav tabs */}
+        <div style={{ display:'flex', gap:0, borderTop:'1px solid #1e293b', marginTop:4 }}>
+          {(['overview','visits','billing','reminders'] as const).map(t => (
+            <button key={t} onClick={() => setDetailTab(t)} style={tabBtn(detailTab === t)}>
+              {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── CONTENT + RIGHT PANEL ── */}
+      <div style={{ display:'flex', flex:1, gap:0 }}>
+        {/* LEFT MAIN CONTENT */}
+        <div style={{ flex:1, padding:'1.5rem 2rem', overflow:'auto' }}>
+
+          {/* ── OVERVIEW TAB ── */}
+          {detailTab === 'overview' && (
+            <>
+              {/* Client card */}
+              <div style={card}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+                  <div style={{ flex:1 }}>
+                    <p style={{ margin:'0 0 2px', fontSize:13, fontWeight:700, color:'#4ade80' }}>{job.client_name} <span style={{ width:8, height:8, background:'#4ade80', borderRadius:'50%', display:'inline-block', verticalAlign:'middle' }}/></p>
+                    {svcAddress && <p style={{ margin:'2px 0', fontSize:12, color:'#64748b' }}>Property Address<br/><span style={{ color:'#cbd5e1' }}>{svcAddress}</span></p>}
+                    {job.instructions && <p style={{ margin:'6px 0 0', fontSize:12, color:'#475569' }}>{job.client_name?.split(' ')[0]}'s phone on file</p>}
+                  </div>
+                  <button style={{ background:'none', border:'none', color:'#64748b', cursor:'pointer', fontSize:18, padding:'0 4px' }}>•••</button>
+                </div>
+              </div>
+
+              {/* Job fields grid — matches Jobber exactly */}
+              <div style={card}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+                  <span style={{ fontSize:11, fontWeight:700, color:'#94a3b8', textTransform:'uppercase', letterSpacing:'0.05em' } as any}>Job Details</span>
+                  <button onClick={onEdit} style={{ background:'none', border:'none', color:'#64748b', cursor:'pointer', fontSize:16 }}>✏️</button>
+                </div>
+                <div style={{ display:'grid', gap:0 }}>
+                  {[
+                    { label:'Job #',             value: job.job_number || '—' },
+                    { label:'Job type',           value: job.job_recurrence && job.job_recurrence !== 'Does not repeat' ? 'Recurring job' : 'One-off job' },
+                    { label:'Started on',         value: fmtDate(job.scheduled_start) },
+                    { label:'Lasts for',          value: job.scheduled_end && job.scheduled_start ? (() => {
+                      const ms = new Date(job.scheduled_end).getTime() - new Date(job.scheduled_start).getTime()
+                      const days = Math.round(ms / 86400000)
+                      if (days >= 365) return `${Math.round(days/365)} year${Math.round(days/365)>1?'s':''}`
+                      if (days >= 30) return `${Math.round(days/30)} month${Math.round(days/30)>1?'s':''}`
+                      return `${days} day${days!==1?'s':''}`
+                    })() : '—' },
+                    { label:'Billing frequency',  value: (job as any).invoice_frequency || '—' },
+                    { label:'Billing type',       value: 'Fixed price' },
+                    { label:'Schedule',           value: job.job_recurrence || 'Does not repeat' },
+                    { label:'Salesperson',        value: job.assigned_name || '—' },
+                    { label:'Irrigation',         value: (job as any).irrigation || '—' },
+                    { label:'Pest Control',       value: (job as any).pest_control || '—' },
+                  ].map(row => (
+                    <div key={row.label} style={{ display:'grid', gridTemplateColumns:'180px 1fr', padding:'10px 0', borderBottom:'1px solid #1e293b' }}>
+                      <span style={{ fontSize:13, color:'#64748b' }}>{row.label}</span>
+                      <span style={{ fontSize:13, color:'#f1f5f9', fontWeight:500 }}>
+                        {row.label === 'Salesperson' && job.assigned_name ? (
+                          <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>
+                            <span style={{ width:22, height:22, borderRadius:'50%', background:'rgba(74,222,128,0.2)', display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'#4ade80' }}>
+                              {job.assigned_name.split(' ').map((n:string) => n[0]).join('').slice(0,2)}
+                            </span>
+                            {job.assigned_name}
+                          </span>
+                        ) : row.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Product / Service */}
+              <div style={card}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+                  <span style={{ fontSize:13, fontWeight:700, color:'#f1f5f9' }}>Product / Service</span>
+                  <button onClick={onEdit} style={{ background:'none', border:'none', color:'#64748b', cursor:'pointer', fontSize:16 }}>✏️</button>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr auto auto auto', gap:'8px 16px', alignItems:'center', marginBottom:8 }}>
+                  <span style={{ fontSize:11, fontWeight:700, color:'#475569', textTransform:'uppercase' }}>Line Item</span>
+                  <span style={{ fontSize:11, fontWeight:700, color:'#475569', textTransform:'uppercase' }}>Qty</span>
+                  <span style={{ fontSize:11, fontWeight:700, color:'#475569', textTransform:'uppercase' }}>Unit Price</span>
+                  <span style={{ fontSize:11, fontWeight:700, color:'#475569', textTransform:'uppercase' }}>Total</span>
+                </div>
+                {job.line_items?.length > 0 ? job.line_items.map((li: any, i: number) => (
+                  <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr auto auto auto', gap:'8px 16px', padding:'10px 0', borderTop:'1px solid #1e293b' }}>
+                    <div>
+                      <p style={{ margin:'0 0 2px', fontSize:13, fontWeight:600, color:'#f1f5f9' }}>{li.name}</p>
+                      {li.description && <p style={{ margin:0, fontSize:12, color:'#64748b' }}>{li.description}</p>}
+                    </div>
+                    <span style={{ fontSize:13, color:'#f1f5f9', textAlign:'right' }}>{li.qty}</span>
+                    <span style={{ fontSize:13, color:'#f1f5f9', textAlign:'right' }}>{li.unit_price > 0 ? `$${li.unit_price.toFixed(2)}` : '—'}</span>
+                    <span style={{ fontSize:13, color:'#f1f5f9', fontWeight:700, textAlign:'right' }}>{li.unit_price > 0 ? `$${(li.qty * li.unit_price).toFixed(2)}` : '—'}</span>
+                  </div>
+                )) : (
+                  <div style={{ padding:'20px 0', textAlign:'center', color:'#475569', fontSize:13 }}>
+                    No line items — edit job to add services
+                  </div>
+                )}
+                {job.total_amount > 0 && (
+                  <div style={{ display:'flex', justifyContent:'flex-end', padding:'12px 0 0', borderTop:'1px solid #1e293b', gap:24 }}>
+                    <span style={{ fontSize:13, color:'#64748b' }}>Total</span>
+                    <span style={{ fontSize:15, fontWeight:800, color:'#4ade80' }}>{fmt(job.total_amount)}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Labor */}
+              <div style={card}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+                  <span style={{ fontSize:13, fontWeight:700, color:'#f1f5f9' }}>Labor</span>
+                  <button style={{ background:'none', border:'none', color:'#64748b', fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>+ Add Time Entry</button>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:12, color:'#475569', fontSize:13, padding:'8px 0' }}>
+                  <span style={{ fontSize:20 }}>⏱</span>
+                  <span>Time tracked to this job will show here</span>
+                </div>
+              </div>
+
+              {/* Expenses */}
+              <div style={card}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+                  <span style={{ fontSize:13, fontWeight:700, color:'#f1f5f9' }}>Expenses</span>
+                  <button style={{ background:'none', border:'none', color:'#64748b', fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>+ Add Expense</button>
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:12, color:'#475569', fontSize:13, padding:'8px 0' }}>
+                  <span style={{ fontSize:20 }}>💵</span>
+                  <span>Track all expenses for this job in one place</span>
+                </div>
+              </div>
+
+              {/* Scheduled Visits preview */}
+              {visits.length > 0 && (
+                <div style={card}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+                    <span style={{ fontSize:13, fontWeight:700, color:'#f1f5f9' }}>Scheduled visits</span>
+                    <button onClick={() => setDetailTab('visits')} style={{ background:'#16a34a', border:'none', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit', padding:'5px 12px', borderRadius:7 }}>Edit All Visits</button>
+                  </div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr auto auto', gap:8, marginBottom:8 }}>
+                    <div>
+                      <p style={{ margin:'0 0 2px', fontSize:11, color:'#64748b' }}>First visit</p>
+                      <p style={{ margin:0, fontSize:13, color:'#f1f5f9', fontWeight:600 }}>{fmtDate(job.scheduled_start)}</p>
+                    </div>
+                    <div>
+                      <p style={{ margin:'0 0 2px', fontSize:11, color:'#64748b' }}>Last visit</p>
+                      <p style={{ margin:0, fontSize:13, color:'#f1f5f9', fontWeight:600 }}>{fmtDate(job.scheduled_end) || '—'}</p>
+                    </div>
+                    <div>
+                      <p style={{ margin:'0 0 2px', fontSize:11, color:'#64748b' }}>Repeats</p>
+                      <p style={{ margin:0, fontSize:13, color:'#f1f5f9', fontWeight:600 }}>{job.job_recurrence || 'Once'}</p>
+                    </div>
+                    <div>
+                      <p style={{ margin:'0 0 2px', fontSize:11, color:'#64748b' }}>Checklists</p>
+                      <p style={{ margin:0, fontSize:13, color:'#f1f5f9' }}>—</p>
+                    </div>
+                  </div>
+                  {/* visit rows */}
+                  <div style={{ marginTop:8 }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'140px 1fr auto auto auto', gap:8, padding:'6px 0', borderBottom:'1px solid #1e293b' }}>
+                      {['Date and time','Title and instructions','Status','Assigned',''].map(h => (
+                        <span key={h} style={{ fontSize:11, fontWeight:700, color:'#475569', textTransform:'uppercase' }}>{h}</span>
+                      ))}
+                    </div>
+                    {visits.slice(0, 10).map((v: any, i: number) => (
+                      <div key={i} style={{ display:'grid', gridTemplateColumns:'140px 1fr auto auto auto', gap:8, padding:'10px 0', borderBottom:'1px solid #0f172a', alignItems:'center' }}>
+                        <div>
+                          <p style={{ margin:0, fontSize:13, fontWeight:600, color:'#f1f5f9' }}>{v.date.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}</p>
+                          <p style={{ margin:0, fontSize:11, color:'#475569' }}>Anytime</p>
+                        </div>
+                        <div>
+                          <p style={{ margin:0, fontSize:13, color:'#f1f5f9' }}>{job.client_name} - {job.title}</p>
+                          {job.instructions && <p style={{ margin:0, fontSize:11, color:'#64748b' }}>{job.instructions}</p>}
+                        </div>
+                        <span style={{
+                          background: v.status === 'overdue' || (v.date < new Date() && v.status !== 'completed') ? 'rgba(239,68,68,0.15)' : v.status === 'completed' ? 'rgba(74,222,128,0.15)' : 'rgba(96,165,250,0.1)',
+                          color: v.status === 'overdue' || (v.date < new Date() && v.status !== 'completed') ? '#f87171' : v.status === 'completed' ? '#4ade80' : '#60a5fa',
+                          padding:'2px 8px', borderRadius:99, fontSize:11, fontWeight:700, whiteSpace:'nowrap' as const
+                        }}>
+                          ● {v.status === 'overdue' || (v.date < new Date() && v.status !== 'completed') ? 'Overdue' : v.status === 'completed' ? 'Complete' : 'Upcoming'}
+                        </span>
+                        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                          <span style={{ width:24, height:24, borderRadius:'50%', background:'rgba(74,222,128,0.15)', display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'#4ade80' }}>
+                            {job.assigned_name ? job.assigned_name.split(' ').map((n:string)=>n[0]).join('').slice(0,2) : 'NA'}
+                          </span>
+                          <span style={{ fontSize:12, color:'#94a3b8' }}>{job.assigned_name || '—'}</span>
+                        </div>
+                        <div style={{ display:'flex', gap:6 }}>
+                          <button style={{ background:'none', border:'none', color:'#4ade80', cursor:'pointer', fontSize:16 }}>✓</button>
+                          <button style={{ background:'none', border:'none', color:'#64748b', cursor:'pointer', fontSize:14 }}>✏️</button>
+                        </div>
+                      </div>
+                    ))}
+                    {visits.length > 10 && (
+                      <div style={{ padding:'10px 0', color:'#475569', fontSize:12, textAlign:'center' }}>
+                        Showing 1–10 of {visits.length} visits · <button onClick={() => setDetailTab('visits')} style={{ background:'none', border:'none', color:'#4ade80', cursor:'pointer', fontSize:12, fontFamily:'inherit' }}>View all</button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Instructions */}
+              {job.instructions && (
+                <div style={card}>
+                  <p style={{ margin:'0 0 8px', fontSize:11, fontWeight:700, color:'#fbbf24', textTransform:'uppercase', letterSpacing:'0.05em' }}>Crew Instructions</p>
+                  <p style={{ margin:0, fontSize:13, color:'#cbd5e1' }}>{job.instructions}</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── VISITS TAB ── */}
+          {detailTab === 'visits' && (
+            <div style={card}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+                <span style={{ fontSize:15, fontWeight:700, color:'#f1f5f9' }}>All Visits ({visits.length})</span>
+                <button style={{ background:'#16a34a', border:'none', color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit', padding:'6px 14px', borderRadius:7 }}>+ Add Visit</button>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'140px 1fr auto auto auto', gap:8, padding:'6px 0', borderBottom:'1px solid #1e293b' }}>
+                {['Date','Title','Status','Assigned',''].map(h => (
+                  <span key={h} style={{ fontSize:11, fontWeight:700, color:'#475569', textTransform:'uppercase' }}>{h}</span>
+                ))}
+              </div>
+              {visits.map((v: any, i: number) => (
+                <div key={i} style={{ display:'grid', gridTemplateColumns:'140px 1fr auto auto auto', gap:8, padding:'10px 0', borderBottom:'1px solid #1e293b', alignItems:'center' }}>
+                  <div>
+                    <p style={{ margin:0, fontSize:13, fontWeight:600, color:'#f1f5f9' }}>{v.date.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}</p>
+                    <p style={{ margin:0, fontSize:11, color:'#475569' }}>Anytime</p>
+                  </div>
+                  <div>
+                    <p style={{ margin:0, fontSize:13, color:'#f1f5f9' }}>{job.client_name} - {job.title}</p>
+                    {job.instructions && <p style={{ margin:0, fontSize:11, color:'#64748b' }}>{job.instructions}</p>}
+                  </div>
+                  <span style={{
+                    background: v.date < new Date() && v.status !== 'completed' ? 'rgba(239,68,68,0.15)' : 'rgba(96,165,250,0.1)',
+                    color: v.date < new Date() && v.status !== 'completed' ? '#f87171' : '#60a5fa',
+                    padding:'2px 8px', borderRadius:99, fontSize:11, fontWeight:700
+                  }}>
+                    ● {v.date < new Date() && v.status !== 'completed' ? 'Overdue' : 'Upcoming'}
+                  </span>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ width:24, height:24, borderRadius:'50%', background:'rgba(74,222,128,0.15)', display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, color:'#4ade80' }}>
+                      {job.assigned_name ? job.assigned_name.split(' ').map((n:string)=>n[0]).join('').slice(0,2) : 'NA'}
+                    </span>
+                    <span style={{ fontSize:12, color:'#94a3b8' }}>{job.assigned_name || '—'}</span>
+                  </div>
+                  <div style={{ display:'flex', gap:6 }}>
+                    <button style={{ background:'none', border:'none', color:'#4ade80', cursor:'pointer', fontSize:16 }}>✓</button>
+                    <button style={{ background:'none', border:'none', color:'#64748b', cursor:'pointer', fontSize:14 }}>✏️</button>
+                  </div>
+                </div>
+              ))}
+              {visits.length === 0 && (
+                <div style={{ padding:'40px 0', textAlign:'center', color:'#475569', fontSize:13 }}>No visits scheduled</div>
+              )}
+            </div>
+          )}
+
+          {/* ── BILLING TAB ── */}
+          {detailTab === 'billing' && (
+            <>
+              <div style={{ ...card, paddingBottom:0 }}>
+                <div style={{ display:'flex', gap:24, marginBottom:16 }}>
+                  <div>
+                    <p style={{ margin:'0 0 2px', fontSize:11, color:'#64748b' }}>Frequency</p>
+                    <p style={{ margin:0, fontSize:13, color:'#f1f5f9' }}>
+                      {(job as any).invoice_frequency || 'When job is complete'}{' '}
+                      <span style={{ background:'rgba(96,165,250,0.1)', color:'#60a5fa', padding:'1px 6px', borderRadius:4, fontSize:11 }}>{(job as any).invoice_frequency || 'When complete'}</span>
+                    </p>
+                  </div>
+                  <div>
+                    <p style={{ margin:'0 0 2px', fontSize:11, color:'#64748b' }}>Billing type</p>
+                    <p style={{ margin:0, fontSize:13, color:'#f1f5f9' }}>Fixed price</p>
+                  </div>
+                </div>
+                {/* billing sub-tabs */}
+                <div style={{ display:'flex', borderTop:'1px solid #1e293b', gap:0 }}>
+                  {(['invoicing','reminders'] as const).map(t => (
+                    <button key={t} onClick={() => setBillingTab(t)} style={{
+                      padding:'10px 20px', border:'none', background:'transparent', cursor:'pointer', fontFamily:'inherit',
+                      fontSize:13, fontWeight:700, color: billingTab === t ? '#f1f5f9' : '#64748b',
+                      borderBottom: billingTab === t ? '2px solid #16a34a' : '2px solid transparent',
+                    }}>
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {billingTab === 'invoicing' && (
+                <div style={card}>
+                  {loadingInvoices ? (
+                    <div style={{ padding:'20px 0', textAlign:'center', color:'#475569', fontSize:13 }}>Loading invoices…</div>
+                  ) : (
+                    <>
+                      <div style={{ display:'grid', gridTemplateColumns:'auto 1fr auto auto auto auto', gap:8, padding:'6px 0', borderBottom:'1px solid #1e293b', marginBottom:4 }}>
+                        {['Invoice','Subject','Due date','Status','Total','Balance'].map(h => (
+                          <span key={h} style={{ fontSize:11, fontWeight:700, color:'#475569', textTransform:'uppercase' }}>{h}</span>
+                        ))}
+                      </div>
+                      {jobInvoices.length === 0 ? (
+                        <div style={{ padding:'20px 0', color:'#475569', fontSize:13 }}>No invoices found for this job.</div>
+                      ) : jobInvoices.map((inv: any) => {
+                        const is = INV_STATUS[inv.status] || INV_STATUS.draft
+                        return (
+                          <div key={inv.id} style={{ display:'grid', gridTemplateColumns:'auto 1fr auto auto auto auto', gap:8, padding:'10px 0', borderBottom:'1px solid #1e293b', alignItems:'center' }}>
+                            <span style={{ color:'#4ade80', fontSize:13, fontWeight:600, cursor:'pointer' }}>#{inv.invoice_number}</span>
+                            <span style={{ fontSize:13, color:'#f1f5f9', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const }}>{inv.title || `For Services`}</span>
+                            <span style={{ fontSize:13, color:'#94a3b8' }}>{inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '—'}</span>
+                            <span style={{ background:is.bg, color:is.color, padding:'2px 8px', borderRadius:99, fontSize:11, fontWeight:700, whiteSpace:'nowrap' as const }}>● {is.label}</span>
+                            <span style={{ fontSize:13, color:'#f1f5f9', textAlign:'right', fontWeight:600 }}>{fmt(inv.amount)}</span>
+                            <span style={{ fontSize:13, color: inv.status === 'paid' ? '#4ade80' : '#f87171', textAlign:'right', fontWeight:600 }}>{inv.status === 'paid' ? '$0.00' : fmt(inv.amount)}</span>
+                          </div>
+                        )
+                      })}
+                      {/* totals row */}
+                      {jobInvoices.length > 0 && (
+                        <div style={{ display:'flex', justifyContent:'space-between', padding:'12px 0 0', borderTop:'1px solid #1e293b' }}>
+                          <span style={{ fontSize:13, fontWeight:700, color:'#f1f5f9' }}>Total</span>
+                          <div style={{ display:'flex', gap:32 }}>
+                            <span style={{ fontSize:13, fontWeight:700, color:'#f1f5f9' }}>
+                              {fmt(jobInvoices.reduce((s: number, i: any) => s + (i.amount || 0), 0))}
+                            </span>
+                            <span style={{ fontSize:13, fontWeight:700, color:'#f87171' }}>
+                              {fmt(jobInvoices.filter((i: any) => i.status !== 'paid').reduce((s: number, i: any) => s + (i.amount || 0), 0))}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                      <button onClick={onCreateInvoice} style={{ marginTop:16, background:'none', border:'none', color:'#4ade80', fontSize:13, cursor:'pointer', fontFamily:'inherit', fontWeight:600, padding:'4px 0' }}>
+                        + Create Invoice
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {billingTab === 'reminders' && (
+                <div style={card}>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr auto auto', gap:8, padding:'6px 0', borderBottom:'1px solid #1e293b', marginBottom:4 }}>
+                    {['Scheduled','Description','Status','Assigned'].map(h => (
+                      <span key={h} style={{ fontSize:11, fontWeight:700, color:'#475569', textTransform:'uppercase' }}>{h}</span>
+                    ))}
+                  </div>
+                  {/* Generate periodic reminders based on invoice_frequency */}
+                  {job.scheduled_start ? (() => {
+                    const reminders: Date[] = []
+                    let cur = new Date(job.scheduled_end || job.scheduled_start)
+                    const freq = (job as any).invoice_frequency || 'Monthly'
+                    for (let i = 0; i < 10; i++) {
+                      reminders.push(new Date(cur))
+                      if (freq.includes('Monthly') || freq.includes('month')) {
+                        cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 0) // last day of next month
+                      } else if (freq.includes('Weekly')) {
+                        cur.setDate(cur.getDate() + 7)
+                      } else {
+                        cur.setMonth(cur.getMonth() + 1)
+                      }
+                    }
+                    return reminders.map((d, i) => (
+                      <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 1fr auto auto', gap:8, padding:'10px 0', borderBottom:'1px solid #1e293b', alignItems:'center' }}>
+                        <span style={{ fontSize:13, fontWeight:600, color:'#f1f5f9' }}>{d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })}</span>
+                        <span style={{ fontSize:12, color:'#64748b' }}>This is your periodic reminder to invoice…</span>
+                        <span style={{ background:'rgba(74,222,128,0.15)', color:'#4ade80', padding:'2px 8px', borderRadius:99, fontSize:11, fontWeight:700 }}>● Upcoming</span>
+                        <span style={{ fontSize:12, color:'#475569' }}>—</span>
+                      </div>
+                    ))
+                  })() : (
+                    <div style={{ padding:'20px 0', textAlign:'center', color:'#475569', fontSize:13 }}>No reminders scheduled</div>
+                  )}
+                  <button style={{ marginTop:12, background:'none', border:'none', color:'#4ade80', fontSize:13, cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>+ Add Reminder</button>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* ── REMINDERS TAB ── */}
+          {detailTab === 'reminders' && (
+            <div style={card}>
+              <p style={{ margin:'0 0 16px', fontSize:15, fontWeight:700, color:'#f1f5f9' }}>Reminders</p>
+              <div style={{ padding:'40px 0', textAlign:'center', color:'#475569', fontSize:13 }}>
+                No reminders set for this job.
+                <br/>
+                <button style={{ marginTop:12, background:'none', border:'none', color:'#4ade80', fontSize:13, cursor:'pointer', fontFamily:'inherit', fontWeight:600 }}>+ Add Reminder</button>
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* ── RIGHT SIDEBAR — profitability + notes ── */}
+        <div style={{ width:280, borderLeft:'1px solid #1e293b', padding:'1.5rem', flexShrink:0, background:'#0a0f1a' }}>
+          {/* Profitability */}
+          <div style={{ background:'#0f172a', border:'1px solid #1e293b', borderRadius:12, padding:'1rem', marginBottom:16 }}>
+            <p style={{ margin:'0 0 2px', fontSize:12, fontWeight:700, color:'#94a3b8' }}>📅 Past 30 days profitability</p>
+            <p style={{ margin:'0 0 4px', fontSize:11, color:'#475569' }}>30 day average profit margin</p>
+            <p style={{ margin:'0 0 4px', fontSize:32, fontWeight:800, color:'#f1f5f9' }}>{profitPct}%</p>
+            <p style={{ margin:'0 0 12px', fontSize:11, color:'#475569' }}>30 day average profit margin</p>
+            {[
+              { label:'Revenue', value: fmt(revenue), color:'#f1f5f9' },
+              { label:'Line Item Cost', value:'($0.00)', color:'#94a3b8' },
+              { label:'Labor', value:'($0.00)', color:'#94a3b8' },
+              { label:'Expenses', value:'($0.00)', color:'#94a3b8' },
+              { label:'Profit', extra:`${profitPct}%`, value: fmt(revenue), color:'#f1f5f9' },
+            ].map(row => (
+              <div key={row.label} style={{ display:'flex', justifyContent:'space-between', padding:'4px 0', borderTop:'1px solid #1e293b' }}>
+                <span style={{ fontSize:12, color:'#64748b' }}>{row.label} {row.extra ? <span style={{ fontSize:11, color:'#4ade80', marginLeft:4 }}>{row.extra}</span> : null}</span>
+                <span style={{ fontSize:12, fontWeight:600, color:row.color }}>{row.value}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Notes */}
+          <div style={{ background:'#0f172a', border:'1px solid #1e293b', borderRadius:12, padding:'1rem' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+              <span style={{ fontSize:13, fontWeight:700, color:'#f1f5f9' }}>Notes</span>
+              <button onClick={() => setShowNoteInput(!showNoteInput)} style={{ width:28, height:28, borderRadius:8, background:'rgba(74,222,128,0.15)', border:'1px solid rgba(74,222,128,0.3)', color:'#4ade80', cursor:'pointer', fontFamily:'inherit', fontSize:18, display:'flex', alignItems:'center', justifyContent:'center' }}>+</button>
+            </div>
+            {showNoteInput && (
+              <div style={{ marginBottom:12 }}>
+                <textarea
+                  value={noteText}
+                  onChange={e => setNoteText(e.target.value)}
+                  placeholder="Add a note…"
+                  rows={3}
+                  style={{ width:'100%', padding:'8px', border:'1px solid #1e293b', borderRadius:8, background:'#0a0f1a', color:'#f1f5f9', fontSize:12, fontFamily:'inherit', resize:'vertical', boxSizing:'border-box' }}
+                />
+                <div style={{ display:'flex', gap:8, marginTop:6 }}>
+                  <button onClick={() => {
+                    if (noteText.trim()) {
+                      setJobNotes(noteText.trim())
+                      setNoteText('')
+                      setShowNoteInput(false)
+                      setToast('✅ Note saved')
+                    }
+                  }} style={{ padding:'5px 12px', background:'#16a34a', border:'none', borderRadius:7, color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>Save</button>
+                  <button onClick={() => { setShowNoteInput(false); setNoteText('') }} style={{ padding:'5px 12px', background:'transparent', border:'1px solid #1e293b', borderRadius:7, color:'#64748b', fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>Cancel</button>
+                </div>
+              </div>
+            )}
+            {job.instructions || jobNotes ? (
+              <div style={{ padding:'8px 10px', background:'rgba(251,191,36,0.05)', border:'1px solid rgba(251,191,36,0.15)', borderRadius:8 }}>
+                <p style={{ margin:'0 0 4px', fontSize:11, color:'#64748b' }}>Internal notes</p>
+                <p style={{ margin:0, fontSize:12, color:'#cbd5e1' }}>{jobNotes || job.instructions}</p>
+              </div>
+            ) : (
+              <p style={{ margin:0, fontSize:12, color:'#475569', fontStyle:'italic' }}>No notes yet</p>
+            )}
+          </div>
+
+          {/* Quick status */}
+          <div style={{ background:'#0f172a', border:'1px solid #1e293b', borderRadius:12, padding:'1rem', marginTop:16 }}>
+            <p style={{ margin:'0 0 10px', fontSize:11, fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.05em' }}>Status</p>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+              {ALL_STATUSES.map((s: string) => (
+                <button key={s} onClick={() => onStatusChange(s)} style={{
+                  padding:'5px 12px', borderRadius:99, fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+                  background: job.status === s ? sc(s).bg : 'transparent',
+                  color: job.status === s ? sc(s).color : '#64748b',
+                  border: job.status === s ? `1px solid ${sc(s).color}` : '1px solid #1e293b',
+                }}>{statusLabel(s)}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Delete */}
+          <button onClick={onDelete} style={{ marginTop:16, width:'100%', padding:'8px', background:'rgba(248,113,113,0.05)', color:'#f87171', border:'1px solid rgba(248,113,113,0.2)', borderRadius:8, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+            🗑 Delete Job
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function JobsPage() {
   const navigate = useNavigate()
   const [jobs, setJobs] = useState<Job[]>([])
@@ -384,108 +971,51 @@ export default function JobsPage() {
 
   // ── JOB DETAIL VIEW ──
   if (selectedJob) {
+    // derive display values
+    const isLate = !!selectedJob.scheduled_start && new Date(selectedJob.scheduled_start) < new Date() && selectedJob.status !== 'completed' && selectedJob.status !== 'cancelled'
+    const svcAddress = [selectedJob.service_address, selectedJob.city, selectedJob.state, selectedJob.zip].filter(Boolean).join(', ')
+    const jobInvoices = [] as any[] // loaded below via detailInvoices state
     return (
-      <div style={{ padding:'2rem',background:'#0a0f1a',minHeight:'100vh' }}>
-        <button onClick={() => setSelectedJob(null)} style={{ background:'none',border:'none',color:'#64748b',fontSize:13,cursor:'pointer',fontFamily:'inherit',marginBottom:16 }}>
-          ← Back to Jobs
-        </button>
-        <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:24,flexWrap:'wrap',gap:12 }}>
-          <div>
-            <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:6 }}>
-              <span style={{ background:sc(selectedJob.status).bg,color:sc(selectedJob.status).color,padding:'3px 10px',borderRadius:99,fontSize:11,fontWeight:700 }}>{statusLabel(selectedJob.status)}</span>
-              <span style={{ fontSize:13,color:'#475569' }}>{selectedJob.job_number}</span>
-            </div>
-            <h1 style={{ margin:0,fontSize:26,fontWeight:800,color:'#f1f5f9' }}>{selectedJob.title}</h1>
-            {selectedJob.client_name && <p style={{ margin:'4px 0 0',fontSize:14,color:'#64748b' }}>{selectedJob.client_name}</p>}
-          </div>
-          <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
-            <button onClick={() => openEdit(selectedJob)} style={{ padding:'8px 16px',background:'#16a34a',color:'#fff',border:'none',borderRadius:8,fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Edit Job</button>
-            <button onClick={async()=>{
-              const {data:cl}=await supabase.from('clients').select('phone,first_name').eq('id',selectedJob.client_id).single()
-              const phone=cl?.phone
-              if(!phone){setJobToastFn('⚠️ No phone number for this client');return}
-              const msg=`Hi ${cl?.first_name||selectedJob.client_name}, this is PHL Land Care. Your job "${selectedJob.title}" has been scheduled. Questions? Call 772-466-3617.`
-              try{await supabase.functions.invoke('send-sms',{body:{to:phone,message:msg}});setJobToastFn(`✅ SMS sent to ${phone}`)}
-              catch{setJobToastFn('⚠️ SMS failed — check Twilio settings')}
-            }} style={{ padding:'8px 16px',background:'rgba(167,139,250,0.1)',color:'#a78bfa',border:'1px solid rgba(167,139,250,0.3)',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>💬 SMS Client</button>
-            <button onClick={async () => {
-              // Build line items from job's line_items or fall back to single total
-              const jobLineItems = selectedJob.line_items?.length
-                ? selectedJob.line_items.map((li: any) => ({ name: li.name || selectedJob.title, description: li.description || '', qty: li.qty || 1, unit_price: li.unit_price || 0 }))
-                : [{ name: selectedJob.title || 'Services Rendered', description: selectedJob.description || '', qty: 1, unit_price: selectedJob.total_amount || 0 }]
-              // Mark job as invoiced
-              await supabase.from('jobs').update({ invoiced: true, updated_at: new Date().toISOString() }).eq('id', selectedJob.id)
-              navigate('/invoices', { state:{
-                openCreate: true,
-                clientName: selectedJob.client_name,
-                clientId: String(selectedJob.client_id || ''),
-                jobTitle: selectedJob.title,
-                amount: selectedJob.total_amount,
-                lineItems: jobLineItems,
-                sourceId: selectedJob.id,
-                sourceType: 'job',
-              }})
-            }} style={{ padding:'8px 16px',background:'rgba(96,165,250,0.15)',color:'#60a5fa',border:'1px solid rgba(96,165,250,0.3)',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>📄 Create Invoice</button>
-            <button onClick={() => setDeleteConfirm(selectedJob.id)} style={{ padding:'8px 16px',background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.3)',borderRadius:8,fontSize:13,cursor:'pointer',fontFamily:'inherit' }}>Delete</button>
-          </div>
-        </div>
-
-        {/* Status change */}
-        <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1rem 1.25rem',marginBottom:16 }}>
-          <p style={{ margin:'0 0 10px',fontSize:11,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.05em' }}>Quick Status Change</p>
-          <div style={{ display:'flex',flexWrap:'wrap',gap:8 }}>
-            {ALL_STATUSES.map(s => (
-              <button key={s} onClick={() => handleStatusChange(selectedJob, s)} style={{
-                padding:'6px 14px',borderRadius:99,fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit',
-                background:selectedJob.status===s?sc(s).bg:'transparent',
-                color:selectedJob.status===s?sc(s).color:'#64748b',
-                border:selectedJob.status===s?`1px solid ${sc(s).color}`:'1px solid #1e293b',
-              }}>{statusLabel(s)}</button>
-            ))}
-          </div>
-        </div>
-
-        <div style={{ display:'flex',flexDirection:'column',gap:16 }}>
-          <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.25rem' }}>
-            <h3 style={{ margin:'0 0 16px',fontSize:14,fontWeight:700,color:'#f1f5f9' }}>Job Details</h3>
-            <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px 32px' }}>
-              {[
-                { label:'Client', value:selectedJob.client_name||'—' },
-                { label:'Job #', value:selectedJob.job_number },
-                { label:'Type', value:JOB_TYPES.find(t=>t.value===selectedJob.job_type)?.label||'—' },
-                { label:'Priority', value:selectedJob.priority||'—' },
-                { label:'Scheduled Start', value:fmtDate(selectedJob.scheduled_start) },
-                { label:'Scheduled End', value:fmtDate(selectedJob.scheduled_end) },
-                { label:'Assigned To', value:selectedJob.assigned_name||'—' },
-                { label:'Amount', value:fmt(selectedJob.total_amount||0) },
-              ].map(row => (
-                <div key={row.label} style={{ borderBottom:'1px solid #1e293b',paddingBottom:10 }}>
-                  <p style={{ margin:'0 0 2px',fontSize:11,color:'#475569',fontWeight:600 }}>{row.label}</p>
-                  <p style={{ margin:0,fontSize:13,color:'#f1f5f9' }}>{row.value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-          {selectedJob.description && (
-            <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.25rem' }}>
-              <p style={{ margin:'0 0 6px',fontSize:11,color:'#475569',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em' }}>Description</p>
-              <p style={{ margin:0,fontSize:13,color:'#cbd5e1' }}>{selectedJob.description}</p>
-            </div>
-          )}
-          {selectedJob.instructions && (
-            <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.25rem' }}>
-              <p style={{ margin:'0 0 6px',fontSize:11,color:'#fbbf24',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em' }}>Crew Instructions (Internal)</p>
-              <p style={{ margin:0,fontSize:13,color:'#cbd5e1' }}>{selectedJob.instructions}</p>
-            </div>
-          )}
-          {selectedJob.customer_notes && (
-            <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.25rem' }}>
-              <p style={{ margin:'0 0 6px',fontSize:11,color:'#60a5fa',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.05em' }}>Customer Notes</p>
-              <p style={{ margin:0,fontSize:13,color:'#cbd5e1' }}>{selectedJob.customer_notes}</p>
-            </div>
-          )}
-        </div>
-      </div>
+      <JobDetailView
+        job={selectedJob}
+        isLate={isLate}
+        svcAddress={svcAddress}
+        sc={sc}
+        statusLabel={statusLabel}
+        fmtDate={fmtDate}
+        fmt={fmt}
+        JOB_TYPES={JOB_TYPES}
+        ALL_STATUSES={ALL_STATUSES}
+        onBack={() => setSelectedJob(null)}
+        onEdit={() => openEdit(selectedJob)}
+        onDelete={() => setDeleteConfirm(selectedJob.id)}
+        onStatusChange={(s: string) => handleStatusChange(selectedJob, s)}
+        onSmsClient={async () => {
+          const {data:cl}=await supabase.from('clients').select('phone,first_name').eq('id',selectedJob.client_id).single()
+          const phone=cl?.phone
+          if(!phone){setJobToastFn('⚠️ No phone number for this client');return}
+          const msg=`Hi ${cl?.first_name||selectedJob.client_name}, this is PHL Land Care. Your job "${selectedJob.title}" has been scheduled. Questions? Call 772-466-3617.`
+          try{await supabase.functions.invoke('send-sms',{body:{to:phone,message:msg}});setJobToastFn(`✅ SMS sent to ${phone}`)}
+          catch{setJobToastFn('⚠️ SMS failed — check SignalWire settings')}
+        }}
+        onCreateInvoice={async () => {
+          const jobLineItems = selectedJob.line_items?.length
+            ? selectedJob.line_items.map((li: any) => ({ name: li.name || selectedJob.title, description: li.description || '', qty: li.qty || 1, unit_price: li.unit_price || 0 }))
+            : [{ name: selectedJob.title || 'Services Rendered', description: selectedJob.description || '', qty: 1, unit_price: selectedJob.total_amount || 0 }]
+          await supabase.from('jobs').update({ invoiced: true, updated_at: new Date().toISOString() }).eq('id', selectedJob.id)
+          navigate('/invoices', { state:{
+            openCreate: true,
+            clientName: selectedJob.client_name,
+            clientId: String(selectedJob.client_id || ''),
+            jobTitle: selectedJob.title,
+            amount: selectedJob.total_amount,
+            lineItems: jobLineItems,
+            sourceId: selectedJob.id,
+            sourceType: 'job',
+          }})
+        }}
+        setToast={setJobToastFn}
+      />
     )
   }
 
