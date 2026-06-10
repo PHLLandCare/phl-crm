@@ -26,8 +26,9 @@ export default function App() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // ClockIn is public — no auth required
-  if (window.location.hash.includes('/clockin')) {
+  // ClockIn and Employee Portal are public — no auth required
+  const hash = window.location.hash
+  if (hash.includes('/clockin') || hash.includes('/employee')) {
     return (
       <HashRouter>
         <Routes>
@@ -45,6 +46,7 @@ export default function App() {
     <HashRouter>
       <Routes>
         <Route path="/clockin" element={<ClockInPage />} />
+        <Route path="/employee" element={<EmployeePortalPage />} />
         <Route path="/*" element={<Dashboard />} />
       </Routes>
     </HashRouter>
