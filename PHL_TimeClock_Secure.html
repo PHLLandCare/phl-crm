@@ -189,7 +189,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     <div class="recent-label">Recent clock events</div>
     <div id="kiosk-recent"><div style="text-align:center;color:rgba(255,255,255,.3);font-size:12px;padding:8px">Loading...</div></div>
     <div style="margin-top:16px;display:flex;gap:8px;justify-content:center">
-      <button onclick="showPage('admin-page')" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif">Admin dashboard →</button>
+      <button onclick="promptAdminPin()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif">Admin dashboard →</button>
     </div>
   </div>
 </div>
@@ -362,7 +362,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <div><div class="fl">Role</div>
         <select class="fs" id="ef-role">
           <option>Time clock only</option><option>Field Tech</option>
-          <option>Crew Lead</option><option>Office Manager</option>
+          <option>Crew Lead</option><option>Office Manager</option><option>Admin</option>
         </select>
       </div>
     </div>
@@ -895,17 +895,24 @@ async function manualClockIn() {
   var now = new Date().toISOString();
   try {
     // Check if employee already has an open clock-in (no clock_out)
-    var openEvents = await sb('GET', '/clock_events?employee_id=eq.' + encodeURIComponent(emp.employee_id) + '&clock_out=is.null&clock_in=not.is.null&order=clock_in.desc&limit=1');
+    var openEvents = await sb('GET', '/clock_events?employee_id=eq.' + encodeURIComponent(emp.employee_id) + '&clock_out=is.null&clock_in=not.is.null&order=clock_in.desc&limit=10');
     if (openEvents && openEvents.length > 0) {
-      // Clock OUT the open event
-      var openEvent = openEvents[0];
-      await sb('PATCH', '/clock_events?id=eq.' + openEvent.id, { clock_out: now });
+      // Clock OUT — close ALL open events for this employee (handles duplicate open sessions)
+      var closeErrors = [];
+      for (var oe of openEvents) {
+        var result = await sb('PATCH', '/clock_events?id=eq.' + oe.id, { clock_out: now });
+        if (!result && result !== null) closeErrors.push(oe.id);
+      }
+      if (closeErrors.length > 0) {
+        toast('⚠️ Clock-out may not have saved — check with admin. IDs: ' + closeErrors.join(', '));
+      } else {
+        toast('✓ ' + fullName(emp) + ' clocked out at ' + new Date(now).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) + '!');
+      }
       document.getElementById('m-eid').value = '';
       document.getElementById('manual-form').classList.remove('open');
-      toast('✓ ' + fullName(emp) + ' clocked out!');
     } else {
       // Clock IN — no open event found
-      await sb('POST', '/clock_events', {
+      var newEvent = await sb('POST', '/clock_events', {
         employee_id: emp.employee_id,
         employee_name: fullName(emp),
         division: emp.division,
@@ -913,9 +920,13 @@ async function manualClockIn() {
         method: 'Manual ID',
         flagged: false
       });
+      if (!newEvent) {
+        toast('⚠️ Clock-in may not have saved — please try again or contact admin');
+      } else {
+        toast('✓ ' + fullName(emp) + ' clocked in at ' + new Date(now).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) + '!');
+      }
       document.getElementById('m-eid').value = '';
       document.getElementById('manual-form').classList.remove('open');
-      toast('✓ ' + fullName(emp) + ' clocked in!');
     }
     await loadClockEvents();
   } catch(e) { toast('Error: ' + e.message); }
@@ -989,6 +1000,16 @@ function exportTimesheet() {
   var blob = new Blob([rows.join('\n')], {type:'text/csv'});
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'PHL_Timesheet.csv'; a.click();
   toast('Timesheet exported!');
+}
+
+// ── ADMIN PIN GATE ──
+function promptAdminPin() {
+  var pin = prompt('Enter Admin PIN:');
+  if (pin === '7411') {
+    showPage('admin-page');
+  } else if (pin !== null) {
+    alert('Incorrect PIN. Access denied.');
+  }
 }
 
 // ── NAVIGATION ──
