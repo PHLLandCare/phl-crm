@@ -45,7 +45,11 @@ export default function ProductsServicesPage() {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    const ch = supabase.channel('products-rt').on('postgres_changes',{event:'*',schema:'public',table:'products_services'},load).subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [])
 
   const filtered = items
     .filter(i => {
