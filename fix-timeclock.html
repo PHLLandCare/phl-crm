@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head><title>TimeClock Fix</title>
+<style>body{font-family:monospace;background:#0a0f1a;color:#f1f5f9;padding:40px;font-size:14px;}
+.ok{color:#4ade80;} .err{color:#f87171;} .info{color:#60a5fa;}</style>
+</head>
+<body>
+<h2>TimeClock Auto-Fix</h2>
+<div id="log"></div>
+<script>
+const SUPA_URL = 'https://gmblbltckwipghqutkhw.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtYmxibHRja3dpcGdocXV0a2h3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMDcxNjEsImV4cCI6MjA5NDg4MzE2MX0.Bri1R1CHV27YKAu_CrwSkb_hZPCBJvOWSlp1UQTXQaI';
+
+const log = (msg, cls='info') => {
+  document.getElementById('log').innerHTML += `<div class="${cls}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+};
+
+async function sb(method, path, body) {
+  const res = await fetch(SUPA_URL + '/rest/v1' + path, {
+    method,
+    headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation'},
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const text = await res.text();
+  return { ok: res.ok, status: res.status, data: text ? JSON.parse(text) : [] };
+}
+
+async function run() {
+  // 1. Delete PHL-0000 employee record
+  log('Deleting PHL-0000 employee...');
+  const emp = await sb('GET', '/employees?employee_id=eq.PHL-0000&select=id,fname,lname');
+  log(`Found ${emp.data.length} PHL-0000 employee record(s)`);
+  for (const row of emp.data) {
+    const del = await sb('DELETE', `/employees?id=eq.${row.id}`);
+    log(del.ok ? `✅ Deleted employee PHL-0000 id=${row.id}` : `❌ Failed: ${JSON.stringify(del.data)}`, del.ok ? 'ok' : 'err');
+  }
+
+  // 2. Delete ALL Admin User clock events
+  log('Deleting Admin User clock events...');
+  const ghost = await sb('GET', '/clock_events?or=(employee_name.eq.Admin+User,employee_id.eq.PHL-0000)&select=id,clock_in');
+  log(`Found ${ghost.data.length} ghost row(s)`);
+  for (const row of ghost.data) {
+    const del = await sb('DELETE', `/clock_events?id=eq.${row.id}`);
+    log(del.ok ? `✅ Deleted ghost id=${row.id}` : `❌ Failed: ${JSON.stringify(del.data)}`, del.ok ? 'ok' : 'err');
+  }
+
+  // 3. Delete the bad overnight row for Romy: clock_in=Jun 9 ~5:25PM, clock_out=Jun 10 ~9:03AM (id=10)
+  log('Deleting bad overnight row id=10 (Romy 5:25PM->9:03AM)...');
+  const del10 = await sb('DELETE', `/clock_events?id=eq.10`);
+  log(del10.ok ? `✅ Deleted overnight row id=10` : `❌ Failed: ${JSON.stringify(del10.data)}`, del10.ok ? 'ok' : 'err');
+
+  // 4. Verify
+  log('Verifying...');
+  const check = await sb('GET', '/clock_events?employee_id=eq.PHL-0001&order=clock_in.desc&limit=5&select=id,clock_in,clock_out');
+  log('Remaining Romy rows:');
+  for (const r of check.data) log(`  id=${r.id} in=${r.clock_in} out=${r.clock_out}`);
+
+  log('--- Done ---', 'ok');
+}
+
+run().catch(e => log('Fatal: ' + e.message, 'err'));
+</script>
+</body>
+</html>

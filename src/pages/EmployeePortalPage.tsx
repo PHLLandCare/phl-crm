@@ -69,15 +69,15 @@ export default function EmployeePortalPage() {
 
   // Reload clock data whenever weekOffset changes (after login)
   useEffect(() => {
-    if (emp) loadData(emp)
+    if (emp) loadData(emp, weekOffset)
   }, [weekOffset])
 
   // Realtime — clock status updates live without manual refresh
   useEffect(() => {
     if (!emp) return
     const ch = supabase.channel('emp-portal-rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clock_events' }, () => loadData(emp))
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => loadData(emp))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clock_events' }, () => loadData(emp, weekOffset))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => loadData(emp, weekOffset))
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [emp?.employee_id])
@@ -95,14 +95,14 @@ export default function EmployeePortalPage() {
     setLogging(false)
   }
 
-  const loadData = async (e: Employee) => {
+  const loadData = async (e: Employee, wOffset: number = weekOffset) => {
     const todayStart = new Date(localDateStr(new Date()) + 'T00:00:00').toISOString()
-    const weekStart = getWeekStart(weekOffset)
+    const weekStart = getWeekStart(wOffset)
     const weekEnd = new Date(weekStart.getTime() + 7 * 86400000).toISOString()
 
     const [evtRes, jobRes, openRes] = await Promise.all([
       supabase.from('clock_events').select('*').eq('employee_id', e.employee_id)
-        .or(`clock_in.gte.${weekStart.toISOString()},clock_out.gte.${weekStart.toISOString()}`).lt('clock_in', weekEnd).order('clock_in', { ascending: false }),
+        .gte('clock_in', weekStart.toISOString()).lt('clock_in', weekEnd).order('clock_in', { ascending: false }),
       supabase.from('jobs').select('id,title,client_name,scheduled_start,status,service_address,instructions')
         .or(`assigned_name.ilike.%${e.fname}%,assigned_to.eq.${e.employee_id}`)
         .not('status', 'in', '("Cancelled","completed","Completed")')
