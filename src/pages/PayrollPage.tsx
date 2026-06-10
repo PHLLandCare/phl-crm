@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase'
 
 const COMPANY = {
@@ -81,37 +81,62 @@ export default function PayrollPage() {
   const days = weekDays(weekStart)
   const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
+  // useRef keeps weekStart stable inside the realtime callback (avoids stale closure)
+  const weekStartRef = React.useRef(weekStart)
+  useEffect(() => { weekStartRef.current = weekStart }, [weekOffset])
+
   const loadPayrollData = async (currentWeekStart: Date) => {
     setLoading(true)
-    // Today boundaries in local time, converted to UTC for Supabase
+    // Today boundaries built from local date parts — avoids any timezone string-parse issues
     const now = new Date()
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
     const todayEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
 
-    const [empRes, clockRes, todayRes] = await Promise.all([
+    const [empRes, clockRes] = await Promise.all([
       supabase.from('employees').select('*').eq('active', true).order('fname'),
       supabase.from('clock_events').select('*')
         .gte('clock_in', currentWeekStart.toISOString())
         .lt('clock_in', new Date(currentWeekStart.getTime() + 7 * 86400000).toISOString()),
+    ])
+
+    // Today's log: show any event where clock_in falls today OR clock_out falls today
+    // This catches sessions that started yesterday and ended today
+    const [todayInRes, todayOutRes] = await Promise.all([
       supabase.from('clock_events').select('*')
         .gte('clock_in', todayStart.toISOString())
-        .lte('clock_in', todayEnd.toISOString())
-        .order('clock_in', { ascending: false }),
+        .lte('clock_in', todayEnd.toISOString()),
+      supabase.from('clock_events').select('*')
+        .gte('clock_out', todayStart.toISOString())
+        .lte('clock_out', todayEnd.toISOString())
+        .is('clock_in', null) // only grab overnight rows not already caught above
     ])
+    // Also grab any open (currently clocked in) sessions regardless of start date
+    const openRes = await supabase.from('clock_events').select('*')
+      .is('clock_out', null)
+      .not('clock_in', 'is', null)
+
+    // Merge and deduplicate by id
+    const allTodayMap = new Map<string, any>()
+    for (const ev of [...(todayInRes.data ?? []), ...(todayOutRes.data ?? []), ...(openRes.data ?? [])]) {
+      allTodayMap.set(ev.id, ev)
+    }
+    const todayAll = Array.from(allTodayMap.values())
+      .sort((a, b) => new Date(b.clock_in ?? b.clock_out ?? 0).getTime() - new Date(a.clock_in ?? a.clock_out ?? 0).getTime())
+
     setEmployees(empRes.data ?? [])
     setClockEvents(clockRes.data ?? [])
-    setTodayEvents(todayRes.data ?? [])
+    setTodayEvents(todayAll)
     setLoading(false)
   }
 
   useEffect(() => {
     loadPayrollData(weekStart)
 
-    // Realtime — refresh all data instantly when any clock event changes
+    // Realtime — use ref so callback always has current weekStart
     const channel = supabase
       .channel('payroll-clock-events')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clock_events' }, () => {
-        loadPayrollData(weekStart)
+        loadPayrollData(weekStartRef.current)
       })
       .subscribe()
 
