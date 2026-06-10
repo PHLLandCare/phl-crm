@@ -54,6 +54,11 @@ export default function ClockInPage() {
     const ts = new Date().toISOString()
 
     if (action === 'in') {
+      // Close any stale open sessions before creating a new one — prevents ghost rows
+      await supabase.from('clock_events')
+        .update({ clock_out: ts })
+        .eq('employee_id', emp.employee_id)
+        .is('clock_out', null)
       await supabase.from('clock_events').insert({
         employee_id:   emp.employee_id,
         employee_name: `${emp.fname} ${emp.lname}`,
