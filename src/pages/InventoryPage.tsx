@@ -104,7 +104,8 @@ export default function InventoryPage() {
   const exportCSV = () => {
     const rows = [['Name','Category','SKU','Quantity','Min Level','Unit Cost','Total Value','Supplier','Status']]
     items.forEach(i => rows.push([i.name,i.category||'',i.sku||'',String(i.quantity||0),String(i.min_level||0),String(i.unit_cost||0),String((i.quantity||0)*(i.unit_cost||0)),i.supplier||'',statusBadge(i).label]))
-    const csv = rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n')
+    const csv = rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('
+')
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='inventory.csv';a.click()
   }
 
@@ -167,9 +168,23 @@ export default function InventoryPage() {
         ))}
       </div>
 
-      {/* Search */}
+      {/* Search + category chips */}
       <input placeholder="Search inventory..." value={search} onChange={e=>setSearch(e.target.value)}
-        style={{...inp,marginBottom:'1rem',background:'#0f172a',border:'1.5px solid #1e293b'}} />
+        style={{...inp,marginBottom:'0.75rem',background:'#0f172a',border:'1.5px solid #1e293b'}} />
+      <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:'1rem'}}>
+        {['All',...CATEGORIES].map(cat => {
+          const count = cat==='All' ? items.length : items.filter(i=>i.category===cat).length
+          if (cat!=='All' && count===0) return null
+          return (
+            <button key={cat} onClick={()=>setCategoryFilter(cat)}
+              style={{padding:'5px 14px',borderRadius:20,border:'none',cursor:'pointer',fontSize:12,fontWeight:600,fontFamily:'inherit',
+                background:categoryFilter===cat?'#16a34a':'#1e293b',
+                color:categoryFilter===cat?'#fff':'#94a3b8'}}>
+              {cat} {count>0&&<span style={{opacity:0.7}}>({count})</span>}
+            </button>
+          )
+        })}
+      </div>
 
       {/* Table */}
       {loading ? <p style={{color:'#64748b'}}>Loading...</p> : (
@@ -363,3 +378,4 @@ export default function InventoryPage() {
     </div>
   )
 }
+
