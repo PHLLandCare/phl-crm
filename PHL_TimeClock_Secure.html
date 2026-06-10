@@ -230,7 +230,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
           <input type="text" id="log-search" placeholder="Search..." oninput="renderLog()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;outline:none;width:180px">
         </div>
         <table class="dt">
-          <thead><tr><th>Employee</th><th>Division</th><th>Clock in</th><th>Clock out</th><th>Hours</th><th>Method</th><th>Status</th></tr></thead>
+          <thead><tr><th>Employee</th><th>Division</th><th>Clock in</th><th>Clock out</th><th>Hours</th><th>Method</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody id="log-tbody"><tr><td colspan="7" class="empty"><div class="spinner"></div> Loading...</td></tr></tbody>
         </table>
       </div>
@@ -561,9 +561,30 @@ async function loadEmployees() {
 // ── LOAD CLOCK EVENTS ──
 async function loadClockEvents() {
   try {
-    var today = new Date().toISOString().split('T')[0];
-    var data = await sb('GET', '/clock_events?select=*&order=clock_in.desc&clock_in=gte.' + today + 'T00:00:00.000Z&clock_in=lte.' + today + 'T23:59:59.999Z');
-    allClockEvents = data;
+    var now = new Date();
+    var y = now.getFullYear(), m = String(now.getMonth()+1).padStart(2,'0'), d = String(now.getDate()).padStart(2,'0');
+    var todayStart = y+'-'+m+'-'+d+'T00:00:00.000';
+    var todayEnd   = y+'-'+m+'-'+d+'T23:59:59.999';
+    // Convert local midnight to UTC offset for Supabase
+    var offsetMs = now.getTimezoneOffset() * 60000;
+    var tsStart = new Date(new Date(todayStart).getTime() + offsetMs).toISOString();
+    var tsEnd   = new Date(new Date(todayEnd).getTime()   + offsetMs).toISOString();
+
+    // 1. Events that STARTED today
+    var byIn  = await sb('GET', '/clock_events?select=*&clock_in=gte.' + tsStart + '&clock_in=lte.' + tsEnd);
+    // 2. Events that ENDED today (overnight — started yesterday, ended today)
+    var byOut = await sb('GET', '/clock_events?select=*&clock_out=gte.' + tsStart + '&clock_out=lte.' + tsEnd);
+    // 3. Currently open sessions (clocked in, not out yet — regardless of start date)
+    var open  = await sb('GET', '/clock_events?select=*&clock_out=is.null&clock_in=not.is.null');
+
+    // Merge and deduplicate by id
+    var seen = {}, merged = [];
+    [].concat(byIn||[], byOut||[], open||[]).forEach(function(r) {
+      if (!seen[r.id]) { seen[r.id] = true; merged.push(r); }
+    });
+    merged.sort(function(a,b){ return new Date(b.clock_in||b.created_at) - new Date(a.clock_in||a.created_at); });
+
+    allClockEvents = merged;
     renderLog();
     renderKioskRecent();
     renderTimesheets();
@@ -657,7 +678,11 @@ function renderLog() {
       '<td style="color:' + (r.clock_out?'var(--red)':'var(--muted)') + '">' + outTime + '</td>' +
       '<td style="font-weight:600">' + hrs + '</td>' +
       '<td><span class="b bm">' + (r.method||'QR scan') + '</span></td>' +
-      '<td>' + (r.clock_out ? '<span class="b bs">Out</span>' : '<span class="b bg">In</span>') + '</td>';
+      '<td>' + (r.clock_out ? '<span class="b bs">Out</span>' : '<span class="b bg">In</span>') + '</td>' +
+      '<td style="white-space:nowrap">' +
+        '<button onclick="editPunch(\''+r.id+'\')" style="background:rgba(74,222,128,0.15);color:#4ade80;border:1px solid rgba(74,222,128,0.3);border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;margin-right:4px">✏️ Edit</button>' +
+        '<button onclick="deletePunch(\''+r.id+'\')" style="background:rgba(248,113,113,0.15);color:#f87171;border:1px solid rgba(248,113,113,0.3);border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer">🗑 Del</button>' +
+      '</td>';
     tb.appendChild(tr);
   });
   var ci = document.getElementById('cnt-in'); if (ci) ci.textContent = ins;
@@ -1003,6 +1028,67 @@ function exportTimesheet() {
 }
 
 // ── ADMIN ACCESS ── (PIN removed — auth handled by Supabase login)
+
+// ── PUNCH EDIT / DELETE ──
+async function deletePunch(id) {
+  if (!confirm('Delete this punch entry? This cannot be undone.')) return;
+  try {
+    await sb('DELETE', '/clock_events?id=eq.' + id);
+    toast('✅ Punch deleted');
+    await loadClockEvents();
+  } catch(e) { toast('❌ Delete failed: ' + e.message); }
+}
+
+function editPunch(id) {
+  var r = allClockEvents.find(function(e){ return String(e.id) === String(id); });
+  if (!r) { toast('Event not found'); return; }
+
+  // Build a simple modal dynamically
+  var existing = document.getElementById('punch-edit-modal');
+  if (existing) existing.remove();
+
+  var fmtForInput = function(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    var pad = function(n){return String(n).padStart(2,'0');};
+    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+  };
+
+  var modal = document.createElement('div');
+  modal.id = 'punch-edit-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+  modal.innerHTML =
+    '<div style="background:#111827;border:1px solid #1f2d3d;border-radius:14px;padding:24px;width:100%;max-width:420px;color:#f1f5f9">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">' +
+        '<h2 style="margin:0;font-size:17px;font-weight:700">Edit Punch — ' + (r.employee_name||r.employee_id) + '</h2>' +
+        '<button onclick="document.getElementById('punch-edit-modal').remove()" style="background:none;border:none;color:#64748b;font-size:22px;cursor:pointer">×</button>' +
+      '</div>' +
+      '<label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px">Clock In</label>' +
+      '<input id="pe-in" type="datetime-local" value="' + fmtForInput(r.clock_in) + '" style="width:100%;padding:9px 12px;background:#1a2332;border:1px solid #2d3f55;border-radius:7px;font-size:14px;color:#f1f5f9;box-sizing:border-box;margin-bottom:14px;outline:none">' +
+      '<label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px">Clock Out</label>' +
+      '<input id="pe-out" type="datetime-local" value="' + fmtForInput(r.clock_out) + '" style="width:100%;padding:9px 12px;background:#1a2332;border:1px solid #2d3f55;border-radius:7px;font-size:14px;color:#f1f5f9;box-sizing:border-box;margin-bottom:20px;outline:none">' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end">' +
+        '<button onclick="document.getElementById('punch-edit-modal').remove()" style="padding:9px 18px;border:1px solid #334155;border-radius:7px;background:transparent;color:#94a3b8;cursor:pointer;font-size:13px">Cancel</button>' +
+        '<button onclick="savePunch(\''+id+'\')" style="padding:9px 18px;border:none;border-radius:7px;background:#16a34a;color:#fff;cursor:pointer;font-size:13px;font-weight:700">Save</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+}
+
+async function savePunch(id) {
+  var inVal  = document.getElementById('pe-in').value;
+  var outVal = document.getElementById('pe-out').value;
+  if (!inVal) { toast('Clock In time is required'); return; }
+  var payload = { clock_in: new Date(inVal).toISOString() };
+  if (outVal) payload.clock_out = new Date(outVal).toISOString();
+  else payload.clock_out = null;
+  try {
+    await sb('PATCH', '/clock_events?id=eq.' + id, payload);
+    document.getElementById('punch-edit-modal').remove();
+    toast('✅ Punch updated');
+    await loadClockEvents();
+  } catch(e) { toast('❌ Save failed: ' + e.message); }
+}
 
 // ── NAVIGATION ──
 function showPage(id) {
