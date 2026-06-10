@@ -114,7 +114,7 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('Leads and Active')
-  const [tagFilter, setTagFilter] = useState('')
+  const [tagFilter, setTagFilter] = useState<string[]>([])
   const [selectedClient, setSelectedClient] = useState<Client | null>(null)
   const [activeTab, setActiveTab] = useState('info')
   const [showNewClient, setShowNewClient] = useState(false)
@@ -380,7 +380,7 @@ export default function ClientsPage() {
 
   const filtered = clients.filter(c => {
     const matchSearch = `${c.first_name} ${c.last_name} ${c.company} ${c.email} ${c.phone} ${c.address} ${c.tags}`.toLowerCase().includes(search.toLowerCase())
-    const matchTag = !tagFilter || (c.tags||'').split(',').map((t:string)=>t.trim()).includes(tagFilter)
+    const matchTag = tagFilter.length === 0 || tagFilter.every(ft => (c.tags||'').split(',').map((t:string)=>t.trim()).includes(ft))
     const matchStatus = statusFilter === 'All' ? true
       : statusFilter === 'Leads and Active' ? (c.status?.toLowerCase() === 'lead' || c.status?.toLowerCase() === 'active')
       : c.status?.toLowerCase() === statusFilter.toLowerCase()
@@ -1290,37 +1290,86 @@ export default function ClientsPage() {
             style={{ ...inp, paddingLeft: 32, height: 38 }} />
           <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#475569', fontSize: 14 }}>🔍</span>
         </div>
-        {/* Filter by tag — Jobber style */}
+        {/* Filter by tag — Jobber style multi-select */}
         <div style={{ position: 'relative' }}>
-          <button onClick={() => setTagFilter(f => f ? '' : '__open__')} style={{
+          <button onClick={() => setTagFilter(f => f.includes('__open__') ? f.filter(x=>x!=='__open__') : [...f.filter(x=>x!=='__open__'), '__open__'])} style={{
             padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-            background: tagFilter && tagFilter!=='__open__' ? 'rgba(96,165,250,0.15)' : '#0f172a',
-            color: tagFilter && tagFilter!=='__open__' ? '#60a5fa' : '#64748b',
-            border: tagFilter && tagFilter!=='__open__' ? '1px solid rgba(96,165,250,0.3)' : '1px solid #1e293b',
-            display: 'flex', alignItems: 'center', gap: 6
+            background: tagFilter.filter(t=>t!=='__open__').length > 0 ? 'rgba(96,165,250,0.15)' : '#0f172a',
+            color: tagFilter.filter(t=>t!=='__open__').length > 0 ? '#60a5fa' : '#64748b',
+            border: tagFilter.filter(t=>t!=='__open__').length > 0 ? '1px solid rgba(96,165,250,0.3)' : '1px solid #1e293b',
+            display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap'
           }}>
-            🏷 Filter by tag {tagFilter && tagFilter!=='__open__' ? `· ${tagFilter}` : '+'} 
+            🏷 Filter by tag
+            {tagFilter.filter(t=>t!=='__open__').length > 0
+              ? <span style={{ background:'#1e3a5f', color:'#60a5fa', borderRadius:20, padding:'0 6px', fontSize:11, fontWeight:800 }}>
+                  {tagFilter.filter(t=>t!=='__open__').length} selected
+                </span>
+              : <span style={{ color:'#475569', fontSize:11 }}>▼</span>
+            }
           </button>
-          {tagFilter === '__open__' && (
-            <div style={{ position: 'absolute', top: '110%', left: 0, background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, padding: 8, zIndex: 50, minWidth: 180, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
-              <p style={{ margin: '0 0 6px', fontSize: 11, color: '#475569', padding: '0 4px' }}>SELECT A TAG</p>
-              {Array.from(new Set(
-                clients.flatMap(c => (c.tags||'').split(',').map((t:string)=>t.trim()).filter(Boolean))
-              )).sort().map((tag:string) => (
-                <button key={tag} onClick={() => setTagFilter(tag)} style={{
-                  display: 'block', width: '100%', textAlign: 'left', padding: '6px 10px',
-                  background: 'transparent', border: 'none', borderRadius: 6, color: '#cbd5e1',
-                  fontSize: 13, cursor: 'pointer', fontFamily: 'inherit'
-                }} onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')} onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
-                  {tag}
-                </button>
-              ))}
-              {clients.flatMap(c=>(c.tags||'').split(',').map((t:string)=>t.trim()).filter(Boolean)).length===0 && (
-                <p style={{ fontSize: 12, color: '#475569', padding: '4px 10px' }}>No tags found</p>
-              )}
+          {tagFilter.includes('__open__') && (
+            <div style={{ position: 'absolute', top: '110%', left: 0, background: '#0d1526', border: '1px solid #1e293b', borderRadius: 12, padding: 8, zIndex: 100, minWidth: 220, boxShadow: '0 8px 32px rgba(0,0,0,0.7)' }}>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'4px 8px 8px', borderBottom:'1px solid #1e293b', marginBottom:4 }}>
+                <span style={{ fontSize:11, fontWeight:700, color:'#475569', textTransform:'uppercase', letterSpacing:'0.05em' }}>
+                  {tagFilter.filter(t=>t!=='__open__').length > 0 ? `${tagFilter.filter(t=>t!=='__open__').length} selected` : 'Search tags'}
+                </span>
+                {tagFilter.filter(t=>t!=='__open__').length > 0 && (
+                  <button onClick={() => setTagFilter(['__open__'])} style={{ background:'none', border:'none', color:'#4ade80', cursor:'pointer', fontSize:12, fontWeight:700, fontFamily:'inherit', padding:0 }}>Clear</button>
+                )}
+              </div>
+              <div style={{ maxHeight:240, overflowY:'auto' }}>
+                {(() => {
+                  const activeTags = tagFilter.filter(t => t !== '__open__')
+                  const allTags = Array.from(new Set(
+                    clients.flatMap(c => (c.tags||'').split(',').map((t:string)=>t.trim()).filter(Boolean))
+                  )).sort()
+                  return allTags.length === 0
+                    ? <p style={{ fontSize:12, color:'#475569', padding:'8px 10px', margin:0 }}>No tags found</p>
+                    : allTags.map((tag:string) => {
+                      const isSelected = activeTags.includes(tag)
+                      const count = clients.filter(c => (c.tags||'').split(',').map((t:string)=>t.trim()).includes(tag)).length
+                      return (
+                        <button key={tag} onClick={() => {
+                          setTagFilter(prev => {
+                            const active = prev.filter(t => t !== '__open__')
+                            const newActive = isSelected ? active.filter(t => t !== tag) : [...active, tag]
+                            return [...newActive, '__open__']
+                          })
+                        }} style={{
+                          display: 'flex', width: '100%', textAlign: 'left', padding: '8px 10px',
+                          background: isSelected ? 'rgba(96,165,250,0.12)' : 'transparent',
+                          border: 'none', borderRadius: 6,
+                          color: isSelected ? '#93c5fd' : '#cbd5e1',
+                          fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+                          alignItems: 'center', justifyContent:'space-between', gap: 8
+                        }} onMouseEnter={e=>(e.currentTarget.style.background=isSelected?'rgba(96,165,250,0.18)':'#1e293b')}
+                           onMouseLeave={e=>(e.currentTarget.style.background=isSelected?'rgba(96,165,250,0.12)':'transparent')}>
+                          <span style={{ display:'flex', alignItems:'center', gap:8 }}>
+                            <span style={{ width:16, height:16, borderRadius:4, border:`2px solid ${isSelected?'#60a5fa':'#334155'}`, background: isSelected?'#60a5fa':'transparent', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, fontSize:10, color:'#fff' }}>
+                              {isSelected ? '✓' : ''}
+                            </span>
+                            {tag}
+                          </span>
+                          <span style={{ fontSize:11, color:'#475569' }}>({count})</span>
+                        </button>
+                      )
+                    })
+                })()}
+              </div>
             </div>
           )}
         </div>
+        {/* Active tag chips */}
+        {tagFilter.filter(t=>t!=='__open__').length > 0 && (
+          <div style={{ display:'flex', gap:4, flexWrap:'wrap', alignItems:'center' }}>
+            {tagFilter.filter(t=>t!=='__open__').map(tag => (
+              <span key={tag} style={{ display:'inline-flex', alignItems:'center', gap:4, background:'rgba(96,165,250,0.15)', color:'#60a5fa', border:'1px solid rgba(96,165,250,0.3)', borderRadius:20, padding:'3px 10px', fontSize:12, fontWeight:600 }}>
+                {tag}
+                <button onClick={() => setTagFilter(prev => prev.filter(t => t !== tag))} style={{ background:'none', border:'none', color:'#60a5fa', cursor:'pointer', padding:0, lineHeight:1, fontSize:14 }}>×</button>
+              </span>
+            ))}
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 4, background: '#0f172a', border: '1px solid #1e293b', borderRadius: 8, padding: 3 }}>
           {['Leads and Active', 'Active', 'Lead', 'Inactive', 'All'].map(s => (
             <button key={s} onClick={() => setStatusFilter(s)} style={{
@@ -1376,7 +1425,7 @@ export default function ClientsPage() {
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                         {tagList.length === 0 ? <span style={{ color: '#475569', fontSize: 12 }}>—</span>
                           : tagList.slice(0, 3).map((t:string, i:number) => (
-                            <span key={i} onClick={e => { e.stopPropagation(); setTagFilter(t) }}
+                            <span key={i} onClick={e => { e.stopPropagation(); setTagFilter([t]) }}
                               style={{ background: 'rgba(100,116,139,0.15)', color: '#94a3b8', padding: '2px 8px', borderRadius: 99, fontSize: 10, fontWeight: 600, cursor: 'pointer' }}
                               onMouseEnter={e=>(e.currentTarget.style.background='rgba(96,165,250,0.15)')}
                               onMouseLeave={e=>(e.currentTarget.style.background='rgba(100,116,139,0.15)')}>{t}</span>

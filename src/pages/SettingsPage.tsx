@@ -14,7 +14,7 @@ const BUSINESS_HOURS_DEFAULT = [
   { day:'Saturday',  open:false, from:'8:00 AM', to:'4:00 PM' },
 ]
 
-type NavSection = 'company' | 'business-profile' | 'profile' | 'autobilling' | 'divisions' | 'integrations'
+type NavSection = 'company' | 'business-profile' | 'profile' | 'autobilling' | 'document-settings' | 'divisions' | 'integrations'
 
 export default function SettingsPage() {
   const [toast, setToast]     = useState('')
@@ -237,6 +237,7 @@ export default function SettingsPage() {
     { id:'business-profile', label:'Business profile' },
     { id:'profile', label:'My profile' },
     { id:'autobilling', label:'Autobilling' },
+    { id:'document-settings', label:'Document Settings' },
     { id:'divisions', label:'Divisions' },
     { id:'integrations', label:'Integrations' },
   ]
@@ -448,14 +449,14 @@ export default function SettingsPage() {
               </button>
             </div>
 
-            {/* Client Document Settings */}
+            {/* Client Document Settings — now its own Settings section */}
             <div style={card}>
               <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between' }}>
                 <div>
                   <h2 style={secTitle}>Client Document Settings</h2>
                   <p style={{ margin:'4px 0 0',fontSize:13,color:'#64748b' }}>Customize how your quotes, jobs, and invoices look to clients</p>
                 </div>
-                <button onClick={()=>setShowDocSettings(true)} style={{ padding:'9px 18px',background:'none',border:'1px solid #4ade80',borderRadius:8,color:'#4ade80',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Edit Settings</button>
+                <button onClick={()=>setActiveNav('document-settings')} style={{ padding:'9px 18px',background:'none',border:'1px solid #4ade80',borderRadius:8,color:'#4ade80',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Edit Settings</button>
               </div>
             </div>
           </div>
@@ -668,6 +669,113 @@ export default function SettingsPage() {
                   showToast('✅ Autobilling settings saved!')
                 }} style={{ padding:'10px 24px',background:'#16a34a',border:'none',borderRadius:9,color:'#fff',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>
                   {autobillSaving ? 'Saving...' : 'Save Autobilling Settings'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── DOCUMENT SETTINGS ── */}
+        {activeNav === 'document-settings' && (
+          <div>
+            <h1 style={{ fontSize:24,fontWeight:700,color:'#f1f5f9',margin:'0 0 4px' }}>Document Settings</h1>
+            <p style={{ fontSize:13,color:'#64748b',margin:'0 0 1.5rem' }}>Customize how your quotes, jobs, and invoices look to clients</p>
+
+            <div style={card}>
+              <div style={{ display:'flex',gap:0,borderBottom:'1px solid #1e293b',marginBottom:24 }}>
+                {(['Quotes','Jobs','Invoices','Style'] as const).map(t => (
+                  <button key={t} onClick={()=>setDocTab(t)} style={{ padding:'10px 20px',background:'none',border:'none',borderBottom:docTab===t?'2px solid #4ade80':'2px solid transparent',color:docTab===t?'#f1f5f9':'#64748b',fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:'inherit' }}>{t}</button>
+                ))}
+              </div>
+
+              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:32 }}>
+                <div>
+                  {docTab === 'Quotes' && (
+                    <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
+                      <label style={{ display:'flex',alignItems:'center',gap:8,fontSize:13,color:'#94a3b8',cursor:'pointer' }}>
+                        <input type="checkbox" checked={docSettings.quote_use_estimate} onChange={e=>setDocSettings({...docSettings,quote_use_estimate:e.target.checked})} /> Refer to 'Quote' as 'Estimate'
+                      </label>
+                      {[
+                        { key:'quote_show_qty' as const, label:'Show QTY on line items' },
+                        { key:'quote_show_unit_price' as const, label:'Show unit price on line items' },
+                        { key:'quote_show_total' as const, label:'Show total cost per line items' },
+                        { key:'quote_show_tax' as const, label:'Show totals & tax in footer' },
+                        { key:'quote_show_signature' as const, label:'Show client signature line' },
+                      ].map(f => (
+                        <label key={f.key} style={{ display:'flex',alignItems:'center',gap:8,fontSize:13,color:'#f1f5f9',cursor:'pointer' }}>
+                          <input type="checkbox" checked={docSettings[f.key]} onChange={e=>setDocSettings({...docSettings,[f.key]:e.target.checked})} style={{ accentColor:'#4ade80' }} /> {f.label}
+                        </label>
+                      ))}
+                      <div><label style={lbl}>Contract/Disclaimer</label><textarea style={{ ...inp,height:80,resize:'vertical' } as React.CSSProperties} value={docSettings.quote_contract} onChange={e=>setDocSettings({...docSettings,quote_contract:e.target.value})} /></div>
+                      <div><label style={lbl}>Deposit Language</label><textarea style={{ ...inp,height:60,resize:'vertical' } as React.CSSProperties} value={docSettings.quote_deposit_language} onChange={e=>setDocSettings({...docSettings,quote_deposit_language:e.target.value})} /></div>
+                    </div>
+                  )}
+                  {docTab === 'Jobs' && (
+                    <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
+                      <label style={{ display:'flex',alignItems:'center',gap:8,fontSize:13,color:'#f1f5f9',cursor:'pointer' }}>
+                        <input type="checkbox" checked={docSettings.job_show_signature} onChange={e=>setDocSettings({...docSettings,job_show_signature:e.target.checked})} style={{ accentColor:'#4ade80' }} /> Include client signature line
+                      </label>
+                      <div><label style={lbl}>Contract/Disclaimer</label><textarea style={{ ...inp,height:80,resize:'vertical' } as React.CSSProperties} value={docSettings.job_contract} onChange={e=>setDocSettings({...docSettings,job_contract:e.target.value})} /></div>
+                    </div>
+                  )}
+                  {docTab === 'Invoices' && (
+                    <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
+                      {[
+                        { key:'inv_show_qty' as const, label:'Show QTY on line items' },
+                        { key:'inv_show_unit_price' as const, label:'Show unit price on line items' },
+                        { key:'inv_show_total' as const, label:'Show total cost on line items' },
+                        { key:'inv_return_stub' as const, label:'Include return payment stub' },
+                        { key:'inv_late_stamp' as const, label:'Show late stamp if overdue' },
+                        { key:'inv_account_balance' as const, label:'Show account balance' },
+                        { key:'inv_paid_date' as const, label:'Show paid date' },
+                      ].map(f => (
+                        <label key={f.key} style={{ display:'flex',alignItems:'center',gap:8,fontSize:13,color:'#f1f5f9',cursor:'pointer' }}>
+                          <input type="checkbox" checked={docSettings[f.key]} onChange={e=>setDocSettings({...docSettings,[f.key]:e.target.checked})} style={{ accentColor:'#4ade80' }} /> {f.label}
+                        </label>
+                      ))}
+                      <div><label style={lbl}>Contract/Disclaimer</label><textarea style={{ ...inp,height:80,resize:'vertical' } as React.CSSProperties} value={docSettings.inv_contract} onChange={e=>setDocSettings({...docSettings,inv_contract:e.target.value})} /></div>
+                    </div>
+                  )}
+                  {docTab === 'Style' && (
+                    <div style={{ display:'flex',flexDirection:'column',gap:12 }}>
+                      {[
+                        { label:'Header Layout', key:'header_layout' as const, opts:['Basic','Centered','Split'] },
+                        { label:'Header Style', key:'header_style' as const, opts:['Modern','Classic','Minimal'] },
+                        { label:'Logo Size', key:'logo_size' as const, opts:['Small','Medium','Large'] },
+                        { label:'Theme Color', key:'theme_color' as const, opts:['Default','Blue','Green','Dark'] },
+                        { label:'Footer Font Size', key:'footer_font_size' as const, opts:['8','9','10','11'] },
+                      ].map(f => (
+                        <div key={f.key}>
+                          <label style={lbl}>{f.label}</label>
+                          <select style={{ ...inp,appearance:'auto' }} value={docSettings[f.key]} onChange={e=>setDocSettings({...docSettings,[f.key]:e.target.value})}>
+                            {f.opts.map(o=><option key={o}>{o}</option>)}
+                          </select>
+                        </div>
+                      ))}
+                      <div style={{ display:'flex',flexDirection:'column',gap:10,paddingTop:8,borderTop:'1px solid #1e293b' }}>
+                        {[
+                          { key:'show_company_name' as const, label:'Show company name' },
+                          { key:'show_company_phone' as const, label:'Show company phone' },
+                          { key:'show_company_email' as const, label:'Show company email' },
+                          { key:'show_company_website' as const, label:'Show company website' },
+                          { key:'show_client_phone' as const, label:'Show client phone' },
+                        ].map(f => (
+                          <label key={f.key} style={{ display:'flex',alignItems:'center',gap:8,fontSize:13,color:'#f1f5f9',cursor:'pointer' }}>
+                            <input type="checkbox" checked={docSettings[f.key]} onChange={e=>setDocSettings({...docSettings,[f.key]:e.target.checked})} style={{ accentColor:'#4ade80' }} /> {f.label}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div style={{ background:'#070d19',borderRadius:12,padding:'1rem',display:'flex',flexDirection:'column',alignItems:'center' }}>
+                  <p style={{ margin:'0 0 10px',fontSize:11,fontWeight:700,color:'#475569',textTransform:'uppercase',letterSpacing:'0.06em',alignSelf:'flex-start' }}>Preview</p>
+                  <InvoicePreview />
+                </div>
+              </div>
+              <div style={{ display:'flex',justifyContent:'flex-end',marginTop:20,paddingTop:16,borderTop:'1px solid #1e293b' }}>
+                <button onClick={()=>showToast('✅ Document settings saved!')} style={{ padding:'10px 24px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit' }}>
+                  Save Document Settings
                 </button>
               </div>
             </div>

@@ -155,13 +155,18 @@ export default function PayrollPage() {
   const fmt  = (n: number) => `$${n.toFixed(2)}`
   const fmtH = (n: number) => `${n.toFixed(1)}h`
 
-  // Get the most recent event per employee for Today's Log display
+  // For Today's Log: show all punch events (each clock_in row), newest first
+  // The "Status" column shows whether the event is open (clocked in) or closed (clocked out)
   const latestEventPerEmployee = (): ClockEvent[] => {
-    const seen = new Map<string, ClockEvent>()
-    for (const ev of todayEvents) {
-      if (!seen.has(ev.employee_id)) seen.set(ev.employee_id, ev)
-    }
-    return Array.from(seen.values())
+    // Return ALL events for today, sorted newest first — admins need to see every punch
+    return [...todayEvents].sort((a, b) =>
+      new Date(b.clock_in ?? 0).getTime() - new Date(a.clock_in ?? 0).getTime()
+    )
+  }
+
+  // For status badge: is the employee currently clocked in (has an open event right now)?
+  const isEmployeeCurrentlyClockedIn = (empId: string): boolean => {
+    return todayEvents.some(e => e.employee_id === empId && e.clock_in && !e.clock_out)
   }
 
   const printStub = (emp: Employee) => {
@@ -320,17 +325,22 @@ export default function PayrollPage() {
       {tab === 'today' && (
         <div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:16 }}>
-            {[
-              { label:'Clocked In',       value: latestToday.filter(e => !e.clock_out).length, color:'#4ade80' },
-              { label:'Clocked Out',      value: latestToday.filter(e => !!e.clock_out).length, color:'#64748b' },
-              { label:'Security Flags',   value: 0, color:'#f87171' },
-              { label:'Active Employees', value: employees.length, color:'#60a5fa' },
-            ].map(s => (
-              <div key={s.label} style={{ background:'#0f172a', border:'1px solid #1e293b', borderTop:`3px solid ${s.color}`, borderRadius:12, padding:'12px 14px' }}>
-                <p style={{ margin:'0 0 2px', fontSize:10, fontWeight:700, color:s.color, textTransform:'uppercase', letterSpacing:'0.05em' }}>{s.label}</p>
-                <p style={{ margin:0, fontSize:24, fontWeight:800, color:'#f1f5f9' }}>{s.value === 0 ? '—' : s.value}</p>
-              </div>
-            ))}
+            {(() => {
+              // Count unique employees currently clocked in (have open event)
+              const clockedInEmps = new Set(todayEvents.filter(e => e.clock_in && !e.clock_out).map(e => e.employee_id)).size
+              const clockedOutEmps = new Set(todayEvents.filter(e => e.clock_out).map(e => e.employee_id)).size
+              return [
+                { label:'Currently Clocked In',  value: clockedInEmps,   color:'#4ade80' },
+                { label:'Clocked Out Today',      value: clockedOutEmps,  color:'#64748b' },
+                { label:'Total Punches Today',    value: todayEvents.length, color:'#60a5fa' },
+                { label:'Active Employees',       value: employees.length, color:'#a78bfa' },
+              ].map(s => (
+                <div key={s.label} style={{ background:'#0f172a', border:'1px solid #1e293b', borderTop:`3px solid ${s.color}`, borderRadius:12, padding:'12px 14px' }}>
+                  <p style={{ margin:'0 0 2px', fontSize:10, fontWeight:700, color:s.color, textTransform:'uppercase', letterSpacing:'0.05em' }}>{s.label}</p>
+                  <p style={{ margin:0, fontSize:24, fontWeight:800, color:'#f1f5f9' }}>{s.value === 0 ? '—' : s.value}</p>
+                </div>
+              ))
+            })()}
           </div>
           <div style={{ background:'#0f172a', borderRadius:14, border:'1px solid #1e293b', overflow:'hidden' }}>
             <div style={{ padding:'12px 16px', borderBottom:'1px solid #1e293b', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
@@ -368,7 +378,8 @@ export default function PayrollPage() {
                   const hrs = e.clock_in && e.clock_out
                     ? ((new Date(e.clock_out).getTime()-new Date(e.clock_in).getTime())/3600000).toFixed(1)+'h'
                     : '—'
-                  const isIn = !!(e.clock_in && !e.clock_out)
+                  const isOpen = !!(e.clock_in && !e.clock_out)
+                  const isCurrentIn = isEmployeeCurrentlyClockedIn(e.employee_id)
                   return (
                     <tr key={e.id} style={{ borderBottom:'1px solid #1e293b' }}>
                       <td style={{ padding:'11px 14px' }}>
@@ -391,9 +402,10 @@ export default function PayrollPage() {
                         <span style={{ background:'rgba(96,165,250,0.15)',color:'#60a5fa',padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600 }}>{e.method||'QR'}</span>
                       </td>
                       <td style={{ padding:'11px 14px' }}>
-                        <span style={{ background:isIn?'rgba(74,222,128,0.15)':'rgba(100,116,139,0.15)',color:isIn?'#4ade80':'#94a3b8',padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600 }}>
-                          {isIn ? 'Clocked In' : 'Clocked Out'}
+                        <span style={{ background:isOpen?'rgba(74,222,128,0.15)':'rgba(100,116,139,0.15)',color:isOpen?'#4ade80':'#94a3b8',padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600 }}>
+                          {isOpen ? '🟢 Clocked In' : '⏹ Clocked Out'}
                         </span>
+                        {!isOpen && isCurrentIn && <span style={{ marginLeft:6, fontSize:10, color:'#4ade80' }}>re-clocked in</span>}
                       </td>
                     </tr>
                   )
@@ -535,31 +547,50 @@ export default function PayrollPage() {
 
       {tab === 'history' && (
         <div style={{ background: '#0f172a', borderRadius: 14, border: '1px solid #1e293b', overflow: 'auto' }}>
+          <div style={{ padding:'12px 16px', borderBottom:'1px solid #1e293b', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <p style={{ margin:0, fontSize:14, fontWeight:700, color:'#f1f5f9' }}>Punch History — {weekLabel}</p>
+            <div style={{ fontSize:12, color:'#64748b' }}>{clockEvents.length} event{clockEvents.length !== 1 ? 's' : ''}</div>
+          </div>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#0a0f1a', borderBottom: '1px solid #1e293b' }}>
-                {['Employee','Date','Clock In','Clock Out','Hours','Method'].map(h => <th key={h} style={th}>{h}</th>)}
+                {['Employee','Date','Clock In','Clock Out','Hours','Method','Status'].map(h => <th key={h} style={th}>{h}</th>)}
               </tr>
             </thead>
             <tbody>
               {clockEvents.length === 0 ? (
-                <tr><td colSpan={6} style={{ padding: '2rem', textAlign: 'center', color: '#475569' }}>No clock events this week</td></tr>
+                <tr><td colSpan={7} style={{ padding: '2rem', textAlign: 'center', color: '#475569' }}>No clock events this week</td></tr>
               ) : [...clockEvents].sort((a, b) => new Date(b.clock_in ?? 0).getTime() - new Date(a.clock_in ?? 0).getTime()).map((ev, i) => {
                 const inTime  = ev.clock_in  ? new Date(ev.clock_in)  : null
                 const outTime = ev.clock_out ? new Date(ev.clock_out) : null
-                const hrs = inTime && outTime ? ((outTime.getTime() - inTime.getTime()) / 3600000).toFixed(1) : null
+                const hrs = inTime && outTime
+                  ? ((outTime.getTime() - inTime.getTime()) / 3600000).toFixed(2)
+                  : null
+                const isActive = !!(ev.clock_in && !ev.clock_out)
                 return (
-                  <tr key={i} style={{ borderBottom: '1px solid #1e293b' }}>
-                    <td style={td}><span style={{ fontWeight: 600, color:'#f1f5f9' }}>{ev.employee_name || ev.employee_id}</span><br/><span style={{ fontSize: 11, color: '#64748b' }}>{ev.employee_id}</span></td>
-                    <td style={td}>{inTime ? inTime.toLocaleDateString() : '—'}</td>
-                    <td style={{ ...td, color: '#4ade80', fontWeight: 600 }}>{inTime ? inTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+                  <tr key={i} style={{ borderBottom: '1px solid #1e293b', background: isActive ? 'rgba(74,222,128,0.03)' : 'transparent' }}>
+                    <td style={td}>
+                      <span style={{ fontWeight: 600, color:'#f1f5f9' }}>{ev.employee_name || ev.employee_id}</span>
+                      <br/><span style={{ fontSize: 11, color: '#64748b' }}>{ev.employee_id}</span>
+                    </td>
+                    <td style={td}>{inTime ? inTime.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : '—'}</td>
+                    <td style={{ ...td, color: '#4ade80', fontWeight: 600 }}>
+                      {inTime ? inTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : '—'}
+                    </td>
                     <td style={{ ...td, color: outTime ? '#f87171' : '#475569' }}>
                       {outTime
                         ? outTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
                         : <span style={{ background: '#16a34a22', color: '#4ade80', padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700 }}>Active</span>}
                     </td>
-                    <td style={{ ...td, fontWeight: 600, color:'#f1f5f9' }}>{hrs ? `${hrs}h` : '—'}</td>
+                    <td style={{ ...td, fontWeight: 600, color: hrs ? '#f1f5f9' : '#475569' }}>
+                      {hrs ? `${hrs}h` : isActive ? <span style={{ color:'#4ade80', fontSize:11 }}>In progress</span> : '—'}
+                    </td>
                     <td style={td}><span style={{ background:'rgba(96,165,250,0.15)',color:'#60a5fa',padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600 }}>{ev.method||'QR'}</span></td>
+                    <td style={td}>
+                      <span style={{ background: isActive?'rgba(74,222,128,0.15)':'rgba(100,116,139,0.15)', color: isActive?'#4ade80':'#94a3b8', padding:'2px 8px', borderRadius:99, fontSize:11, fontWeight:600 }}>
+                        {isActive ? '🟢 Clocked In' : '⏹ Clocked Out'}
+                      </span>
+                    </td>
                   </tr>
                 )
               })}
