@@ -164,10 +164,11 @@ export default function EmployeePortalPage() {
   }
 
   function getWeekStart(offset = 0) {
-    const d = new Date()
-    const day = d.getDay()
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1) + offset * 7
-    const mon = new Date(d.setDate(diff)); mon.setHours(0,0,0,0); return mon
+    const now = new Date()
+    const day = now.getDay()
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1) + offset * 7
+    const mon = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0)
+    return mon
   }
 
   const weekStart = getWeekStart(weekOffset)
