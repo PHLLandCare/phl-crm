@@ -895,17 +895,24 @@ async function manualClockIn() {
   var now = new Date().toISOString();
   try {
     // Check if employee already has an open clock-in (no clock_out)
-    var openEvents = await sb('GET', '/clock_events?employee_id=eq.' + encodeURIComponent(emp.employee_id) + '&clock_out=is.null&clock_in=not.is.null&order=clock_in.desc&limit=1');
+    var openEvents = await sb('GET', '/clock_events?employee_id=eq.' + encodeURIComponent(emp.employee_id) + '&clock_out=is.null&clock_in=not.is.null&order=clock_in.desc&limit=10');
     if (openEvents && openEvents.length > 0) {
-      // Clock OUT the open event
-      var openEvent = openEvents[0];
-      await sb('PATCH', '/clock_events?id=eq.' + openEvent.id, { clock_out: now });
+      // Clock OUT — close ALL open events for this employee (handles duplicate open sessions)
+      var closeErrors = [];
+      for (var oe of openEvents) {
+        var result = await sb('PATCH', '/clock_events?id=eq.' + oe.id, { clock_out: now });
+        if (!result && result !== null) closeErrors.push(oe.id);
+      }
+      if (closeErrors.length > 0) {
+        toast('⚠️ Clock-out may not have saved — check with admin. IDs: ' + closeErrors.join(', '));
+      } else {
+        toast('✓ ' + fullName(emp) + ' clocked out at ' + new Date(now).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) + '!');
+      }
       document.getElementById('m-eid').value = '';
       document.getElementById('manual-form').classList.remove('open');
-      toast('✓ ' + fullName(emp) + ' clocked out!');
     } else {
       // Clock IN — no open event found
-      await sb('POST', '/clock_events', {
+      var newEvent = await sb('POST', '/clock_events', {
         employee_id: emp.employee_id,
         employee_name: fullName(emp),
         division: emp.division,
@@ -913,9 +920,13 @@ async function manualClockIn() {
         method: 'Manual ID',
         flagged: false
       });
+      if (!newEvent) {
+        toast('⚠️ Clock-in may not have saved — please try again or contact admin');
+      } else {
+        toast('✓ ' + fullName(emp) + ' clocked in at ' + new Date(now).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) + '!');
+      }
       document.getElementById('m-eid').value = '';
       document.getElementById('manual-form').classList.remove('open');
-      toast('✓ ' + fullName(emp) + ' clocked in!');
     }
     await loadClockEvents();
   } catch(e) { toast('Error: ' + e.message); }

@@ -105,15 +105,41 @@ export default function EmployeePortalPage() {
     if (!emp || clocking) return
     setClocking(true)
     const ts = new Date().toISOString()
+
     if (openEvent) {
-      await supabase.from('clock_events').update({ clock_out: ts }).eq('id', openEvent.id)
+      // Clock OUT — close the open session
+      const { error } = await supabase.from('clock_events')
+        .update({ clock_out: ts })
+        .eq('id', openEvent.id)
+      if (error) {
+        setClockMsg('❌ Clock-out failed: ' + error.message)
+        setClocking(false)
+        return
+      }
       setClockMsg(`✅ Clocked out at ${new Date(ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}`)
       setOpenEvent(null)
     } else {
-      const { data } = await supabase.from('clock_events').insert({
-        employee_id: emp.employee_id, employee_name: `${emp.fname} ${emp.lname}`,
-        division: emp.division, clock_in: ts, method: 'Employee Portal', flagged: false,
+      // Clock IN — first close ANY open sessions for this employee (safety net)
+      await supabase.from('clock_events')
+        .update({ clock_out: ts })
+        .eq('employee_id', emp.employee_id)
+        .is('clock_out', null)
+
+      // Now create the new clock-in
+      const { data, error } = await supabase.from('clock_events').insert({
+        employee_id: emp.employee_id,
+        employee_name: `${emp.fname} ${emp.lname}`,
+        division: emp.division,
+        clock_in: ts,
+        method: 'Employee Portal',
+        flagged: false,
       }).select().single()
+
+      if (error) {
+        setClockMsg('❌ Clock-in failed: ' + error.message)
+        setClocking(false)
+        return
+      }
       setClockMsg(`✅ Clocked in at ${new Date(ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}`)
       setOpenEvent(data)
     }
