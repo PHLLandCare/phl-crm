@@ -421,18 +421,6 @@ export default function TeamPage() {
     setSaving(false)
   }
 
-        setSuccess(`${inviteName} added successfully! They can log in with their email and the password you set.`)
-      }
-      setShowInvite(false)
-      setInviteEmail(''); setInviteName(''); setInviteRole('worker_limited'); setManualPassword('')
-      setInvitePhone(''); setInvitePersonalEmail(''); setInviteAddress(''); setInviteCity('')
-      setInviteState(''); setInviteZip(''); setInviteSSN(''); setInviteFilingStatus(''); setInviteEmpType('W2')
-      setPaperworkFiles([])
-      setTimeout(() => setSuccess(null), 5000)
-      loadMembers()
-    } catch (e: any) { setError('Failed: ' + e.message) }
-    setSaving(false)
-  }
 
   const handleSavePermissions = async () => {
     if (!editMember) return
