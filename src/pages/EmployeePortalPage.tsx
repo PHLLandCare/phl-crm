@@ -72,6 +72,16 @@ export default function EmployeePortalPage() {
     if (emp) loadData(emp)
   }, [weekOffset])
 
+  // Realtime — clock status updates live without manual refresh
+  useEffect(() => {
+    if (!emp) return
+    const ch = supabase.channel('emp-portal-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clock_events' }, () => loadData(emp))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => loadData(emp))
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [emp?.employee_id])
+
   // ── LOGIN ──
   const handleLogin = async () => {
     if (!empId.trim()) return
