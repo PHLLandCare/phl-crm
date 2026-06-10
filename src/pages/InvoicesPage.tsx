@@ -74,6 +74,7 @@ export default function InvoicesPage() {
   const [selectedClientId, setSelectedClientId] = useState<string>('')
   const [sourceId, setSourceId]         = useState<string>('')
   const [sourceType, setSourceType]     = useState<string>('')
+  const [invoiceDivision, setInvoiceDivision] = useState<string>('')
   const [openInvoiceLineItems, setOpenInvoiceLineItems] = useState<LineItem[]>([])
   const location = useLocation()
 
@@ -149,6 +150,7 @@ export default function InvoicesPage() {
       invoice_number: invoiceNum, subject,
       client_name: selectedClient||clientSearch,
       amount: total, balance: total, status: 'draft',
+      division: invoiceDivision || null,
       payment_terms: paymentTerms, notes: internalNote,
       issued_date: new Date().toISOString().slice(0,10),
       due_date: paymentTerms==='Net 7'  ? new Date(Date.now()+7*86400000).toISOString().slice(0,10)
@@ -281,6 +283,7 @@ export default function InvoicesPage() {
   const toggleSelect = (id:string) => setSelected(prev => { const s=new Set(prev); s.has(id)?s.delete(id):s.add(id); return s })
   const resetForm = () => {
     setSubject('For Services Rendered'); setClientSearch(''); setSelectedClient('')
+    setInvoiceDivision('')
     setPaymentTerms('Net 7'); setIrrigation('No'); setPestControl('No')
     setInvoiceTitle(''); setLineItems([{name:'',description:'',qty:1,unit_price:0}])
     setDiscount(0); setTaxPct(0)
@@ -611,6 +614,7 @@ export default function InvoicesPage() {
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
                   <div><label style={lbl}>Payment terms</label><select value={paymentTerms} onChange={e=>setPaymentTerms(e.target.value)} style={{...inp,padding:'9px 12px'}}>{['Net 7','Net 14','Net 30','Due on receipt'].map(t=><option key={t}>{t}</option>)}</select></div>
                   <div><label style={lbl}>Issued date</label><div style={{...inp,color:'#4ade80',fontWeight:600,display:'flex',alignItems:'center'}}>{new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</div></div>
+                  <div><label style={lbl}>Division</label><select value={invoiceDivision} onChange={e=>setInvoiceDivision(e.target.value)} style={{...inp,padding:'9px 12px'}}><option value="">— Select —</option>{['Lawn & Tree','Irrigation','Extermination','Nursery','Farm','Hardscape'].map(d=><option key={d}>{d}</option>)}</select></div>
                   <div><label style={lbl}>Irrigation</label><select value={irrigation} onChange={e=>setIrrigation(e.target.value)} style={{...inp,padding:'9px 12px'}}><option>No</option><option>Yes</option></select></div>
                   <div><label style={lbl}>Pest Control</label><select value={pestControl} onChange={e=>setPestControl(e.target.value)} style={{...inp,padding:'9px 12px'}}><option>No</option><option>Yes</option></select></div>
                 </div>
