@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head><title>PHL CRM — Data Fix 2</title></head>
+<body style="font-family:sans-serif;padding:2rem;background:#0a0f1a;color:#f1f5f9">
+<h2>PHL CRM — Fix Missing Jun 10 Clock-In</h2>
+<div id="log" style="font-family:monospace;font-size:14px;line-height:2"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+const { createClient } = supabase
+const sb = createClient(
+  'https://gmblbltckwipghqutkhw.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdtYmxibHRja3dpcGdocXV0a2h3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMDcxNjEsImV4cCI6MjA5NDg4MzE2MX0.Bri1R1CHV27YKAu_CrwSkb_hZPGHqUtKhw'
+)
+const log = (msg, ok=true) => {
+  document.getElementById('log').innerHTML += `<div style="color:${ok?'#4ade80':'#f87171'}">${msg}</div>`
+}
+async function run() {
+  log('Checking current state...')
+
+  // Check what clock events exist for PHL-0001 today (Jun 10)
+  const { data: existing } = await sb.from('clock_events')
+    .select('*')
+    .eq('employee_id', 'PHL-0001')
+    .gte('clock_in', '2026-06-10T00:00:00')
+    .lte('clock_in', '2026-06-10T23:59:59')
+  log(`Found ${existing?.length || 0} clock events with clock_in on Jun 10`)
+  existing?.forEach(e => log(`  id=${e.id} in=${e.clock_in} out=${e.clock_out} method=${e.method}`))
+
+  // Check for open sessions
+  const { data: open } = await sb.from('clock_events')
+    .select('*')
+    .eq('employee_id', 'PHL-0001')
+    .is('clock_out', null)
+  log(`Open sessions: ${open?.length || 0}`)
+  open?.forEach(e => log(`  id=${e.id} in=${e.clock_in}`))
+
+  // If no Jun 10 clock-in exists, insert one at 9:03 AM
+  if (!existing || existing.length === 0) {
+    log('No Jun 10 clock-in found — inserting missing 9:03 AM entry...')
+    const { data: ins, error } = await sb.from('clock_events').insert({
+      employee_id: 'PHL-0001',
+      employee_name: 'Romy Cruz',
+      division: 'Management',
+      clock_in: '2026-06-10T09:03:00.000Z',
+      method: 'Manual ID',
+      flagged: false
+    }).select()
+    if (error) log('❌ Insert failed: ' + error.message, false)
+    else log(`✅ Inserted Jun 10 9:03 AM clock-in (id=${ins?.[0]?.id})`)
+  } else {
+    log('✅ Jun 10 clock-in already exists — no insert needed')
+  }
+
+  log('Done! Refresh your Payroll page.')
+}
+run()
+</script>
+</body>
+</html>
