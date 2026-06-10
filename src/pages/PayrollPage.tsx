@@ -95,30 +95,30 @@ export default function PayrollPage() {
     const [empRes, clockRes] = await Promise.all([
       supabase.from('employees').select('*').eq('active', true).order('fname'),
       supabase.from('clock_events').select('*')
-        .gte('clock_in', currentWeekStart.toISOString())
-        .lt('clock_in', new Date(currentWeekStart.getTime() + 7 * 86400000).toISOString()),
+        .or(`clock_in.gte.${currentWeekStart.toISOString()},clock_out.gte.${currentWeekStart.toISOString()}`)
+        .lt('clock_in', new Date(currentWeekStart.getTime() + 8 * 86400000).toISOString()),
     ])
 
-    // Today's log: show any event where clock_in falls today OR clock_out falls today
-    // This catches sessions that started yesterday and ended today
-    const [todayInRes, todayOutRes] = await Promise.all([
+    // Today's log: events started today + events ended today (overnight) + open sessions
+    const [todayInRes, todayOutRes, openRes] = await Promise.all([
+      // Started today
       supabase.from('clock_events').select('*')
         .gte('clock_in', todayStart.toISOString())
         .lte('clock_in', todayEnd.toISOString()),
+      // Ended today — overnight sessions (clock_out is today, clock_in may be yesterday)
       supabase.from('clock_events').select('*')
         .gte('clock_out', todayStart.toISOString())
-        .lte('clock_out', todayEnd.toISOString())
-        .is('clock_in', null) // only grab overnight rows not already caught above
+        .lte('clock_out', todayEnd.toISOString()),
+      // Currently open — clocked in but not out yet (any start date)
+      supabase.from('clock_events').select('*')
+        .is('clock_out', null)
+        .not('clock_in', 'is', null),
     ])
-    // Also grab any open (currently clocked in) sessions regardless of start date
-    const openRes = await supabase.from('clock_events').select('*')
-      .is('clock_out', null)
-      .not('clock_in', 'is', null)
 
     // Merge and deduplicate by id
     const allTodayMap = new Map<string, any>()
     for (const ev of [...(todayInRes.data ?? []), ...(todayOutRes.data ?? []), ...(openRes.data ?? [])]) {
-      allTodayMap.set(ev.id, ev)
+      allTodayMap.set(String(ev.id), ev)
     }
     const todayAll = Array.from(allTodayMap.values())
       .sort((a, b) => new Date(b.clock_in ?? b.clock_out ?? 0).getTime() - new Date(a.clock_in ?? a.clock_out ?? 0).getTime())
