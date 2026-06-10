@@ -151,7 +151,9 @@ export default function ClientPortalPage() {
       })
       if (fnErr) throw new Error(fnErr.message)
 
-      await supabase.from('invoices').update({ status: 'paid', balance: 0, updated_at: new Date().toISOString() }).eq('id', doc.id)
+      const paidNow = new Date().toISOString()
+      await supabase.from('invoices').update({ status: 'paid', balance: 0, paid_at: paidNow, updated_at: paidNow }).eq('id', doc.id)
+      await supabase.from('payments').insert({ invoice_id: doc.id, invoice_number: doc.invoice_number, client_name: doc.client_name, amount: doc.amount||doc.balance||0, method: 'Square', note: 'Paid via client portal', paid_at: paidNow })
       setPaid(true); setView('details')
       setMode('success' as any)
       showToast('✅ Payment successful! Thank you.')
@@ -171,7 +173,9 @@ export default function ClientPortalPage() {
     if (!cardNum || !cardExp || !cardCvc || !cardName) return
     setProcessing(true)
     await new Promise(r => setTimeout(r, 1800))
-    await supabase.from('invoices').update({ status: 'paid', balance: 0, updated_at: new Date().toISOString() }).eq('id', doc.id)
+    const signedAt = new Date().toISOString()
+    await supabase.from('invoices').update({ status: 'paid', balance: 0, paid_at: signedAt, updated_at: signedAt }).eq('id', doc.id)
+    await supabase.from('payments').insert({ invoice_id: doc.id, invoice_number: doc.invoice_number, client_name: doc.client_name, amount: doc.amount||doc.balance||0, method: 'E-Signature', note: 'Signed & paid via client portal', paid_at: signedAt })
     setDoc({ ...doc, status: 'paid', balance: 0 })
     setPaid(true); setView('details')
     showToast('✅ Payment recorded! Thank you.')
