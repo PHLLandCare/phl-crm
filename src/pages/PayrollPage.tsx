@@ -75,6 +75,11 @@ export default function PayrollPage() {
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'today' | 'payroll' | 'stubs' | 'history'>('today')
   const [stubEmp, setStubEmp] = useState<Employee | null>(null)
+  const [editingPunch, setEditingPunch] = useState<ClockEvent | null>(null)
+  const [editIn, setEditIn] = useState('')
+  const [editOut, setEditOut] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
+  const [nowTick, setNowTick] = useState(Date.now())
   const printRef = useRef<HTMLDivElement>(null)
 
   const weekStart = getWeekStart(weekOffset)
@@ -84,6 +89,12 @@ export default function PayrollPage() {
   // useRef keeps weekStart stable inside the realtime callback (avoids stale closure)
   const weekStartRef = React.useRef(weekStart)
   useEffect(() => { weekStartRef.current = weekStart }, [weekOffset])
+
+  // Live clock tick for elapsed time on open sessions
+  useEffect(() => {
+    const t = setInterval(() => setNowTick(Date.now()), 10000) // every 10s
+    return () => clearInterval(t)
+  }, [])
 
   const loadPayrollData = async (currentWeekStart: Date) => {
     setLoading(true)
@@ -147,16 +158,21 @@ export default function PayrollPage() {
     const day = days[dayIdx]
     const dayStart = day.getTime()
     const dayEnd = dayStart + 86400000
-    const events = clockEvents.filter(e =>
-      e.employee_id === empId &&
-      e.clock_in !== null &&
-      new Date(e.clock_in).getTime() >= dayStart &&
-      new Date(e.clock_in).getTime() < dayEnd
-    )
+    // Include events that START this day OR end this day (overnight sessions)
+    const events = clockEvents.filter(e => {
+      if (e.employee_id !== empId || !e.clock_in) return false
+      const inT = new Date(e.clock_in).getTime()
+      const outT = e.clock_out ? new Date(e.clock_out).getTime() : null
+      const startsToday = inT >= dayStart && inT < dayEnd
+      const endsToday = outT !== null && outT >= dayStart && outT < dayEnd
+      return startsToday || endsToday
+    })
     let hrs = 0
     for (const ev of events) {
       if (ev.clock_in && ev.clock_out) {
-        hrs += (new Date(ev.clock_out).getTime() - new Date(ev.clock_in).getTime()) / 3600000
+        const inT = Math.max(new Date(ev.clock_in).getTime(), dayStart)
+        const outT = Math.min(new Date(ev.clock_out).getTime(), dayEnd)
+        hrs += (outT - inT) / 3600000
       }
     }
     return Math.round(hrs * 100) / 100
@@ -308,6 +324,34 @@ export default function PayrollPage() {
     a.click()
   }
 
+  const openEditModal = (ev: ClockEvent) => {
+    setEditingPunch(ev)
+    const toDatetimeLocal = (iso: string | null) => {
+      if (!iso) return ''
+      const d = new Date(iso)
+      const pad = (n: number) => String(n).padStart(2, '0')
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+    }
+    setEditIn(toDatetimeLocal(ev.clock_in))
+    setEditOut(toDatetimeLocal(ev.clock_out))
+  }
+
+  const saveEditPunch = async () => {
+    if (!editingPunch) return
+    setEditSaving(true)
+    const updates: any = {}
+    if (editIn) updates.clock_in = new Date(editIn).toISOString()
+    if (editOut) updates.clock_out = new Date(editOut).toISOString()
+    else updates.clock_out = null
+    const { error } = await supabase.from('clock_events').update(updates).eq('id', editingPunch.id)
+    if (!error) {
+      setTodayEvents(prev => prev.map(e => e.id === editingPunch.id ? { ...e, ...updates } : e))
+      setClockEvents(prev => prev.map(e => e.id === editingPunch.id ? { ...e, ...updates } : e))
+    }
+    setEditSaving(false)
+    setEditingPunch(null)
+  }
+
   const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${days[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
   const latestToday = latestEventPerEmployee()
 
@@ -410,9 +454,15 @@ export default function PayrollPage() {
                     <p style={{ margin:0 }}>No clock events today yet</p>
                   </td></tr>
                 ) : latestToday.map((e: ClockEvent) => {
+                  const elapsedMs = e.clock_in && !e.clock_out
+                    ? nowTick - new Date(e.clock_in).getTime()
+                    : null
+                  const elapsedStr = elapsedMs !== null
+                    ? (() => { const h=Math.floor(elapsedMs/3600000); const m=Math.floor((elapsedMs%3600000)/60000); return `${h}h ${m}m` })()
+                    : null
                   const hrs = e.clock_in && e.clock_out
                     ? ((new Date(e.clock_out).getTime()-new Date(e.clock_in).getTime())/3600000).toFixed(1)+'h'
-                    : '—'
+                    : elapsedStr ?? '—'
                   const isOpen = !!(e.clock_in && !e.clock_out)
                   const isCurrentIn = isEmployeeCurrentlyClockedIn(e.employee_id)
                   return (
@@ -443,13 +493,18 @@ export default function PayrollPage() {
                         {!isOpen && isCurrentIn && <span style={{ marginLeft:6, fontSize:10, color:'#4ade80' }}>re-clocked in</span>}
                       </td>
                       <td style={{ padding:'11px 10px' }}>
-                        <button onClick={async () => {
-                          if (!confirm('Delete this clock entry?')) return
-                          await supabase.from('clock_events').delete().eq('id', e.id)
-                          setTodayEvents(prev => prev.filter(ev => ev.id !== e.id))
-                        }} style={{ background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.3)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>
-                          🗑
-                        </button>
+                        <div style={{ display:'flex', gap:4 }}>
+                          <button onClick={() => openEditModal(e)} style={{ background:'rgba(96,165,250,0.1)',color:'#60a5fa',border:'1px solid rgba(96,165,250,0.3)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>
+                            ✏️
+                          </button>
+                          <button onClick={async () => {
+                            if (!confirm('Delete this clock entry?')) return
+                            await supabase.from('clock_events').delete().eq('id', e.id)
+                            setTodayEvents(prev => prev.filter(ev => ev.id !== e.id))
+                          }} style={{ background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.3)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>
+                            🗑
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -598,7 +653,7 @@ export default function PayrollPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ background: '#0a0f1a', borderBottom: '1px solid #1e293b' }}>
-                {['Employee','Date','Clock In','Clock Out','Hours','Method','Status'].map(h => <th key={h} style={th}>{h}</th>)}
+                {['Employee','Date','Clock In','Clock Out','Hours','Method','Status',''].map(h => <th key={h} style={th}>{h}</th>)}
               </tr>
             </thead>
             <tbody>
@@ -635,11 +690,52 @@ export default function PayrollPage() {
                         {isActive ? '🟢 Clocked In' : '⏹ Clocked Out'}
                       </span>
                     </td>
+                    <td style={{ padding:'10px 10px' }}>
+                      <div style={{ display:'flex', gap:4 }}>
+                        <button onClick={() => openEditModal(ev)} style={{ background:'rgba(96,165,250,0.1)',color:'#60a5fa',border:'1px solid rgba(96,165,250,0.3)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>✏️</button>
+                        <button onClick={async () => {
+                          if (!confirm('Delete this punch?')) return
+                          await supabase.from('clock_events').delete().eq('id', ev.id)
+                          setClockEvents(prev => prev.filter(e => e.id !== ev.id))
+                        }} style={{ background:'rgba(248,113,113,0.1)',color:'#f87171',border:'1px solid rgba(248,113,113,0.3)',borderRadius:6,padding:'3px 8px',fontSize:11,cursor:'pointer',fontFamily:'inherit',fontWeight:600 }}>🗑</button>
+                      </div>
+                    </td>
                   </tr>
                 )
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Edit Punch Modal */}
+      {editingPunch && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:9999, fontFamily:'inherit' }}>
+          <div style={{ background:'#0f172a', border:'1px solid #334155', borderRadius:16, padding:28, width:340, boxShadow:'0 20px 60px rgba(0,0,0,0.5)' }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
+              <div>
+                <p style={{ margin:0, fontSize:16, fontWeight:700, color:'#f1f5f9' }}>Edit Punch</p>
+                <p style={{ margin:'2px 0 0', fontSize:12, color:'#64748b' }}>{editingPunch.employee_name}</p>
+              </div>
+              <button onClick={() => setEditingPunch(null)} style={{ background:'none', border:'none', color:'#64748b', fontSize:20, cursor:'pointer', lineHeight:1 }}>×</button>
+            </div>
+            <div style={{ marginBottom:14 }}>
+              <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6 }}>Clock In</label>
+              <input type="datetime-local" value={editIn} onChange={e => setEditIn(e.target.value)}
+                style={{ width:'100%', padding:'10px 12px', background:'#1e293b', border:'1px solid #334155', borderRadius:8, color:'#f1f5f9', fontSize:14, fontFamily:'inherit', boxSizing:'border-box' }} />
+            </div>
+            <div style={{ marginBottom:20 }}>
+              <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6 }}>Clock Out <span style={{ fontWeight:400, color:'#475569' }}>(leave blank = still clocked in)</span></label>
+              <input type="datetime-local" value={editOut} onChange={e => setEditOut(e.target.value)}
+                style={{ width:'100%', padding:'10px 12px', background:'#1e293b', border:'1px solid #334155', borderRadius:8, color:'#f1f5f9', fontSize:14, fontFamily:'inherit', boxSizing:'border-box' }} />
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <button onClick={() => setEditingPunch(null)} style={{ flex:1, padding:'10px', background:'transparent', border:'1px solid #334155', borderRadius:8, color:'#94a3b8', cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:'inherit' }}>Cancel</button>
+              <button onClick={saveEditPunch} disabled={editSaving} style={{ flex:2, padding:'10px', background:'#16a34a', border:'none', borderRadius:8, color:'#fff', cursor: editSaving ? 'default' : 'pointer', fontSize:13, fontWeight:700, fontFamily:'inherit', opacity: editSaving ? 0.7 : 1 }}>
+                {editSaving ? 'Saving…' : '✓ Save Changes'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
