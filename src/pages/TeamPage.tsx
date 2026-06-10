@@ -385,46 +385,42 @@ export default function TeamPage() {
     if (addMode === 'manual' && !manualPassword.trim()) { setError('Password is required for manual add.'); return }
     setSaving(true); setError(null)
     try {
-      if (addMode === 'invite') {
-        const { error: err } = await supabase.auth.admin.inviteUserByEmail(inviteEmail.trim(), {
-          data: { full_name: inviteName.trim(), role: inviteRole }
-        })
-        if (err) throw new Error(err.message)
-        setSuccess(`Invite sent to ${inviteEmail}!`)
-      } else {
-        // Manual create with password
-        const { data, error: err } = await supabase.auth.admin.createUser({
+      const { data, error: fnErr } = await supabase.functions.invoke('invite-user', {
+        body: {
+          mode: addMode === 'invite' ? 'invite' : 'manual',
           email: inviteEmail.trim(),
-          password: manualPassword.trim(),
-          email_confirm: true,
-          user_metadata: { full_name: inviteName.trim(), role: inviteRole }
-        })
-        if (err) throw new Error(err.message)
-        // Create user_profile record
-        if (data?.user) {
-          await supabase.from('user_profiles').upsert({
-            id: data.user.id,
-            full_name: inviteName.trim(),
-            role: inviteRole,
-            active: true,
-          })
-          // Save personal info to employee_details
-          await supabase.from('employee_details').upsert({
-            user_id: data.user.id,
-            full_name: inviteName.trim(),
-            work_email: inviteEmail.trim(),
-            personal_email: invitePersonalEmail.trim()||null,
-            phone: invitePhone.trim()||null,
-            address: inviteAddress.trim()||null,
-            city: inviteCity.trim()||null,
-            state: inviteState.trim()||null,
-            zip: inviteZip.trim()||null,
-            ssn: inviteSSN.trim()||null,
-            filing_status: inviteFilingStatus||null,
-            employee_type: inviteEmpType,
-            paperwork_files: paperworkFiles.length > 0 ? JSON.stringify(paperworkFiles) : null,
-          })
+          full_name: inviteName.trim(),
+          role: inviteRole,
+          password: manualPassword.trim() || undefined,
+          phone: invitePhone.trim() || undefined,
+          personal_email: invitePersonalEmail.trim() || undefined,
+          address: inviteAddress.trim() || undefined,
+          city: inviteCity.trim() || undefined,
+          state: inviteState.trim() || undefined,
+          zip: inviteZip.trim() || undefined,
+          ssn: inviteSSN.trim() || undefined,
+          filing_status: inviteFilingStatus || undefined,
+          employee_type: inviteEmpType,
+          paperwork_files: paperworkFiles.length > 0 ? paperworkFiles : undefined,
         }
+      })
+      if (fnErr || (data && data.error)) throw new Error((data && data.error) || fnErr?.message || 'Invite failed')
+      setSuccess(
+        addMode === 'invite'
+          ? `Invite sent to ${inviteEmail}!`
+          : `${inviteName} added successfully! They can log in with their email and the password you set.`
+      )
+      setShowInvite(false)
+      setInviteEmail(''); setInviteName(''); setInviteRole('worker_limited'); setManualPassword('')
+      setInvitePhone(''); setInvitePersonalEmail(''); setInviteAddress(''); setInviteCity('')
+      setInviteState(''); setInviteZip(''); setInviteSSN(''); setInviteFilingStatus(''); setInviteEmpType('W2')
+      setPaperworkFiles([])
+      setTimeout(() => setSuccess(null), 5000)
+      loadMembers()
+    } catch (e: any) { setError('Failed: ' + e.message) }
+    setSaving(false)
+  }
+
         setSuccess(`${inviteName} added successfully! They can log in with their email and the password you set.`)
       }
       setShowInvite(false)
