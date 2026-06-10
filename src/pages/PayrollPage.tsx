@@ -81,31 +81,41 @@ export default function PayrollPage() {
   const days = weekDays(weekStart)
   const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
-  useEffect(() => {
-    const load = async () => {
-      setLoading(true)
-      // Use local date boundaries — Supabase stores UTC but we query by local date
-      const todayLocal = localDateStr(new Date())
-      // Build UTC range for today in local timezone
-      const todayStart = new Date(todayLocal + 'T00:00:00')
-      const todayEnd   = new Date(todayLocal + 'T23:59:59.999')
+  const loadPayrollData = async (currentWeekStart: Date) => {
+    setLoading(true)
+    // Today boundaries in local time, converted to UTC for Supabase
+    const now = new Date()
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0)
+    const todayEnd   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
 
-      const [empRes, clockRes, todayRes] = await Promise.all([
-        supabase.from('employees').select('*').eq('active', true).order('fname'),
-        supabase.from('clock_events').select('*')
-          .gte('clock_in', weekStart.toISOString())
-          .lt('clock_in', new Date(weekStart.getTime() + 7 * 86400000).toISOString()),
-        supabase.from('clock_events').select('*')
-          .gte('clock_in', todayStart.toISOString())
-          .lte('clock_in', todayEnd.toISOString())
-          .order('clock_in', { ascending: false }),
-      ])
-      setEmployees(empRes.data ?? [])
-      setClockEvents(clockRes.data ?? [])
-      setTodayEvents(todayRes.data ?? [])
-      setLoading(false)
-    }
-    load()
+    const [empRes, clockRes, todayRes] = await Promise.all([
+      supabase.from('employees').select('*').eq('active', true).order('fname'),
+      supabase.from('clock_events').select('*')
+        .gte('clock_in', currentWeekStart.toISOString())
+        .lt('clock_in', new Date(currentWeekStart.getTime() + 7 * 86400000).toISOString()),
+      supabase.from('clock_events').select('*')
+        .gte('clock_in', todayStart.toISOString())
+        .lte('clock_in', todayEnd.toISOString())
+        .order('clock_in', { ascending: false }),
+    ])
+    setEmployees(empRes.data ?? [])
+    setClockEvents(clockRes.data ?? [])
+    setTodayEvents(todayRes.data ?? [])
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    loadPayrollData(weekStart)
+
+    // Realtime — refresh all data instantly when any clock event changes
+    const channel = supabase
+      .channel('payroll-clock-events')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clock_events' }, () => {
+        loadPayrollData(weekStart)
+      })
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [weekOffset])
 
   const clockHours = (empId: string, dayIdx: number): number => {
