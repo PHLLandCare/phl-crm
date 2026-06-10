@@ -15,6 +15,18 @@ interface Invoice {
   payment_terms: string
   notes: string
   created_at: string
+  paid_at?: string
+}
+
+interface Payment {
+  id: number
+  invoice_id: string
+  invoice_number?: string
+  client_name?: string
+  amount: number
+  method: string
+  note?: string
+  paid_at: string
 }
 
 interface LineItem { name: string; description: string; qty: number; unit_price: number }
@@ -47,6 +59,7 @@ export default function InvoicesPage() {
   const [showBatch, setShowBatch] = useState(false)
   const [selected, setSelected]   = useState<Set<string>>(new Set())
   const [openInvoice, setOpenInvoice] = useState<Invoice|null>(null)
+  const [invoicePayments, setInvoicePayments] = useState<Payment[]>([])
   const [showPayModal, setShowPayModal] = useState(false)
   const [payAmount, setPayAmount] = useState('')
   const [payMethod, setPayMethod] = useState('Square')
@@ -124,9 +137,11 @@ export default function InvoicesPage() {
   }, [])
 
   useEffect(() => {
-    if (!openInvoice) { setOpenInvoiceLineItems([]); return }
+    if (!openInvoice) { setOpenInvoiceLineItems([]); setInvoicePayments([]); return }
     supabase.from('invoice_line_items').select('*').eq('invoice_id', openInvoice.id).order('id')
       .then(({ data }) => setOpenInvoiceLineItems(data ?? []))
+    supabase.from('payments').select('*').eq('invoice_id', openInvoice.id).order('paid_at', {ascending:false})
+      .then(({ data }) => setInvoicePayments(data ?? []))
   }, [openInvoice])
 
   useEffect(() => {
@@ -205,18 +220,52 @@ export default function InvoicesPage() {
 
   const handleMarkPaid = async (inv: Invoice) => {
     const newStatus = (inv.status==='paid'||inv.status==='Paid') ? 'sent' : 'paid'
-    await supabase.from('invoices').update({status:newStatus, balance:newStatus==='paid'?0:inv.amount, updated_at:new Date().toISOString()}).eq('id',inv.id)
+    const now = new Date().toISOString()
+    await supabase.from('invoices').update({
+      status: newStatus,
+      balance: newStatus==='paid' ? 0 : inv.amount,
+      paid_at: newStatus==='paid' ? now : null,
+      updated_at: now
+    }).eq('id', inv.id)
+    // Log payment record when marking paid
+    if (newStatus === 'paid') {
+      await supabase.from('payments').insert({
+        invoice_id: inv.id,
+        invoice_number: inv.invoice_number,
+        client_name: inv.client_name,
+        amount: inv.amount,
+        method: 'Manual',
+        note: 'Marked as paid',
+        paid_at: now,
+      })
+    }
     loadInvoices()
-    if (openInvoice?.id === inv.id) setOpenInvoice({...openInvoice, status:newStatus, balance:newStatus==='paid'?0:inv.amount})
+    if (openInvoice?.id === inv.id) setOpenInvoice({...openInvoice, status:newStatus, balance:newStatus==='paid'?0:inv.amount, paid_at:newStatus==='paid'?now:undefined})
     showToast(newStatus==='paid' ? `✅ Invoice #${inv.invoice_number} marked as paid!` : `Invoice #${inv.invoice_number} marked as sent`)
   }
 
   const handleRecordPayment = async () => {
     if (!openInvoice || !payAmount) return
     const amt = parseFloat(payAmount)
+    const now = new Date().toISOString()
     const newBalance = Math.max(0, (openInvoice.balance||openInvoice.amount||0) - amt)
     const newStatus = newBalance <= 0 ? 'paid' : 'partial'
-    await supabase.from('invoices').update({status:newStatus, balance:newBalance, updated_at:new Date().toISOString()}).eq('id',openInvoice.id)
+    await supabase.from('invoices').update({
+      status: newStatus,
+      balance: newBalance,
+      paid_at: newStatus === 'paid' ? now : openInvoice.paid_at || null,
+      updated_at: now
+    }).eq('id', openInvoice.id)
+    // Always log the payment to payments table
+    await supabase.from('payments').insert({
+      invoice_id: openInvoice.id,
+      invoice_number: openInvoice.invoice_number,
+      client_name: openInvoice.client_name,
+      amount: amt,
+      method: payMethod,
+      note: payNote || null,
+      paid_at: now,
+    })
     loadInvoices()
     setOpenInvoice({...openInvoice, status:newStatus, balance:newBalance})
     setShowPayModal(false); setPayAmount(''); setPayNote('')
@@ -417,6 +466,35 @@ export default function InvoicesPage() {
             <div style={{background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.25rem'}}>
               <h3 style={{margin:'0 0 8px',fontSize:14,fontWeight:700,color:'#f1f5f9'}}>Notes</h3>
               <p style={{margin:0,fontSize:13,color:'#cbd5e1'}}>{inv.notes}</p>
+            </div>
+          )}
+
+          {/* Payment History */}
+          {invoicePayments.length > 0 && (
+            <div style={{background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.25rem'}}>
+              <h3 style={{margin:'0 0 16px',fontSize:14,fontWeight:700,color:'#f1f5f9'}}>Payment History</h3>
+              <table style={{width:'100%',borderCollapse:'collapse'}}>
+                <thead><tr style={{borderBottom:'1px solid #1e293b'}}>
+                  {['Date','Amount','Method','Note'].map(h=><th key={h} style={{padding:'6px 12px',textAlign:'left',fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase'}}>{h}</th>)}
+                </tr></thead>
+                <tbody>
+                  {invoicePayments.map((p,i)=>(
+                    <tr key={p.id} style={{borderBottom:'1px solid #1e293b'}}>
+                      <td style={{padding:'10px 12px',fontSize:12,color:'#94a3b8'}}>{new Date(p.paid_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
+                      <td style={{padding:'10px 12px',fontSize:14,fontWeight:700,color:'#4ade80'}}>${p.amount.toFixed(2)}</td>
+                      <td style={{padding:'10px 12px',fontSize:12}}><span style={{background:'rgba(96,165,250,0.15)',color:'#60a5fa',padding:'2px 8px',borderRadius:99,fontSize:11,fontWeight:600}}>{p.method}</span></td>
+                      <td style={{padding:'10px 12px',fontSize:12,color:'#64748b'}}>{p.note||'—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr style={{borderTop:'2px solid #1e293b'}}>
+                    <td style={{padding:'10px 12px',fontSize:12,fontWeight:700,color:'#475569',textTransform:'uppercase'}}>Total Paid</td>
+                    <td style={{padding:'10px 12px',fontSize:14,fontWeight:800,color:'#4ade80'}}>${invoicePayments.reduce((s,p)=>s+p.amount,0).toFixed(2)}</td>
+                    <td colSpan={2}></td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           )}
 
