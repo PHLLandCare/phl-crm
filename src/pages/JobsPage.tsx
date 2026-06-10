@@ -177,9 +177,18 @@ export default function JobsPage() {
   const sc = (s: string) => STATUS_COLORS[s?.toLowerCase()] || STATUS_COLORS.draft
   const statusLabel = (s: string) => s.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())
 
+  const now_f = new Date()
+  const now30_f = new Date(); now30_f.setDate(now30_f.getDate() + 30)
   const filtered = jobs.filter(j => {
     const matchSearch = `${j.job_number} ${j.client_name} ${j.title}`.toLowerCase().includes(search.toLowerCase())
-    const matchStatus = statusFilter === 'All' ? true : j.status === statusFilter.toLowerCase().replace(' ', '_')
+    let matchStatus = true
+    if (statusFilter === 'All') matchStatus = true
+    else if (statusFilter === 'late') matchStatus = !!j.scheduled_start && new Date(j.scheduled_start) < now_f && j.status !== 'completed' && j.status !== 'cancelled'
+    else if (statusFilter === 'requires_invoicing') matchStatus = j.status === 'completed' && !j.invoiced
+    else if (statusFilter === 'action_required') matchStatus = j.status === 'action_required'
+    else if (statusFilter === 'unscheduled') matchStatus = !j.scheduled_start && j.status !== 'completed' && j.status !== 'cancelled'
+    else if (statusFilter === 'ending_30') matchStatus = !!j.scheduled_end && new Date(j.scheduled_end) <= now30_f && new Date(j.scheduled_end) >= now_f && j.status !== 'completed' && j.status !== 'cancelled'
+    else matchStatus = j.status === statusFilter.toLowerCase().replace(' ', '_')
     return matchSearch && matchStatus
   })
 
@@ -349,11 +358,25 @@ export default function JobsPage() {
 
   const filteredServices = PHL_SERVICES.filter(s => s.name.toLowerCase().includes(serviceSearch.toLowerCase()))
 
+  const now30 = new Date(); now30.setDate(now30.getDate() + 30)
+  const past30 = new Date(); past30.setDate(past30.getDate() - 30)
+
   const stats = {
     total: jobs.length,
     scheduled: jobs.filter(j => j.status === 'scheduled').length,
     inProgress: jobs.filter(j => j.status === 'in_progress').length,
     completed: jobs.filter(j => j.status === 'completed').length,
+    // Jobber overview counts
+    endingIn30: jobs.filter(j => j.scheduled_end && new Date(j.scheduled_end) <= now30 && new Date(j.scheduled_end) >= new Date() && j.status !== 'completed' && j.status !== 'cancelled').length,
+    late: jobs.filter(j => j.scheduled_start && new Date(j.scheduled_start) < new Date() && j.status !== 'completed' && j.status !== 'cancelled').length,
+    requiresInvoicing: jobs.filter(j => j.status === 'completed' && !j.invoiced).length,
+    actionRequired: jobs.filter(j => j.status === 'action_required').length,
+    unscheduled: jobs.filter(j => !j.scheduled_start && j.status !== 'completed' && j.status !== 'cancelled').length,
+    // Visit stats
+    recentVisits: jobs.filter(j => j.actual_end && new Date(j.actual_end) >= past30).length,
+    recentRevenue: jobs.filter(j => j.actual_end && new Date(j.actual_end) >= past30).reduce((s,j) => s + (j.total_amount||0), 0),
+    upcomingVisits: jobs.filter(j => j.scheduled_start && new Date(j.scheduled_start) <= now30 && new Date(j.scheduled_start) >= new Date()).length,
+    upcomingRevenue: jobs.filter(j => j.scheduled_start && new Date(j.scheduled_start) <= now30 && new Date(j.scheduled_start) >= new Date()).reduce((s,j) => s + (j.total_amount||0), 0),
   }
 
   const inp: React.CSSProperties = { width:'100%',padding:'9px 11px',border:'1px solid #1e293b',borderRadius:8,fontSize:13,fontFamily:'inherit',outline:'none',background:'#0f172a',color:'#f1f5f9',boxSizing:'border-box' }
@@ -482,19 +505,59 @@ export default function JobsPage() {
         <button onClick={openCreate} style={{ background:'#16a34a',color:'#fff',border:'none',borderRadius:9,padding:'10px 20px',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>+ New Job</button>
       </div>
 
-      <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:'1.5rem' }}>
-        {[
-          { label:'Total Jobs',  value:stats.total,      sub:'all time',  color:'#60a5fa' },
-          { label:'Scheduled',   value:stats.scheduled,  sub:'upcoming',  color:'#a855f7' },
-          { label:'In Progress', value:stats.inProgress, sub:'active now',color:'#fbbf24' },
-          { label:'Completed',   value:stats.completed,  sub:'done',      color:'#4ade80' },
-        ].map((s,i) => (
-          <div key={i} style={{ background:'#0f172a',border:'1px solid #1e293b',borderTop:`3px solid ${s.color}`,borderRadius:14,padding:'1rem 1.25rem' }}>
-            <p style={{ margin:'0 0 2px',fontSize:11,color:s.color,fontWeight:700 }}>{s.label}</p>
-            <p style={{ margin:'0 0 4px',fontSize:11,color:'#475569' }}>{s.sub}</p>
-            <span style={{ fontSize:28,fontWeight:800,color:'#f1f5f9' }}>{s.value}</span>
-          </div>
-        ))}
+      {/* Jobber-style Overview + Visit Stats */}
+      <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:16,marginBottom:24 }}>
+        {/* Overview card */}
+        <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.25rem' }}>
+          <p style={{ margin:'0 0 12px',fontSize:13,fontWeight:700,color:'#f1f5f9' }}>Overview</p>
+          {[
+            { dot:'#f87171', label:'Ending within 30 days', count:stats.endingIn30, filter:'ending_30' },
+            { dot:'#f87171', label:'Late', count:stats.late, filter:'late' },
+            { dot:'#fbbf24', label:'Requires Invoicing', count:stats.requiresInvoicing, filter:'requires_invoicing' },
+            { dot:'#fbbf24', label:'Action Required', count:stats.actionRequired, filter:'action_required' },
+            { dot:'#fbbf24', label:'Unscheduled', count:stats.unscheduled, filter:'unscheduled' },
+          ].map(item => (
+            <div key={item.label} onClick={() => setStatusFilter(item.filter)}
+              style={{ display:'flex',alignItems:'center',gap:8,padding:'4px 6px',borderRadius:6,cursor:'pointer',marginBottom:2, background: statusFilter===item.filter?'rgba(96,165,250,0.08)':'transparent' }}>
+              <span style={{ width:8,height:8,borderRadius:'50%',background:item.dot,flexShrink:0,display:'inline-block' }}/>
+              <span style={{ fontSize:13,color:'#94a3b8',flex:1 }}>{item.label}</span>
+              <span style={{ fontSize:13,fontWeight:700,color:'#f1f5f9' }}>({item.count})</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Recent Visits */}
+        <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.25rem' }}>
+          <p style={{ margin:'0 0 4px',fontSize:13,fontWeight:700,color:'#f1f5f9' }}>Recent visits</p>
+          <p style={{ margin:'0 0 12px',fontSize:11,color:'#64748b' }}>Past 30 days</p>
+          <div style={{ fontSize:36,fontWeight:800,color:'#f1f5f9',marginBottom:4 }}>{stats.recentVisits}</div>
+          <div style={{ fontSize:13,color:'#64748b' }}>${stats.recentRevenue.toLocaleString()}</div>
+        </div>
+
+        {/* Visits Scheduled */}
+        <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.25rem' }}>
+          <p style={{ margin:'0 0 4px',fontSize:13,fontWeight:700,color:'#f1f5f9' }}>Visits scheduled</p>
+          <p style={{ margin:'0 0 12px',fontSize:11,color:'#64748b' }}>Next 30 days</p>
+          <div style={{ fontSize:36,fontWeight:800,color:'#f1f5f9',marginBottom:4 }}>{stats.upcomingVisits}</div>
+          <div style={{ fontSize:13,color:'#64748b' }}>${stats.upcomingRevenue.toLocaleString()}</div>
+        </div>
+
+        {/* Win More Work placeholder */}
+        <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.25rem' }}>
+          <p style={{ margin:'0 0 8px',fontSize:13,fontWeight:700,color:'#f1f5f9' }}>All jobs</p>
+          {[
+            { label:'Total', value:stats.total, color:'#60a5fa', filter:'All' },
+            { label:'Scheduled', value:stats.scheduled, color:'#a855f7', filter:'Scheduled' },
+            { label:'In Progress', value:stats.inProgress, color:'#fbbf24', filter:'In Progress' },
+            { label:'Completed', value:stats.completed, color:'#4ade80', filter:'Completed' },
+          ].map(s => (
+            <div key={s.label} onClick={() => setStatusFilter(s.filter)}
+              style={{ display:'flex',justifyContent:'space-between',alignItems:'center',padding:'3px 6px',borderRadius:6,cursor:'pointer',marginBottom:2,background:statusFilter===s.filter?'rgba(96,165,250,0.08)':'transparent' }}>
+              <span style={{ fontSize:13,color:'#94a3b8' }}>{s.label}</span>
+              <span style={{ fontSize:13,fontWeight:700,color:s.color }}>{s.value}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div style={{ display:'flex',gap:8,marginBottom:12,flexWrap:'wrap',alignItems:'center' }}>

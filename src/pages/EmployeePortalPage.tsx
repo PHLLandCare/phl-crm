@@ -253,7 +253,7 @@ export default function EmployeePortalPage() {
             <div style={{ fontSize:13, color:'#64748b' }}>{now.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</div>
           </div>
 
-          {/* Clock in/out big button */}
+          {/* Clock in/out — only for remote employee PHL-0001 (Romy). Field workers use QR kiosk. */}
           <div style={{ ...CARD, marginBottom:16, textAlign:'center' }}>
             <div style={{ fontSize:28, fontWeight:800, color:'#f1f5f9', fontVariantNumeric:'tabular-nums', marginBottom:4 }}>
               {now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})}
@@ -264,10 +264,16 @@ export default function EmployeePortalPage() {
               </div>
             )}
             {clockMsg && <div style={{ fontSize:13, color:'#4ade80', marginBottom:8 }}>{clockMsg}</div>}
-            <button onClick={handleClockToggle} disabled={clocking}
-              style={{ width:'100%', padding:'16px', background: openEvent ? '#dc2626' : '#16a34a', border:'none', borderRadius:12, color:'#fff', fontSize:18, fontWeight:800, cursor:'pointer', fontFamily:'inherit', opacity: clocking ? 0.7 : 1 }}>
-              {clocking ? '...' : openEvent ? '⏹ Clock Out' : '▶ Clock In'}
-            </button>
+            {emp.employee_id.toUpperCase() === 'PHL-0001' ? (
+              <button onClick={handleClockToggle} disabled={clocking}
+                style={{ width:'100%', padding:'16px', background: openEvent ? '#dc2626' : '#16a34a', border:'none', borderRadius:12, color:'#fff', fontSize:18, fontWeight:800, cursor:'pointer', fontFamily:'inherit', opacity: clocking ? 0.7 : 1 }}>
+                {clocking ? '...' : openEvent ? '⏹ Clock Out' : '▶ Clock In'}
+              </button>
+            ) : (
+              <div style={{ background:'#1e293b', borderRadius:12, padding:'16px', fontSize:14, color:'#64748b' }}>
+                📍 Clock in/out at the job site QR kiosk
+              </div>
+            )}
           </div>
 
           {/* Quick stats */}
@@ -328,7 +334,7 @@ export default function EmployeePortalPage() {
             </button>
           </div>
 
-          <div style={{ ...CARD }}>
+          <div style={{ ...CARD, overflow:'visible' }}>
             <div style={{ fontSize:13, fontWeight:700, color:'#f1f5f9', marginBottom:12 }}>
               Punch History — <span style={{ color:'#64748b', fontWeight:400 }}>{weekLabel}</span>
               <span style={{ marginLeft:8, fontSize:13, color:'#4ade80', fontWeight:800 }}>{weekHours.toFixed(1)}h total</span>
