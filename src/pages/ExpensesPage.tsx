@@ -13,15 +13,21 @@ interface Expense {
   receipt_url: string
 }
 
+interface Job {
+  id: number
+  title: string
+  job_number: string
+}
+
 const inp  = {width:'100%',padding:'10px 14px',background:'#1a2332',border:'1px solid #2d3f55',borderRadius:8,fontSize:14,boxSizing:'border-box' as const,outline:'none',color:'#f1f5f9',fontFamily:'inherit'}
 const lbl  = {fontSize:13,fontWeight:500,color:'#94a3b8',display:'block',marginBottom:6}
 
 const REIMBURSE_OPTIONS = ['Not reimbursable','Romy Cruz','Brandon M Ryan','Carlyn Fagarass','Cory Mazziotta','David Hernandez','Levi Rosales','John Jr Fagarass']
-
 const EXPENSE_CATEGORIES = ['All','Fuel','Labor','Equipment','Materials','Vehicle','Insurance','Office','Utilities','Subcontractor','Other']
 
 export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([])
+  const [jobs, setJobs]         = useState<Job[]>([])
   const [loading, setLoading]   = useState(true)
   const [search, setSearch]     = useState('')
   const [showAdd, setShowAdd]   = useState(false)
@@ -43,11 +49,29 @@ export default function ExpensesPage() {
     setLoading(false)
   }
 
+  const loadJobs = async () => {
+    const { data } = await supabase
+      .from('jobs')
+      .select('id,title,job_number')
+      .not('status','eq','cancelled')
+      .order('created_at',{ascending:false})
+      .limit(200)
+    setJobs(data ?? [])
+  }
+
   useEffect(() => {
     loadExpenses()
+    loadJobs()
     const ch = supabase.channel('expenses').on('postgres_changes',{event:'*',schema:'public',table:'expenses'},loadExpenses).subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [])
+
+  const resetForm = () => setForm({
+    item_name:'',description:'',amount:'0.00',category:'Fuel',
+    reimburse_to:'Not reimbursable',job_id:'',
+    expense_date:new Date().toLocaleDateString('en-US',{month:'short',day:'2-digit',year:'numeric'}),
+    receipt_url:''
+  })
 
   const handleAdd = async () => {
     if (!form.item_name) return
@@ -56,20 +80,21 @@ export default function ExpensesPage() {
         item_name: form.item_name, description: form.description,
         amount: parseFloat(form.amount)||0, category: form.category,
         reimburse_to: form.reimburse_to, expense_date: form.expense_date,
+        job_id: form.job_id || null,
       }).eq('id', editing.id)
       setEditing(null)
       showToast('✅ Expense updated!')
     } else {
       await supabase.from('expenses').insert({
         item_name: form.item_name, description: form.description,
-        amount: parseFloat(form.amount)||0, category: (form as any).category||'Other',
+        amount: parseFloat(form.amount)||0, category: form.category||'Other',
         reimburse_to: form.reimburse_to, job_id: form.job_id||null,
         expense_date: form.expense_date, receipt_url: form.receipt_url||null,
       })
       showToast('✅ Expense added!')
     }
     setShowAdd(false)
-    setForm({item_name:'',description:'',amount:'0.00',category:'Fuel',reimburse_to:'Not reimbursable',job_id:'',expense_date:new Date().toLocaleDateString('en-US',{month:'short',day:'2-digit',year:'numeric'}),receipt_url:''})
+    resetForm()
   }
 
   const handleDelete = async (id:string) => {
@@ -93,10 +118,9 @@ export default function ExpensesPage() {
           <h1 style={{fontSize:24,fontWeight:700,color:'#f1f5f9',margin:'0 0 4px'}}>Expenses</h1>
           <p style={{fontSize:14,color:'#64748b',margin:0}}>Total: <span style={{color:'#4ade80',fontWeight:700}}>${total.toLocaleString('en-US',{minimumFractionDigits:2})}</span></p>
         </div>
-        <button onClick={()=>setShowAdd(true)} style={{background:'#16a34a',color:'#fff',border:'none',borderRadius:10,padding:'10px 20px',fontSize:14,fontWeight:600,cursor:'pointer'}}>+ Add Expense</button>
+        <button onClick={()=>{resetForm();setEditing(null);setShowAdd(true)}} style={{background:'#16a34a',color:'#fff',border:'none',borderRadius:10,padding:'10px 20px',fontSize:14,fontWeight:600,cursor:'pointer'}}>+ Add Expense</button>
       </div>
 
-      {/* Toast */}
       {toast && <div style={{position:'fixed',top:'1rem',right:'1rem',background:'#052e16',border:'1px solid #16a34a',borderRadius:10,padding:'10px 18px',fontSize:14,color:'#4ade80',fontWeight:600,zIndex:9999}}>{toast}</div>}
 
       {/* Stats by category */}
@@ -114,11 +138,14 @@ export default function ExpensesPage() {
 
       {/* Export + Search */}
       <div style={{display:'flex',gap:8,marginBottom:'1rem',alignItems:'center'}}>
-      <input placeholder="Search expenses..." value={search} onChange={e=>setSearch(e.target.value)}
-        style={{...inp,flex:1,background:'#0f172a',border:'1.5px solid #1e293b',borderRadius:10,padding:'0 14px',height:44}} />
+        <input placeholder="Search expenses..." value={search} onChange={e=>setSearch(e.target.value)}
+          style={{...inp,flex:1,background:'#0f172a',border:'1.5px solid #1e293b',borderRadius:10,padding:'0 14px',height:44}} />
         <button onClick={()=>{
-          const rows=[['Date','Category','Item','Description','Amount','Reimbursed To']]
-          filtered.forEach(e=>rows.push([e.expense_date||'',e.category||'',e.item_name||'',e.description||'',String(e.amount||0),e.reimburse_to||'']))
+          const rows=[['Date','Category','Item','Description','Amount','Reimbursed To','Job']]
+          filtered.forEach(e=>{
+            const job = jobs.find(j=>String(j.id)===String(e.job_id))
+            rows.push([e.expense_date||'',e.category||'',e.item_name||'',e.description||'',String(e.amount||0),e.reimburse_to||'',job?`#${job.job_number} ${job.title}`:''])
+          })
           const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n')
           const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='expenses.csv';a.click()
         }} style={{padding:'0 16px',height:44,background:'#1e293b',border:'1px solid #334155',borderRadius:10,color:'#94a3b8',cursor:'pointer',fontSize:13,fontFamily:'inherit',whiteSpace:'nowrap',fontWeight:600}}>
@@ -132,34 +159,47 @@ export default function ExpensesPage() {
           <table style={{width:'100%',borderCollapse:'collapse'}}>
             <thead>
               <tr style={{borderBottom:'1px solid #1e293b',background:'#0a0f1a'}}>
-                {['Date','Item','Description','Amount','Reimbursed To',''].map(h=>(
+                {['Date','Item','Category','Amount','Reimbursed To','Job',''].map(h=>(
                   <th key={h} style={{padding:'11px 16px',textAlign:'left',fontSize:11,fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.05em',whiteSpace:'nowrap'}}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length===0 ? (
-                <tr><td colSpan={6} style={{padding:'2.5rem',textAlign:'center',color:'#475569'}}>No expenses found</td></tr>
-              ) : filtered.map((e,idx)=>(
-                <tr key={e.id} style={{borderBottom:'1px solid #1e293b',background:idx%2===0?'transparent':'rgba(255,255,255,0.02)'}}>
-                  <td style={{padding:'13px 16px',fontSize:13,color:'#64748b',whiteSpace:'nowrap'}}>{e.expense_date||'—'}</td>
-                  <td style={{padding:'13px 16px',fontSize:14,fontWeight:600,color:'#f1f5f9'}}>{e.item_name||e.description||'—'}</td>
-                  <td style={{padding:'13px 16px',fontSize:13,color:'#94a3b8',maxWidth:240}}>{e.description||'—'}</td>
-                  <td style={{padding:'13px 16px',fontSize:15,fontWeight:800,color:'#4ade80'}}>${(e.amount||0).toFixed(2)}</td>
-                  <td style={{padding:'13px 16px',fontSize:13,color:e.reimburse_to&&e.reimburse_to!=='Not reimbursable'?'#fcd34d':'#475569'}}>{e.reimburse_to||'—'}</td>
-                  <td style={{padding:'13px 16px',display:'flex',gap:6}}>
-                    <button onClick={()=>{setEditing(e);setForm({item_name:e.item_name||'',description:e.description||'',amount:String(e.amount||''),category:(e as any).category||'Other',reimburse_to:e.reimburse_to||'Not reimbursable',job_id:e.job_id||'',expense_date:e.expense_date||'',receipt_url:e.receipt_url||''});setShowAdd(true)}} style={{background:'rgba(74,222,128,0.1)',color:'#4ade80',border:'1px solid rgba(74,222,128,0.2)',borderRadius:6,padding:'4px 10px',fontSize:12,cursor:'pointer',fontWeight:600}}>Edit</button>
-                    <button onClick={()=>handleDelete(e.id)} style={{background:'#450a0a',color:'#fca5a5',border:'none',borderRadius:6,padding:'4px 10px',fontSize:12,cursor:'pointer',fontWeight:600}}>Delete</button>
-                  </td>
-                </tr>
-              ))}
+                <tr><td colSpan={7} style={{padding:'2.5rem',textAlign:'center',color:'#475569'}}>No expenses found</td></tr>
+              ) : filtered.map((e,idx)=>{
+                const job = jobs.find(j=>String(j.id)===String(e.job_id))
+                return (
+                  <tr key={e.id} style={{borderBottom:'1px solid #1e293b',background:idx%2===0?'transparent':'rgba(255,255,255,0.02)'}}>
+                    <td style={{padding:'13px 16px',fontSize:13,color:'#64748b',whiteSpace:'nowrap'}}>{e.expense_date||'—'}</td>
+                    <td style={{padding:'13px 16px',fontSize:14,fontWeight:600,color:'#f1f5f9'}}>{e.item_name||e.description||'—'}</td>
+                    <td style={{padding:'13px 16px'}}>
+                      <span style={{background:'#1e293b',color:'#94a3b8',padding:'2px 8px',borderRadius:6,fontSize:11,fontWeight:600}}>{e.category||'—'}</span>
+                    </td>
+                    <td style={{padding:'13px 16px',fontSize:15,fontWeight:800,color:'#4ade80'}}>${(e.amount||0).toFixed(2)}</td>
+                    <td style={{padding:'13px 16px',fontSize:13,color:e.reimburse_to&&e.reimburse_to!=='Not reimbursable'?'#fcd34d':'#475569'}}>{e.reimburse_to||'—'}</td>
+                    <td style={{padding:'13px 16px',fontSize:12,color:'#60a5fa'}}>
+                      {job ? `#${job.job_number} ${job.title.length>20?job.title.slice(0,20)+'…':job.title}` : <span style={{color:'#334155'}}>—</span>}
+                    </td>
+                    <td style={{padding:'13px 16px'}}>
+                      <div style={{display:'flex',gap:6}}>
+                        {e.receipt_url && (
+                          <a href={e.receipt_url} target="_blank" rel="noreferrer" style={{background:'rgba(96,165,250,0.1)',color:'#60a5fa',border:'1px solid rgba(96,165,250,0.2)',borderRadius:6,padding:'4px 10px',fontSize:12,textDecoration:'none',fontWeight:600}}>📎</a>
+                        )}
+                        <button onClick={()=>{setEditing(e);setForm({item_name:e.item_name||'',description:e.description||'',amount:String(e.amount||''),category:(e as any).category||'Other',reimburse_to:e.reimburse_to||'Not reimbursable',job_id:e.job_id||'',expense_date:e.expense_date||'',receipt_url:e.receipt_url||''});setShowAdd(true)}} style={{background:'rgba(74,222,128,0.1)',color:'#4ade80',border:'1px solid rgba(74,222,128,0.2)',borderRadius:6,padding:'4px 10px',fontSize:12,cursor:'pointer',fontWeight:600}}>Edit</button>
+                        <button onClick={()=>handleDelete(e.id)} style={{background:'#450a0a',color:'#fca5a5',border:'none',borderRadius:6,padding:'4px 10px',fontSize:12,cursor:'pointer',fontWeight:600}}>Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
             {filtered.length>0 && (
               <tfoot>
                 <tr style={{borderTop:'2px solid #1e293b',background:'#0a0f1a'}}>
                   <td colSpan={3} style={{padding:'13px 16px',fontSize:12,fontWeight:700,color:'#64748b',textTransform:'uppercase',letterSpacing:'0.05em'}}>Total ({filtered.length} expenses)</td>
                   <td style={{padding:'13px 16px',fontSize:16,fontWeight:800,color:'#4ade80'}}>${filtered.reduce((s,e)=>s+(e.amount||0),0).toFixed(2)}</td>
-                  <td colSpan={2}></td>
+                  <td colSpan={3}></td>
                 </tr>
               </tfoot>
             )}
@@ -167,12 +207,11 @@ export default function ExpensesPage() {
         </div>
       )}
 
-      {/* Jobber-style New Expense Modal */}
+      {/* Add/Edit Modal */}
       {showAdd && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:'1rem'}}>
           <div style={{background:'#111827',border:'1px solid #1f2d3d',borderRadius:16,width:'100%',maxWidth:520,maxHeight:'90vh',overflowY:'auto'}}>
 
-            {/* Modal header */}
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'1.25rem 1.5rem',borderBottom:'1px solid #1f2d3d'}}>
               <h2 style={{fontSize:18,fontWeight:700,color:'#f1f5f9',margin:0}}>{editing ? 'Edit Expense' : 'New Expense'}</h2>
               <button onClick={()=>{setShowAdd(false);setEditing(null)}} style={{background:'none',border:'none',color:'#64748b',fontSize:24,cursor:'pointer',lineHeight:1,padding:'0 4px'}}>×</button>
@@ -189,22 +228,24 @@ export default function ExpensesPage() {
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:'1rem'}}>
                 <div>
                   <label style={lbl}>Category</label>
-                  <select value={(form as any).category||'Other'} onChange={e=>setForm({...form, category: e.target.value} as any)} style={{...inp,padding:'10px 12px'}}>
+                  <select value={form.category} onChange={e=>setForm({...form,category:e.target.value})} style={{...inp,padding:'10px 12px'}}>
                     {EXPENSE_CATEGORIES.filter(c=>c!=='All').map(c=><option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
-                  <input placeholder="Item name *" value={form.item_name} onChange={e=>setForm({...form,item_name:e.target.value})} style={{...inp,marginTop:22}} />
+                  <label style={lbl}>Item name *</label>
+                  <input placeholder="e.g. Fuel — Home Depot run" value={form.item_name} onChange={e=>setForm({...form,item_name:e.target.value})} style={inp} />
                 </div>
               </div>
 
               {/* Details */}
               <div style={{marginBottom:'1rem'}}>
-                <textarea placeholder="Details" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}
-                  style={{...inp,height:90,padding:'10px 14px',resize:'vertical' as const}} />
+                <label style={lbl}>Details</label>
+                <textarea placeholder="Additional notes" value={form.description} onChange={e=>setForm({...form,description:e.target.value})}
+                  style={{...inp,height:72,padding:'10px 14px',resize:'vertical' as const}} />
               </div>
 
-              {/* Total */}
+              {/* Amount */}
               <div style={{marginBottom:'1rem'}}>
                 <label style={{...lbl,color:'#64748b'}}>Total $</label>
                 <input type="number" value={form.amount} onChange={e=>setForm({...form,amount:e.target.value})}
@@ -219,42 +260,46 @@ export default function ExpensesPage() {
                 </select>
               </div>
 
-              {/* Job */}
+              {/* Job — live dropdown */}
               <div style={{marginBottom:'1rem'}}>
-                <label style={lbl}>Job</label>
+                <label style={lbl}>Link to Job</label>
                 <select value={form.job_id} onChange={e=>setForm({...form,job_id:e.target.value})} style={{...inp,padding:'10px 12px'}}>
-                  <option value="">— Select a job —</option>
+                  <option value="">— No job —</option>
+                  {jobs.map(j=>(
+                    <option key={j.id} value={String(j.id)}>#{j.job_number} — {j.title}</option>
+                  ))}
                 </select>
               </div>
 
               {/* Receipt */}
-              <div style={{marginBottom:"1.5rem"}}>
+              <div style={{marginBottom:'1.5rem'}}>
                 <label style={lbl}>Receipt</label>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <label style={{background:"#1e293b",color:"#cbd5e1",border:"1px solid #334155",borderRadius:6,padding:"6px 14px",fontSize:13,cursor:"pointer",fontFamily:"inherit",display:"flex",alignItems:"center",gap:6}}>
-                    📎 {form.receipt_url ? "Change" : "Attach Receipt"}
-                    <input type="file" accept="image/*,.pdf" style={{display:"none"}} onChange={async e=>{
+                <div style={{display:'flex',alignItems:'center',gap:10}}>
+                  <label style={{background:'#1e293b',color:'#cbd5e1',border:'1px solid #334155',borderRadius:6,padding:'6px 14px',fontSize:13,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:6}}>
+                    📎 {form.receipt_url ? 'Change' : 'Attach Receipt'}
+                    <input type="file" accept="image/*,.pdf" style={{display:'none'}} onChange={async e=>{
                       const file = e.target.files?.[0]; if (!file) return
-                      const path = `receipts/${Date.now()}_${file.name.replace(/\s/g,"_")}`
-                      const { error } = await supabase.storage.from("expense-receipts").upload(path, file, {upsert:true})
+                      const path = `receipts/${Date.now()}_${file.name.replace(/\s/g,'_')}`
+                      const { error } = await supabase.storage.from('expense-receipts').upload(path, file, {upsert:true})
                       if (!error) {
-                        const { data: { publicUrl } } = supabase.storage.from("expense-receipts").getPublicUrl(path)
+                        const { data: { publicUrl } } = supabase.storage.from('expense-receipts').getPublicUrl(path)
                         setForm({...form,receipt_url:publicUrl})
                       } else {
-                        // Bucket missing — fall back to base64
                         const reader = new FileReader()
                         reader.onload = (ev) => setForm(f => ({...f, receipt_url: ev.target?.result as string}))
                         reader.readAsDataURL(file)
                       }
                     }} />
                   </label>
-                  {form.receipt_url ? (<span style={{fontSize:13,color:"#4ade80"}}>✓ Receipt attached <button onClick={()=>setForm({...form,receipt_url:""})} style={{background:"none",border:"none",color:"#f87171",cursor:"pointer",fontSize:14,marginLeft:4}}>×</button></span>) : (<span style={{fontSize:13,color:"#475569"}}>No file chosen</span>)}
+                  {form.receipt_url
+                    ? <span style={{fontSize:13,color:'#4ade80'}}>✓ Receipt attached <button onClick={()=>setForm({...form,receipt_url:''})} style={{background:'none',border:'none',color:'#f87171',cursor:'pointer',fontSize:14,marginLeft:4}}>×</button></span>
+                    : <span style={{fontSize:13,color:'#475569'}}>No file chosen</span>}
                 </div>
               </div>
 
               {/* Actions */}
               <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}>
-                <button onClick={()=>setShowAdd(false)} style={{padding:'10px 22px',border:'1px solid #334155',borderRadius:8,background:'transparent',color:'#cbd5e1',cursor:'pointer',fontSize:14,fontFamily:'inherit'}}>Cancel</button>
+                <button onClick={()=>{setShowAdd(false);setEditing(null)}} style={{padding:'10px 22px',border:'1px solid #334155',borderRadius:8,background:'transparent',color:'#cbd5e1',cursor:'pointer',fontSize:14,fontFamily:'inherit'}}>Cancel</button>
                 <button onClick={handleAdd} style={{padding:'10px 22px',border:'none',borderRadius:8,background:'#4ade80',color:'#111827',cursor:'pointer',fontSize:14,fontWeight:700,fontFamily:'inherit'}}>Save</button>
               </div>
             </div>
