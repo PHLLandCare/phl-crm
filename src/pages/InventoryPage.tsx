@@ -104,8 +104,7 @@ export default function InventoryPage() {
   const exportCSV = () => {
     const rows = [['Name','Category','SKU','Quantity','Min Level','Unit Cost','Total Value','Supplier','Status']]
     items.forEach(i => rows.push([i.name,i.category||'',i.sku||'',String(i.quantity||0),String(i.min_level||0),String(i.unit_cost||0),String((i.quantity||0)*(i.unit_cost||0)),i.supplier||'',statusBadge(i).label]))
-    const csv = rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('
-')
+    const csv = rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n')
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='inventory.csv';a.click()
   }
 
