@@ -719,6 +719,13 @@ export default function JobsPage() {
   const [activeTab, setActiveTab] = useState<'schedule'|'billing'|'services'>('schedule')
   const [showServicePicker, setShowServicePicker] = useState(false)
   const [showCustomField, setShowCustomField] = useState(false)
+  const [clientSearch, setClientSearch] = useState('')
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024)
+  useEffect(() => {
+    const fn = () => { setIsMobile(window.innerWidth < 768); setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024) }
+    window.addEventListener('resize', fn); return () => window.removeEventListener('resize', fn)
+  }, [])
   const [customFieldForm, setCustomFieldForm] = useState({ name: '', value: '' })
   const [customFields, setCustomFields] = useState<{name:string;value:string}[]>([])
   const [serviceSearch, setServiceSearch] = useState('')
@@ -1168,303 +1175,251 @@ export default function JobsPage() {
         </div>
       )}
 
-      {/* ── NEW / EDIT JOB MODAL (Jobber-style side panel) ── */}
+      {/* ── NEW / EDIT JOB MODAL ── */}
       {showModal && (
         <>
           <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:500 }} onClick={() => setShowModal(false)} />
-          <div style={{ position:'fixed',top:0,right:0,width:'min(760px,100vw)',height:'100vh',overflowY:'auto',background:'#0d1526',borderLeft:'1px solid #1e293b',zIndex:501 }}>
+          <div style={{ position:'fixed',top:0,right:0,width:'min(780px,100vw)',height:'100vh',overflowY:'auto',background:'#0d1526',borderLeft:'1px solid #1e293b',zIndex:501,display:'flex',flexDirection:'column' }}>
 
-            {/* Sticky header */}
-            <div style={{ position:'sticky',top:0,zIndex:10,background:'#0d1526',borderBottom:'1px solid #1e293b',padding:'14px 24px',display:'flex',alignItems:'center',justifyContent:'space-between' }}>
+            {/* Header */}
+            <div style={{ position:'sticky',top:0,zIndex:10,background:'#0d1526',borderBottom:'1px solid #1e293b',padding:'14px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0 }}>
               <div style={{ display:'flex',alignItems:'center',gap:10 }}>
-                <span style={{ fontSize:16 }}>🔧</span>
-                <h2 style={{ margin:0,fontSize:16,fontWeight:700,color:'#f1f5f9' }}>{editingJob ? `Edit Job — ${editingJob.job_number}` : 'New Job'}</h2>
+                <span>🔧</span>
+                <h2 style={{ margin:0,fontSize:16,fontWeight:700,color:'#f1f5f9' }}>{editingJob ? `Edit Job` : 'New Job'}</h2>
               </div>
               <div style={{ display:'flex',gap:8 }}>
-                <button onClick={() => setShowModal(false)} style={{ padding:'8px 16px',border:'1px solid #1e293b',borderRadius:8,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Cancel</button>
-                <button onClick={handleSave} disabled={saving} style={{ padding:'8px 16px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:saving?0.6:1 }}>
-                  {saving?'Saving...':'Save Job'} ▾
+                <button onClick={() => setShowModal(false)} style={{ padding:'8px 16px',border:'1px solid #334155',borderRadius:8,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Cancel</button>
+                <button onClick={handleSave} disabled={saving} style={{ padding:'8px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:saving?0.6:1 }}>
+                  {saving ? 'Saving...' : 'Save Job ▾'}
                 </button>
               </div>
             </div>
 
-            <div style={{ padding:24 }}>
-              {/* Title */}
-              <input style={{ ...inp,fontSize:18,fontWeight:700,padding:'12px',marginBottom:16,border:'none',background:'transparent',borderBottom:'1px solid #1e293b',borderRadius:0 }}
-                placeholder="Title" value={form.title} onChange={e => setForm({...form,title:e.target.value})} />
+            <div style={{ padding:'20px 24px',flex:1 }}>
 
-              {/* Client + fields row */}
-              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16 }}>
-                <div>
-                  <label style={lbl}>Select a client</label>
-                  <select style={inp} value={form.client_id} onChange={e => {
-                    const c = clients.find(c=>c.id==e.target.value)
-                    setForm({...form,client_id:e.target.value,client_name:c?`${c.first_name} ${c.last_name}`:''})
-                  }}>
-                    <option value="">— Select client —</option>
-                    {clients.map(c=><option key={c.id} value={c.id}>{c.first_name} {c.last_name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={lbl}>Job #</label>
-                  <input style={inp} value={nextJobNum} onChange={e => setNextJobNum(e.target.value)} />
-                </div>
-                <div>
-                  <label style={lbl}>Salesperson</label>
-                  <div style={{ display:'flex',alignItems:'center',gap:6 }}>
-                    <button style={{ padding:'8px 12px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',cursor:'pointer',fontSize:12,fontFamily:'inherit',display:'flex',alignItems:'center',gap:6 }}>
-                      Assign <span style={{ fontSize:14 }}>+</span>
-                    </button>
+              {/* Job title */}
+              <input
+                style={{ width:'100%',fontSize:20,fontWeight:700,padding:'10px 0',marginBottom:20,border:'none',borderBottom:'2px solid #1e293b',borderRadius:0,background:'transparent',color:'#f1f5f9',fontFamily:'inherit',outline:'none',boxSizing:'border-box' as const }}
+                placeholder="Job title"
+                value={form.title||''}
+                onChange={e => setForm({...form,title:e.target.value})}
+              />
+
+              {/* ── Two-column: client LEFT | fields RIGHT ── */}
+              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',border:'1px solid #1e293b',borderRadius:12,marginBottom:20,overflow:'hidden' }}>
+
+                {/* LEFT: client search + card */}
+                <div style={{ padding:16,borderRight:'1px solid #1e293b',background:'#0a0f1a' }}>
+                  <p style={{ margin:'0 0 8px',fontSize:11,fontWeight:700,color:'#475569',textTransform:'uppercase' as const,letterSpacing:'0.05em' }}>Select a client</p>
+                  {/* Search input */}
+                  <div style={{ position:'relative',marginBottom:8 }}>
+                    <input
+                      style={{ ...inp,paddingLeft:30 }}
+                      placeholder="Search clients..."
+                      value={clientSearch}
+                      onChange={e => setClientSearch(e.target.value)}
+                    />
+                    <span style={{ position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',fontSize:13,color:'#475569' }}>🔍</span>
                   </div>
+                  {/* Search results dropdown */}
+                  {clientSearch && (
+                    <div style={{ maxHeight:160,overflowY:'auto',background:'#0f172a',border:'1px solid #1e293b',borderRadius:8,marginBottom:8 }}>
+                      {clients.filter((c:any) => `${c.first_name} ${c.last_name}`.toLowerCase().includes(clientSearch.toLowerCase())).length === 0
+                        ? <p style={{ margin:0,padding:'10px 12px',fontSize:12,color:'#475569' }}>No clients found</p>
+                        : clients.filter((c:any) => `${c.first_name} ${c.last_name}`.toLowerCase().includes(clientSearch.toLowerCase())).slice(0,8).map((c:any) => (
+                          <div key={c.id}
+                            onClick={() => { setForm({...form,client_id:c.id,client_name:`${c.first_name} ${c.last_name}`}); setClientSearch('') }}
+                            style={{ padding:'9px 12px',cursor:'pointer',fontSize:13,color:'#f1f5f9',borderBottom:'1px solid #0a0f1a' }}
+                            onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')}
+                            onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
+                            {c.first_name} {c.last_name}
+                          </div>
+                        ))
+                      }
+                    </div>
+                  )}
+                  {/* Selected client card */}
+                  {form.client_name && !clientSearch && (
+                    <div style={{ padding:'10px 12px',background:'#0f172a',border:'1px solid #1e293b',borderRadius:8 }}>
+                      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start' }}>
+                        <div>
+                          <p style={{ margin:'0 0 2px',fontSize:13,fontWeight:700,color:'#4ade80' }}>
+                            {form.client_name}
+                            <span style={{ display:'inline-block',width:7,height:7,borderRadius:'50%',background:'#4ade80',marginLeft:6,verticalAlign:'middle' }}/>
+                          </p>
+                          {(() => {
+                            const c = clients.find((c:any) => c.id == form.client_id)
+                            return c ? (
+                              <div>
+                                {(c.service_address||c.address) && <p style={{ margin:'2px 0',fontSize:11,color:'#94a3b8' }}>{c.service_address||c.address}</p>}
+                                {c.city && <p style={{ margin:'2px 0',fontSize:11,color:'#94a3b8' }}>{c.city}{c.state?`, ${c.state}`:''} {c.zip||''}</p>}
+                                {(c.phone||c.mobile) && <p style={{ margin:'4px 0 0',fontSize:11,color:'#64748b' }}>{c.phone||c.mobile}</p>}
+                              </div>
+                            ) : null
+                          })()}
+                        </div>
+                        <button onClick={() => setForm({...form,client_id:'',client_name:''})}
+                          style={{ background:'none',border:'none',color:'#475569',cursor:'pointer',fontSize:16,padding:'0 2px',flexShrink:0 }}>×</button>
+                      </div>
+                    </div>
+                  )}
+                  {!form.client_name && !clientSearch && (
+                    <p style={{ margin:0,fontSize:12,color:'#475569',fontStyle:'italic' }}>No client selected</p>
+                  )}
+                  {clients.length === 0 && (
+                    <p style={{ margin:'8px 0 0',fontSize:11,color:'#f87171' }}>⚠️ Loading clients...</p>
+                  )}
                 </div>
-                <div>
-                  <label style={lbl}>Irrigation</label>
-                  <select style={inp} value={form.irrigation} onChange={e => setForm({...form,irrigation:e.target.value})}>
-                    <option>No</option><option>Yes</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={lbl}>Pest Control</label>
-                  <select style={inp} value={form.pest_control} onChange={e => setForm({...form,pest_control:e.target.value})}>
-                    <option>No</option><option>Yes</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={lbl}>Landscape</label>
-                  <input style={inp} value={form.landscape} onChange={e => setForm({...form,landscape:e.target.value})} placeholder="Landscape" />
-                </div>
-                <div>
-                  <label style={lbl}>Division</label>
-                  <select style={inp} value={form.division||''} onChange={e => setForm({...form,division:e.target.value})}>
-                    <option value="">— Select division —</option>
-                    {['Lawn & Tree','Irrigation','Extermination','Nursery','Farm','Hardscape'].map(d=><option key={d}>{d}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={lbl}>Job Type</label>
-                  <select style={inp} value={form.job_type} onChange={e => setForm({...form,job_type:e.target.value})}>
-                    <option value="">— Select type —</option>
-                    {JOB_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={lbl}>Status</label>
-                  <select style={inp} value={form.status} onChange={e => setForm({...form,status:e.target.value})}>
-                    {ALL_STATUSES.map(s=><option key={s} value={s}>{statusLabel(s)}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={lbl}>Customize</label>
-                  <button onClick={() => setShowCustomField(true)} style={{ padding:'8px 14px',background:'none',border:'1px solid #4ade80',borderRadius:8,color:'#4ade80',cursor:'pointer',fontSize:12,fontFamily:'inherit',fontWeight:700 }}>Add Field</button>
+
+                {/* RIGHT: job fields */}
+                <div style={{ background:'#0a0f1a' }}>
+                  {[
+                    { label:'Job #', el: <input style={{ ...inp,margin:0 }} value={nextJobNum} onChange={e => setNextJobNum(e.target.value)} /> },
+                    { label:'Job type', el: <span style={{ fontSize:13,color:'#f1f5f9' }}>{jobType==='recurring'?'Recurring job':'One-off job'}</span> },
+                    { label:'Salesperson', el: (
+                      <select style={{ ...inp,margin:0 }} value={form.assigned_to||''} onChange={e => {
+                        const emp = employees.find((emp:any) => emp.id == e.target.value)
+                        setForm({...form,assigned_to:e.target.value,assigned_name:emp?.name||''})
+                      }}>
+                        <option value="">— Assign salesperson —</option>
+                        {employees.map((e:any) => <option key={e.id} value={e.id}>{e.name}</option>)}
+                      </select>
+                    )},
+                    { label:'Irrigation', el: <select style={{ ...inp,margin:0 }} value={form.irrigation||'No'} onChange={e => setForm({...form,irrigation:e.target.value})}><option>No</option><option>Yes</option></select> },
+                    { label:'Pest Control', el: <select style={{ ...inp,margin:0 }} value={form.pest_control||'No'} onChange={e => setForm({...form,pest_control:e.target.value})}><option>No</option><option>Yes</option></select> },
+                    { label:'Landscape', el: <input style={{ ...inp,margin:0 }} value={form.landscape||''} onChange={e => setForm({...form,landscape:e.target.value})} placeholder="Landscape" /> },
+                    { label:'Division', el: <select style={{ ...inp,margin:0 }} value={form.division||''} onChange={e => setForm({...form,division:e.target.value})}><option value="">— Select division —</option>{['Lawn & Tree','Irrigation','Extermination','Nursery','Farm','Hardscape'].map(d=><option key={d}>{d}</option>)}</select> },
+                    { label:'Status', el: <select style={{ ...inp,margin:0 }} value={form.status||'draft'} onChange={e => setForm({...form,status:e.target.value})}>{ALL_STATUSES.map((s:string)=><option key={s} value={s}>{statusLabel(s)}</option>)}</select> },
+                    { label:'Customize', el: <button onClick={() => setShowCustomField(true)} style={{ padding:'6px 14px',background:'none',border:'1px solid #4ade80',borderRadius:8,color:'#4ade80',cursor:'pointer',fontSize:12,fontFamily:'inherit',fontWeight:700 }}>Add Field</button> },
+                  ].map(row => (
+                    <div key={row.label} style={{ display:'grid',gridTemplateColumns:'120px 1fr',alignItems:'center',padding:'8px 14px',borderBottom:'1px solid #0f172a' }}>
+                      <span style={{ fontSize:11,color:'#64748b',fontWeight:600 }}>{row.label}</span>
+                      <div>{row.el}</div>
+                    </div>
+                  ))}
+                  {customFields.map((cf:any,i:number) => (
+                    <div key={i} style={{ display:'grid',gridTemplateColumns:'120px 1fr auto',alignItems:'center',padding:'8px 14px',borderBottom:'1px solid #0f172a' }}>
+                      <span style={{ fontSize:11,color:'#64748b' }}>{cf.name}</span>
+                      <input style={{ ...inp,margin:0 }} value={cf.value} onChange={e => { const u=[...customFields]; u[i].value=e.target.value; setCustomFields(u) }} />
+                      <button onClick={() => setCustomFields(customFields.filter((_:any,idx:number)=>idx!==i))} style={{ background:'none',border:'none',color:'#f87171',cursor:'pointer',fontSize:18,padding:'0 4px' }}>×</button>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* Custom fields */}
-              {customFields.map((cf,i) => (
-                <div key={i} style={{ display:'flex',alignItems:'center',gap:8,marginBottom:8 }}>
-                  <span style={{ fontSize:12,color:'#64748b',minWidth:120 }}>{cf.name}</span>
-                  <input style={{ ...inp,flex:1 }} value={cf.value} onChange={e => { const u=[...customFields]; u[i].value=e.target.value; setCustomFields(u) }} />
-                  <button onClick={() => setCustomFields(customFields.filter((_,idx)=>idx!==i))} style={{ background:'none',border:'none',color:'#f87171',cursor:'pointer',fontSize:16 }}>×</button>
-                </div>
-              ))}
-
-              {/* ── JOB TYPE ── */}
-              <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.25rem',marginBottom:16 }}>
-                <div style={{ display:'flex',alignItems:'center',gap:6,marginBottom:16 }}>
-                  <h3 style={{ margin:0,fontSize:15,fontWeight:700,color:'#f1f5f9' }}>Job type</h3>
-                  <span style={{ fontSize:14,color:'#64748b',cursor:'pointer' }}>ℹ️</span>
-                </div>
-                <div style={{ display:'flex',gap:8,marginBottom:20 }}>
+              {/* ── Job type card ── */}
+              <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.25rem',marginBottom:20 }}>
+                <h3 style={{ margin:'0 0 14px',fontSize:15,fontWeight:700,color:'#f1f5f9' }}>Job type</h3>
+                <div style={{ display:'flex',gap:8,marginBottom:18 }}>
                   {(['one-off','recurring'] as const).map(t => (
                     <button key={t} onClick={() => setJobType(t)} style={{
                       padding:'8px 20px',borderRadius:8,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit',
                       background:jobType===t?'rgba(74,222,128,0.15)':'transparent',
                       color:jobType===t?'#4ade80':'#64748b',
                       border:jobType===t?'1px solid rgba(74,222,128,0.5)':'1px solid #1e293b',
-                    }}>{t === 'one-off' ? 'One-off' : 'Recurring'}</button>
+                    }}>{t==='one-off'?'One-off':'Recurring'}</button>
                   ))}
                 </div>
 
-                {/* Inner tabs: Schedule | Billing | Services */}
-                <div style={{ display:'flex',gap:0,borderBottom:'1px solid #1e293b',marginBottom:16 }}>
-                  {(['schedule','billing','services'] as const).map(t => (
-                    <button key={t} onClick={() => setActiveTab(t)} style={{
-                      padding:'8px 16px',background:'none',border:'none',
-                      borderBottom:activeTab===t?'2px solid #4ade80':'2px solid transparent',
-                      color:activeTab===t?'#f1f5f9':'#64748b',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:'inherit',textTransform:'capitalize'
-                    }}>{t === 'schedule' ? 'Schedule' : t === 'billing' ? 'Billing & automatic payments' : 'Product / Service'}</button>
+                <div style={{ display:'flex',borderBottom:'1px solid #1e293b',marginBottom:16 }}>
+                  {[{id:'schedule',label:'Schedule'},{id:'billing',label:'Billing & Automatic Payments'},{id:'services',label:'Product / Service'}].map(t => (
+                    <button key={t.id} onClick={() => setActiveTab(t.id as any)} style={{
+                      padding:'8px 14px',background:'none',border:'none',cursor:'pointer',fontFamily:'inherit',fontSize:12,fontWeight:600,
+                      color:activeTab===t.id?'#f1f5f9':'#64748b',borderBottom:activeTab===t.id?'2px solid #4ade80':'2px solid transparent',whiteSpace:'nowrap' as const,
+                    }}>{t.label}</button>
                   ))}
                 </div>
 
-                {/* SCHEDULE TAB */}
-                {activeTab === 'schedule' && (
+                {/* SCHEDULE */}
+                {activeTab==='schedule' && (
                   <div>
                     <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12 }}>
-                      <div>
-                        <p style={{ margin:'0 0 2px',fontSize:13,color:'#f1f5f9',fontWeight:600 }}>Total visits {jobType==='recurring'?'∞':'1'} | On {form.scheduled_start ? new Date(form.scheduled_start).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</p>
-                      </div>
-                      <button onClick={() => setShowCalendar(v=>!v)} style={{ padding:'6px 12px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',cursor:'pointer',fontSize:11,fontFamily:'inherit',display:'flex',alignItems:'center',gap:6 }}>
-                        📅 {showCalendar ? 'Hide Calendar' : 'Show Calendar'}
+                      <p style={{ margin:0,fontSize:13,fontWeight:600,color:'#f1f5f9' }}>
+                        Total visits {jobType==='recurring'?'∞':'1'} | On {form.scheduled_start ? new Date(form.scheduled_start).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
+                      </p>
+                      <button onClick={() => setShowCalendar((v:boolean)=>!v)} style={{ padding:'5px 11px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',cursor:'pointer',fontSize:11,fontFamily:'inherit' }}>
+                        📅 {showCalendar?'Hide':'Show'} Calendar
                       </button>
                     </div>
-
-                    {showCalendar && (
-                      <div style={{ background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:16,textAlign:'center' }}>
-                        <input type="month" style={{ ...inp,width:'auto',padding:'6px 12px' }} />
-                        <p style={{ margin:'8px 0 0',fontSize:12,color:'#64748b' }}>Select a date on the calendar to set schedule</p>
-                      </div>
-                    )}
-
                     <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:8,marginBottom:12 }}>
-                      <div style={{ gridColumn:'1/2' }}>
-                        <label style={lbl}>Start date</label>
-                        <input style={inp} type="date" value={form.scheduled_start?.split('T')[0]||''} onChange={e => setForm({...form,scheduled_start:e.target.value})} />
-                      </div>
-                      <div>
-                        <label style={lbl}>Start time</label>
-                        <input style={inp} type="time" value={''} onChange={() => {}} />
-                      </div>
-                      <div>
-                        <label style={lbl}>End time</label>
-                        <input style={inp} type="time" value={''} onChange={() => {}} />
-                      </div>
-                      <div>
-                        <label style={lbl}>Assign</label>
-                        <select style={inp} value={form.assigned_to} onChange={e => {
-                          const emp = employees.find(emp=>emp.id==e.target.value)
-                          setForm({...form,assigned_to:e.target.value,assigned_name:emp?.name||''})
-                        }}>
+                      <div><label style={lbl}>Start date</label><input style={inp} type="date" value={form.scheduled_start?.split('T')[0]||''} onChange={e => setForm({...form,scheduled_start:e.target.value})} /></div>
+                      <div><label style={lbl}>Start time</label><input style={inp} type="time" value={form.scheduled_time||''} onChange={e => setForm({...form,scheduled_time:e.target.value})} /></div>
+                      <div><label style={lbl}>End time</label><input style={inp} type="time" value={form.scheduled_end_time||''} onChange={e => setForm({...form,scheduled_end_time:e.target.value})} /></div>
+                      <div><label style={lbl}>Assign</label>
+                        <select style={inp} value={form.assigned_to||''} onChange={e => { const emp=employees.find((emp:any)=>emp.id==e.target.value); setForm({...form,assigned_to:e.target.value,assigned_name:emp?.name||''}) }}>
                           <option value="">— Unassigned —</option>
-                          {employees.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}
+                          {employees.map((e:any)=><option key={e.id} value={e.id}>{e.name}</option>)}
                         </select>
                       </div>
                     </div>
-
                     <div style={{ display:'flex',gap:16,marginBottom:12 }}>
-                      <label style={{ display:'flex',alignItems:'center',gap:6,fontSize:12,color:'#94a3b8',cursor:'pointer' }}>
-                        <input type="checkbox" /> Schedule later
-                      </label>
-                      <label style={{ display:'flex',alignItems:'center',gap:6,fontSize:12,color:'#94a3b8',cursor:'pointer' }}>
-                        <input type="checkbox" /> Anytime
-                      </label>
+                      <label style={{ display:'flex',alignItems:'center',gap:6,fontSize:12,color:'#94a3b8',cursor:'pointer' }}><input type="checkbox" checked={form.schedule_later||false} onChange={e=>setForm({...form,schedule_later:e.target.checked})} /> Schedule later</label>
+                      <label style={{ display:'flex',alignItems:'center',gap:6,fontSize:12,color:'#94a3b8',cursor:'pointer' }}><input type="checkbox" checked={form.anytime||false} onChange={e=>setForm({...form,anytime:e.target.checked})} /> Anytime</label>
                     </div>
-
-                    {jobType === 'recurring' && (
-                      <div style={{ marginBottom:12 }}>
+                    {jobType==='recurring' && (
+                      <div style={{ padding:'12px 14px',background:'#1e293b',borderRadius:10 }}>
                         <label style={lbl}>Repeats</label>
-                        <select style={inp} value={form.job_recurrence} onChange={e => setForm({...form,job_recurrence:e.target.value})}>
-                          {REPEAT_OPTIONS.map(o=><option key={o}>{o}</option>)}
+                        <select style={inp} value={form.job_recurrence||''} onChange={e=>setForm({...form,job_recurrence:e.target.value})}>
+                          <option value="">Does not repeat</option>
+                          {['Weekly','Bi-weekly','Monthly','Quarterly','Annually'].map(r=><option key={r}>{r}</option>)}
                         </select>
                       </div>
                     )}
-
-                    <div style={{ marginBottom:12 }}>
-                      <label style={lbl}>Visit instructions</label>
-                      <textarea style={{ ...inp,height:80,resize:'vertical' } as React.CSSProperties}
-                        value={form.instructions||''} onChange={e => setForm({...form,instructions:e.target.value})} placeholder="Gate code, parking notes, special instructions..." />
-                    </div>
                   </div>
                 )}
 
-                {/* BILLING TAB */}
-                {activeTab === 'billing' && (
-                  <div>
-                    <div style={{ background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:16 }}>
-                      <p style={{ margin:'0 0 8px',fontSize:13,fontWeight:700,color:'#f1f5f9' }}>Invoice frequency</p>
-                      <p style={{ margin:'0 0 12px',fontSize:12,color:'#64748b' }}>How often would you like to send an invoice to your client?</p>
-                      <select style={inp} value={form.invoice_frequency} onChange={e => setForm({...form,invoice_frequency:e.target.value})}>
-                        {INVOICE_FREQUENCIES.map(f=><option key={f}>{f}</option>)}
+                {/* BILLING */}
+                {activeTab==='billing' && (
+                  <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12 }}>
+                    <div><label style={lbl}>Billing frequency</label>
+                      <select style={inp} value={form.billing_frequency||''} onChange={e=>setForm({...form,billing_frequency:e.target.value})}>
+                        <option value="">Select frequency</option>
+                        {['Per visit','Monthly on the last day of the month','Monthly on the 1st','Quarterly','Annually'].map(f=><option key={f}>{f}</option>)}
                       </select>
                     </div>
-
-                    <div style={{ background:'#1e293b',borderRadius:10,padding:'1rem',marginBottom:16 }}>
-                      <p style={{ margin:'0 0 8px',fontSize:13,fontWeight:700,color:'#f1f5f9' }}>Billing & automatic payments</p>
-                      <p style={{ margin:'0 0 12px',fontSize:12,color:'#64748b' }}>Accept payment via Square to enable automatic payments</p>
-                      <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between' }}>
-                        <span style={{ fontSize:13,color:'#94a3b8' }}>Auto-charge client after invoice is sent</span>
-                        <button onClick={() => setForm({...form,auto_invoice:!form.auto_invoice})} style={{
-                          width:44,height:24,borderRadius:99,border:'none',cursor:'pointer',position:'relative',
-                          background:form.auto_invoice?'#16a34a':'#334155',transition:'background .15s'
-                        }}>
-                          <span style={{ position:'absolute',top:2,left:form.auto_invoice?22:2,width:20,height:20,borderRadius:'50%',background:'#fff',transition:'left .15s',display:'block' }} />
-                        </button>
-                      </div>
+                    <div><label style={lbl}>Billing type</label>
+                      <select style={inp} value={form.billing_type||''} onChange={e=>setForm({...form,billing_type:e.target.value})}>
+                        <option value="">Select type</option><option>Fixed price</option><option>Per service item</option>
+                      </select>
                     </div>
-
-                    <div style={{ background:'#1e293b',borderRadius:10,padding:'1rem' }}>
-                      <p style={{ margin:'0 0 8px',fontSize:13,fontWeight:700,color:'#f1f5f9' }}>Square Payments</p>
-                      <p style={{ margin:'0 0 12px',fontSize:12,color:'#64748b' }}>Connect Square to collect CC payments from clients</p>
-                      <a href="https://squareup.com" target="_blank" rel="noreferrer" style={{ display:'inline-flex',alignItems:'center',gap:8,padding:'8px 16px',background:'#fff',borderRadius:8,color:'#000',fontSize:13,fontWeight:700,textDecoration:'none' }}>
-                        <span style={{ fontSize:16 }}>■</span> Connect Square
-                      </a>
+                    <div style={{ gridColumn:'1/3' }}>
+                      <label style={lbl}>Instructions / Notes</label>
+                      <textarea style={{ ...inp,minHeight:80,resize:'vertical' as const }} value={form.instructions||''} onChange={e=>setForm({...form,instructions:e.target.value})} placeholder="Job instructions visible to crew..." />
                     </div>
                   </div>
                 )}
 
-                {/* SERVICES TAB */}
-                {activeTab === 'services' && (
+                {/* PRODUCT / SERVICE */}
+                {activeTab==='services' && (
                   <div>
-                    {lineItems.map((item,i) => (
-                      <div key={i} style={{ borderBottom:'1px solid #1e293b',paddingBottom:16,marginBottom:16 }}>
-                        <div style={{ display:'grid',gridTemplateColumns:'2fr 1fr 1fr auto',gap:8,marginBottom:8 }}>
-                          <input style={inp} placeholder="Name" value={item.name} onChange={e => updateLineItem(i,'name',e.target.value)} />
-                          <input style={inp} placeholder="Qty" type="number" min="1" value={item.qty} onChange={e => updateLineItem(i,'qty',parseFloat(e.target.value)||1)} />
-                          <input style={inp} placeholder="Unit price" type="number" min="0" value={item.unit_price} onChange={e => updateLineItem(i,'unit_price',parseFloat(e.target.value)||0)} />
-                          <div style={{ fontSize:13,color:'#4ade80',fontWeight:700,padding:'9px 4px',whiteSpace:'nowrap' }}>{fmt(item.qty*item.unit_price)}</div>
-                        </div>
-                        <div style={{ display:'grid',gridTemplateColumns:'1fr auto',gap:8 }}>
-                          <textarea style={{ ...inp,height:60,resize:'vertical' } as React.CSSProperties} placeholder="Description" value={item.description} onChange={e => updateLineItem(i,'description',e.target.value)} />
-                          <div style={{ width:80,height:60,border:'1px dashed #334155',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center',color:'#475569',cursor:'pointer',fontSize:18 }}>🖼️</div>
-                        </div>
-                        {lineItems.length > 1 && (
-                          <button onClick={() => removeLineItem(i)} style={{ marginTop:6,background:'none',border:'none',color:'#f87171',cursor:'pointer',fontSize:12,fontFamily:'inherit' }}>Remove</button>
-                        )}
+                    {(form.line_items||[]).length > 0 && (
+                      <div style={{ display:'grid',gridTemplateColumns:'2fr 70px 90px 80px 30px',gap:8,padding:'4px 0',borderBottom:'1px solid #1e293b',marginBottom:4 }}>
+                        {['Product / Service','Qty','Unit Cost','Total',''].map(h=><span key={h} style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase' as const }}>{h}</span>)}
+                      </div>
+                    )}
+                    {(form.line_items||[]).map((li:any,i:number) => (
+                      <div key={i} style={{ display:'grid',gridTemplateColumns:'2fr 70px 90px 80px 30px',gap:8,padding:'8px 0',borderBottom:'1px solid #1e293b',alignItems:'center' }}>
+                        <input style={{ ...inp,margin:0,fontWeight:600 }} value={li.name} onChange={e=>{const u=[...form.line_items];u[i].name=e.target.value;setForm({...form,line_items:u})}} placeholder="Service name" />
+                        <input type="number" style={{ ...inp,margin:0,textAlign:'center' as const }} value={li.qty||1} onChange={e=>{const u=[...form.line_items];u[i].qty=Number(e.target.value);u[i].total=(u[i].unit_price||0)*Number(e.target.value);setForm({...form,line_items:u,total_amount:u.reduce((a:number,l:any)=>a+(l.total||0),0)})}} />
+                        <input type="number" style={{ ...inp,margin:0 }} value={li.unit_price||0} onChange={e=>{const u=[...form.line_items];u[i].unit_price=Number(e.target.value);u[i].total=(u[i].qty||1)*Number(e.target.value);setForm({...form,line_items:u,total_amount:u.reduce((a:number,l:any)=>a+(l.total||0),0)})}} />
+                        <span style={{ fontSize:13,fontWeight:700,color:'#4ade80' }}>${((li.qty||1)*(li.unit_price||0)).toFixed(2)}</span>
+                        <button onClick={()=>{const u=form.line_items.filter((_:any,idx:number)=>idx!==i);setForm({...form,line_items:u,total_amount:u.reduce((a:number,l:any)=>a+(l.total||0),0)})}} style={{ background:'none',border:'none',color:'#f87171',cursor:'pointer',fontSize:20,padding:0 }}>×</button>
                       </div>
                     ))}
-                    <div style={{ display:'flex',gap:8,marginBottom:20 }}>
-                      <button onClick={addLineItem} style={{ padding:'8px 16px',background:'#16a34a',border:'none',borderRadius:8,color:'#fff',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Add Line Item</button>
-                      <button onClick={() => setShowServicePicker(true)} style={{ padding:'8px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>Pick from Services</button>
+                    <div style={{ display:'flex',gap:8,marginTop:12 }}>
+                      <button onClick={()=>setForm({...form,line_items:[...(form.line_items||[]),{name:'',qty:1,unit_price:0,total:0}]})} style={{ flex:1,padding:'10px',background:'#1e293b',border:'1px dashed #334155',borderRadius:8,color:'#4ade80',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'inherit' }}>+ Add Line Item</button>
+                      <button onClick={()=>setShowServicePicker(true)} style={{ flex:1,padding:'10px',background:'#1e293b',border:'1px dashed #334155',borderRadius:8,color:'#94a3b8',cursor:'pointer',fontSize:12,fontFamily:'inherit' }}>+ From Products & Services</button>
                     </div>
-
-                    {/* Totals */}
-                    <div style={{ borderTop:'1px solid #1e293b',paddingTop:16 }}>
-                      <div style={{ display:'flex',flexDirection:'column',gap:6,alignItems:'flex-end' }}>
-                        <div style={{ display:'flex',justifyContent:'space-between',width:'100%',maxWidth:320 }}>
-                          <span style={{ fontSize:13,color:'#64748b' }}>Subtotal</span>
-                          <span style={{ fontSize:13,color:'#f1f5f9' }}>{fmt(calcSubtotal())}</span>
-                        </div>
-                        <div style={{ display:'flex',justifyContent:'space-between',width:'100%',maxWidth:320,alignItems:'center' }}>
-                          <span style={{ fontSize:13,color:'#64748b' }}>Discount</span>
-                          <div style={{ display:'flex',gap:6 }}>
-                            <input type="number" style={{ ...inp,width:80,padding:'4px 8px' }} value={form.discount} onChange={e => setForm({...form,discount:parseFloat(e.target.value)||0})} />
-                            <select style={{ ...inp,width:70,padding:'4px 8px' }} value={form.discount_type} onChange={e => setForm({...form,discount_type:e.target.value})}>
-                              <option value="percent">%</option><option value="fixed">$</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div style={{ display:'flex',justifyContent:'space-between',width:'100%',maxWidth:320,alignItems:'center' }}>
-                          <span style={{ fontSize:13,color:'#64748b' }}>Tax</span>
-                          <div style={{ display:'flex',gap:6,alignItems:'center' }}>
-                            <input type="number" style={{ ...inp,width:80,padding:'4px 8px' }} value={form.tax} onChange={e => setForm({...form,tax:parseFloat(e.target.value)||0})} />
-                            <span style={{ fontSize:12,color:'#64748b' }}>%</span>
-                          </div>
-                        </div>
-                        <div style={{ display:'flex',justifyContent:'space-between',width:'100%',maxWidth:320,borderTop:'2px solid #1e293b',paddingTop:8,marginTop:4 }}>
-                          <span style={{ fontSize:15,fontWeight:700,color:'#f1f5f9' }}>Total</span>
-                          <span style={{ fontSize:18,fontWeight:800,color:'#4ade80' }}>{fmt(calcTotal())}</span>
+                    {(form.line_items||[]).length > 0 && (
+                      <div style={{ display:'flex',justifyContent:'flex-end',marginTop:12,paddingTop:12,borderTop:'1px solid #1e293b' }}>
+                        <div style={{ textAlign:'right' as const }}>
+                          <p style={{ margin:'0 0 4px',fontSize:12,color:'#64748b' }}>Total</p>
+                          <p style={{ margin:0,fontSize:22,fontWeight:800,color:'#4ade80' }}>${(form.total_amount||0).toFixed(2)}</p>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
-              </div>
-
-              {/* Description + Notes */}
-              <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.25rem',marginBottom:16 }}>
-                <label style={{ ...lbl,marginBottom:8 }}>Description</label>
-                <textarea style={{ ...inp,height:70,resize:'vertical',marginBottom:16 } as React.CSSProperties} value={form.description||''} onChange={e => setForm({...form,description:e.target.value})} placeholder="What needs to be done..." />
-                <label style={{ ...lbl,marginBottom:8 }}>Customer Notes <span style={{ fontWeight:400,textTransform:'none',letterSpacing:0,color:'#475569' }}>(visible to client)</span></label>
-                <textarea style={{ ...inp,height:60,resize:'vertical' } as React.CSSProperties} value={form.customer_notes||''} onChange={e => setForm({...form,customer_notes:e.target.value})} placeholder="Notes to share with customer..." />
               </div>
             </div>
           </div>
