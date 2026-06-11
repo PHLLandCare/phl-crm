@@ -1,33 +1,66 @@
-// PHL Land Care CRM — Service Worker
-const CACHE = 'phl-crm-v1'
-const OFFLINE_URLS = ['/phl-crm/', '/phl-crm/index.html']
+// PHL Land Care CRM — Service Worker v3
+const CACHE = 'phl-crm-v3'
+const APP_SHELL = [
+  '/phl-crm/',
+  '/phl-crm/index.html',
+  '/phl-crm/manifest.json',
+  '/phl-crm/favicon.png',
+  '/phl-crm/icon-192.png',
+  '/phl-crm/icon-512.png',
+]
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(OFFLINE_URLS)).catch(() => {}))
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(c => c.addAll(APP_SHELL))
+      .catch(() => {})
+  )
   self.skipWaiting()
 })
 
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))))
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    )
+  )
   self.clients.claim()
 })
 
 self.addEventListener('fetch', e => {
-  // Network first, fall back to cache for navigation requests
+  const url = new URL(e.request.url)
+
+  // Skip Supabase API calls — always network
+  if (url.hostname.includes('supabase.co')) return
+
+  // Navigation — network first, fall back to cached index.html
   if (e.request.mode === 'navigate') {
     e.respondWith(
-      fetch(e.request).catch(() => caches.match('/phl-crm/index.html'))
+      fetch(e.request)
+        .catch(() => caches.match('/phl-crm/index.html'))
     )
     return
   }
-  // Cache first for static assets
+
+  // JS/CSS assets — cache first (they have content-hash filenames)
+  if (url.pathname.includes('/assets/')) {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        if (cached) return cached
+        return fetch(e.request).then(res => {
+          if (res && res.status === 200) {
+            const clone = res.clone()
+            caches.open(CACHE).then(c => c.put(e.request, clone))
+          }
+          return res
+        })
+      })
+    )
+    return
+  }
+
+  // Everything else — network first
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).then(res => {
-      if (res && res.status === 200 && res.type === 'basic') {
-        const clone = res.clone()
-        caches.open(CACHE).then(c => c.put(e.request, clone))
-      }
-      return res
-    }))
+    fetch(e.request).catch(() => caches.match(e.request))
   )
 })

@@ -1,22 +1,23 @@
 {
   "name": "PHL Land Care CRM",
   "short_name": "PHL CRM",
-  "description": "PHL Land Care Inc. \u2014 Client & Employee Management",
+  "description": "PHL Land Care Inc. — Field Service Management",
   "start_url": "/phl-crm/",
+  "scope": "/phl-crm/",
   "display": "standalone",
-  "background_color": "#0a2540",
-  "theme_color": "#0a2540",
+  "background_color": "#0a0f1a",
+  "theme_color": "#16a34a",
   "orientation": "portrait-primary",
+  "categories": ["business", "productivity"],
   "icons": [
-    {
-      "src": "phl_logo.jpg",
-      "sizes": "192x192",
-      "type": "image/jpeg"
-    },
-    {
-      "src": "phl_logo.jpg",
-      "sizes": "512x512",
-      "type": "image/jpeg"
-    }
+    { "src": "/phl-crm/favicon.png",   "sizes": "32x32",   "type": "image/png" },
+    { "src": "/phl-crm/icon-180.png",  "sizes": "180x180", "type": "image/png" },
+    { "src": "/phl-crm/icon-192.png",  "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/phl-crm/icon-512.png",  "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Jobs",     "url": "/phl-crm/#/jobs",     "description": "View active jobs" },
+    { "name": "Schedule", "url": "/phl-crm/#/schedule", "description": "Today's schedule" },
+    { "name": "Clock In", "url": "/phl-crm/#/employee", "description": "Employee clock in/out" }
   ]
 }
