@@ -45,7 +45,13 @@ export default function SchedulePage() {
   const [items, setItems]         = useState<ScheduleItem[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading]     = useState(true)
-  const [view, setView]           = useState<'Day'|'Week'|'Month'|'List'>('Month')
+  const [view, setView]           = useState<'Day'|'Week'|'Month'|'List'>(window.innerWidth < 768 ? 'List' : 'Month')
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024)
+  useEffect(() => {
+    const fn = () => { setIsMobile(window.innerWidth < 768); setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024) }
+    window.addEventListener('resize', fn); return () => window.removeEventListener('resize', fn)
+  }, [])
   const [today, setToday]         = useState(new Date())
   const [currentDate, setCurrentDate] = useState(new Date())
   const [weekStart, setWeekStart] = useState(() => { const d=new Date(); d.setDate(d.getDate()-d.getDay()); d.setHours(0,0,0,0); return d })

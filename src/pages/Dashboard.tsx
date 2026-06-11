@@ -64,6 +64,14 @@ export default function Dashboard() {
   const [revenue, setRevenue] = useState({monthly:0,receivables:0})
   const [showCreate, setShowCreate] = useState(false)
   const [todaysJobs, setTodaysJobs] = useState<any[]>([])
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  useEffect(() => {
+    const onResize = () => { setIsMobile(window.innerWidth < 768); setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024) }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
   const [scheduleTab, setScheduleTab] = useState<'visit'|'employee'>('visit')
   const [clientGrowth, setClientGrowth] = useState({newLeads30:0,newClients30:0,totalClients:0,leadsGrowth:5,clientsGrowth:7})
 

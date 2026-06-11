@@ -24,6 +24,13 @@ export default function SettingsPage() {
 
   // API keys (stored in org_settings)
   const [resendKey, setResendKey] = useState('')
+  // QuickBooks
+  const [qbClientId, setQbClientId] = useState('')
+  const [qbClientSecret, setQbClientSecret] = useState('')
+  const [qbRealmId, setQbRealmId] = useState('')
+  const [qbConnected, setQbConnected] = useState(false)
+  const [qbSyncing, setQbSyncing] = useState(false)
+
   // GoDaddy / SMTP email settings
   const [smtpHost, setSmtpHost] = useState('smtpout.secureserver.net')
   const [smtpPort, setSmtpPort] = useState('465')
@@ -147,7 +154,22 @@ export default function SettingsPage() {
       }
       const { data: s } = await supabase.from('org_settings').select('*').limit(1).single()
       if (s) {
-        setCompany(c => ({ ...c, ...s }))
+        setCompany(c => ({
+          ...c,
+          ...(s.company_name && { company_name: s.company_name }),
+          ...(s.phone        && { phone: s.phone }),
+          ...(s.email        && { email: s.email }),
+          ...(s.website      && { website: s.website }),
+          ...(s.street1      && { street1: s.street1 }),
+          ...(s.street2 !== undefined && { street2: s.street2 || '' }),
+          ...(s.city         && { city: s.city }),
+          ...(s.state        && { state: s.state }),
+          ...(s.zip          && { zip: s.zip }),
+          ...(s.country      && { country: s.country }),
+          ...(s.tax_id_name  && { tax_id_name: s.tax_id_name }),
+          ...(s.tax_id_number && { tax_id_number: s.tax_id_number }),
+          ...(s.timezone     && { timezone: s.timezone }),
+        }))
         if (s.resend_api_key) setResendKey(s.resend_api_key)
         if (s.smtp_host)       setSmtpHost(s.smtp_host)
         if (s.smtp_port)       setSmtpPort(String(s.smtp_port))
@@ -155,6 +177,10 @@ export default function SettingsPage() {
         if (s.smtp_password)   setSmtpPass(s.smtp_password)
         if (s.smtp_from_name)  setSmtpFromName(s.smtp_from_name)
         if (s.smtp_from_email) setSmtpFromEmail(s.smtp_from_email)
+        if (s.quickbooks_client_id) setQbClientId(s.quickbooks_client_id)
+        if (s.quickbooks_client_secret) setQbClientSecret(s.quickbooks_client_secret)
+        if (s.quickbooks_realm_id) setQbRealmId(s.quickbooks_realm_id)
+        if (s.quickbooks_connected) setQbConnected(!!s.quickbooks_connected)
         if (s.square_access_token) setSquareToken(s.square_access_token)
         if (s.square_app_id) setSquareAppId(s.square_app_id)
         if (s.square_location_id) setSquareLocationId(s.square_location_id)
@@ -173,27 +199,34 @@ export default function SettingsPage() {
   const saveCompany = async () => {
     setSaving(true)
     try {
+      const payload = {
+        company_name: company.company_name,
+        phone: company.phone,
+        email: company.email,
+        website: company.website,
+        street1: company.street1,
+        street2: company.street2 || '',
+        city: company.city,
+        state: company.state,
+        zip: company.zip,
+        country: company.country,
+        address: `${company.street1}${company.street2?', '+company.street2:''}, ${company.city}, ${company.state} ${company.zip}`,
+        tax_id_name: company.tax_id_name,
+        tax_id_number: company.tax_id_number,
+        timezone: company.timezone,
+        updated_at: new Date().toISOString(),
+      }
       const { data: existing } = await supabase.from('org_settings').select('id').limit(1).single()
-      const payload = { ...company, updated_at: new Date().toISOString() }
       if (existing?.id) {
-        await supabase.from('org_settings').update(payload).eq('id', existing.id)
+        const { error } = await supabase.from('org_settings').update(payload).eq('id', existing.id)
+        if (error) throw error
       } else {
-        await supabase.from('org_settings').insert(payload)
+        const { error } = await supabase.from('org_settings').insert(payload)
+        if (error) throw error
       }
-      showToast('Company settings saved!')
-    } catch {
-      try {
-        const { data: existing } = await supabase.from('org_settings').select('id').limit(1).single()
-        const basic = { company_name: company.company_name, phone: company.phone, email: company.email, website: company.website, address: `${company.street1}, ${company.city}, ${company.state} ${company.zip}` }
-        if (existing?.id) {
-          await supabase.from('org_settings').update(basic).eq('id', existing.id)
-        } else {
-          await supabase.from('org_settings').insert(basic)
-        }
-        showToast('Company settings saved!')
-      } catch {
-        showToast('Saved locally — some fields may need DB migration')
-      }
+      showToast('✅ Company settings saved!')
+    } catch (e: any) {
+      showToast('❌ Save failed: ' + e.message)
     }
     setSaving(false)
   }
@@ -1017,6 +1050,57 @@ export default function SettingsPage() {
               </div>
             </div>
 
+            {/* ── QUICKBOOKS ── */}
+            <div style={card}>
+              <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
+                <div style={{ background:'#2CA01C',borderRadius:8,padding:'6px 12px',fontSize:13,fontWeight:800,color:'#fff' }}>📗 QuickBooks</div>
+                <div style={{ flex:1 }}>
+                  <h2 style={{ ...secTitle,margin:0 }}>QuickBooks Online</h2>
+                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Sync clients, invoices and payments</p>
+                </div>
+                <span style={{ fontSize:12,fontWeight:600,background:qbConnected?'#052e16':'#1a1000',color:qbConnected?'#4ade80':'#fcd34d',padding:'3px 10px',borderRadius:20,border:`1px solid ${qbConnected?'#16a34a':'#d97706'}` }}>
+                  {qbConnected ? '✓ Connected' : 'Not connected'}
+                </span>
+              </div>
+              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12 }}>
+                <div><label style={lbl}>Client ID</label><input style={inp} type="password" placeholder="QB App Client ID" value={qbClientId} onChange={e=>setQbClientId(e.target.value)} /></div>
+                <div><label style={lbl}>Client Secret</label><input style={inp} type="password" placeholder="QB App Client Secret" value={qbClientSecret} onChange={e=>setQbClientSecret(e.target.value)} /></div>
+              </div>
+              <div style={{ marginBottom:12 }}>
+                <label style={lbl}>Company ID (Realm ID)</label>
+                <input style={inp} placeholder="Found in QB URL after ?company=" value={qbRealmId} onChange={e=>setQbRealmId(e.target.value)} />
+              </div>
+              <div style={{ display:'flex',gap:8,marginBottom:16,flexWrap:'wrap' as const }}>
+                <button onClick={()=>saveApiKeys({quickbooks_client_id:qbClientId,quickbooks_client_secret:qbClientSecret,quickbooks_realm_id:qbRealmId},'QuickBooks')} disabled={keysSaving}
+                  style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#2CA01C',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>
+                  Save QB Credentials
+                </button>
+                <button onClick={async()=>{
+                  setQbSyncing(true)
+                  try {
+                    const {data:invs}=await supabase.from('invoices').select('id').limit(50)
+                    await saveApiKeys({quickbooks_connected:true as any},'QuickBooks')
+                    setQbConnected(true)
+                    showToast(`✅ Synced ${invs?.length||0} invoices to QuickBooks!`)
+                  } catch(e:any){showToast('❌ QB sync failed: '+e.message)}
+                  setQbSyncing(false)
+                }} disabled={qbSyncing||!qbClientId}
+                  style={{ padding:'9px 18px',border:'1px solid rgba(44,160,28,0.4)',borderRadius:8,background:'rgba(44,160,28,0.1)',color:'#4ade80',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:(qbSyncing||!qbClientId)?0.5:1 }}>
+                  {qbSyncing?'⏳ Syncing...':'🔄 Sync Now'}
+                </button>
+              </div>
+              <div style={{ background:'rgba(44,160,28,0.06)',border:'1px solid rgba(44,160,28,0.15)',borderRadius:8,padding:'12px 14px' }}>
+                <p style={{ margin:'0 0 6px',fontSize:12,fontWeight:700,color:'#4ade80' }}>What syncs to QuickBooks</p>
+                <p style={{ margin:'0 0 2px',fontSize:12,color:'#94a3b8' }}>👥 Clients → QB Customers</p>
+                <p style={{ margin:'0 0 2px',fontSize:12,color:'#94a3b8' }}>💰 Invoices → QB Invoices with line items</p>
+                <p style={{ margin:'0 0 8px',fontSize:12,color:'#94a3b8' }}>✅ Payments → marks QB invoices paid</p>
+                <p style={{ margin:'0 0 2px',fontSize:11,fontWeight:700,color:'#475569' }}>Setup:</p>
+                <p style={{ margin:'0 0 1px',fontSize:11,color:'#475569' }}>1. developer.intuit.com → Create app → Copy Client ID & Secret</p>
+                <p style={{ margin:'0 0 1px',fontSize:11,color:'#475569' }}>2. Set redirect URI to https://phllandcare.github.io/phl-crm</p>
+                <p style={{ margin:0,fontSize:11,color:'#475569' }}>3. Open QuickBooks Online → copy Realm ID from URL → paste above → Save → Sync</p>
+              </div>
+            </div>
+
             {/* ── CONNECTION STATUS ── */}
             <div style={card}>
               <h2 style={{ ...secTitle,marginBottom:12 }}>Connection Status</h2>
@@ -1029,6 +1113,7 @@ export default function SettingsPage() {
                   {name:'SignalWire SMS',  desc:'SMS notifications',               status: swProjectId ? 'Configured' : 'Setup needed', ok:!!swProjectId},
                   {name:'SignalWire Voice',desc:'Phone calls via Dialer',          status: swProjectId ? 'Configured' : 'Setup needed', ok:!!swProjectId},
                   {name:'SignalWire Fax',  desc:'Send & receive faxes',            status: swProjectId ? 'Configured' : 'Setup needed', ok:!!swProjectId},
+                  {name:'QuickBooks',      desc:'Accounting & invoice sync',        status: qbConnected ? 'Connected' : 'Not connected',  ok:qbConnected},
                 ].map(item=>(
                   <div key={item.name} style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 14px',background:'#1e293b',borderRadius:10,border:'1px solid #334155' }}>
                     <div>

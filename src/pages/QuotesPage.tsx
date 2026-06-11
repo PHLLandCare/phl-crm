@@ -71,6 +71,12 @@ export default function QuotesPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const [quotes, setQuotes] = useState<Quote[]>([])
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024)
+  useEffect(() => {
+    const fn = () => { setIsMobile(window.innerWidth < 768); setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024) }
+    window.addEventListener('resize', fn); return () => window.removeEventListener('resize', fn)
+  }, [])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
@@ -340,7 +346,7 @@ export default function QuotesPage() {
   if (selectedQuote) {
     const sub = lineItems.reduce((s, i) => s + (i.qty * i.unit_price), 0)
     return (
-      <div style={{ padding: '2rem', background: '#0a0f1a', minHeight: '100vh' }}>
+      <div style={{ padding: isMobile?'1rem':isTablet?'1.25rem':'2rem', background: '#0a0f1a', minHeight: '100vh' }}>
       {quoteToast && <div style={{ position:'fixed',top:'1rem',right:'1rem',background:quoteToast.startsWith('✅')?'#052e16':'#1a0a00',border:`1px solid ${quoteToast.startsWith('✅')?'#16a34a':'#d97706'}`,borderRadius:10,padding:'10px 18px',fontSize:14,color:quoteToast.startsWith('✅')?'#4ade80':'#fcd34d',fontWeight:600,zIndex:9999,maxWidth:400 }}>{quoteToast}</div>}
         <button onClick={() => setSelectedQuote(null)} style={{ background:'none',border:'none',color:'#64748b',fontSize:13,cursor:'pointer',fontFamily:'inherit',marginBottom:16 }}>
           ← Back to Quotes
@@ -525,7 +531,7 @@ export default function QuotesPage() {
 
   // ── QUOTES LIST VIEW ──
   return (
-    <div style={{ padding: '2rem', background: '#0a0f1a', minHeight: '100vh' }}>
+    <div style={{ padding: isMobile?'1rem':isTablet?'1.25rem':'2rem', background: '#0a0f1a', minHeight: '100vh' }}>
       <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'1.5rem',flexWrap:'wrap',gap:12 }}>
         <div>
           <h1 style={{ fontSize:28,fontWeight:800,color:'#f1f5f9',margin:'0 0 2px' }}>Quotes</h1>
@@ -535,7 +541,7 @@ export default function QuotesPage() {
       </div>
 
       {/* Stats - clickable */}
-      <div style={{ display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:12,marginBottom:'1.5rem' }}>
+      <div style={{ display:'grid',gridTemplateColumns:isMobile?'1fr 1fr':isTablet?'repeat(3,1fr)':'repeat(5,1fr)',gap:12,marginBottom:'1.5rem' }}>
         {[
           { label:'Draft', val:draftCount, filter:'draft', color:'#94a3b8' },
           { label:'Awaiting response', val:sentCount, sub:fmt(sentValue), filter:'sent', color:'#fbbf24' },

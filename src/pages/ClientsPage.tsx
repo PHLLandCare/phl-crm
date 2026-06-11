@@ -147,6 +147,12 @@ export default function ClientsPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [_showDepositModal, setShowDepositModal] = useState(false)
   const [paymentForm, setPaymentForm] = useState({ amount: '', method: 'Square', note: '' })
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024)
+  useEffect(() => {
+    const fn = () => { setIsMobile(window.innerWidth < 768); setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024) }
+    window.addEventListener('resize', fn); return () => window.removeEventListener('resize', fn)
+  }, [])
 
   // Header action menus
   const [showDotsMenu, setShowDotsMenu] = useState<string|null>(null)
@@ -436,7 +442,7 @@ export default function ClientsPage() {
     const addr = [selectedClient.address, selectedClient.city, selectedClient.state, selectedClient.zip].filter(Boolean).join(', ')
 
     return (
-      <div style={{ padding: '2rem', background: '#0a0f1a', minHeight: '100vh', position: 'relative' }} onClick={(e) => {
+      <div style={{ padding: isMobile?'1rem':isTablet?'1.25rem':'2rem', background: '#0a0f1a', minHeight: '100vh', position: 'relative' }} onClick={(e) => {
         const t = e.target as HTMLElement
         if (t.closest('button') || t.closest('a') || t.closest('input') || t.closest('select') || t.closest('textarea') || t.closest('label')) return
         if (showEmailModal) return
@@ -582,7 +588,7 @@ export default function ClientsPage() {
         </div>
 
         {activeTab === 'info' && (
-          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+          <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start', flexDirection: isMobile?'column':'row' }}>
             {/* ── LEFT COLUMN — main content ── */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16, flex: 1, minWidth: 0 }}>
 
@@ -1260,7 +1266,7 @@ export default function ClientsPage() {
 
   // ── CLIENT LIST VIEW ──
   return (
-    <div style={{ padding: '2rem', background: '#0a0f1a', minHeight: '100vh' }}>
+    <div style={{ padding: isMobile?'1rem':isTablet?'1.25rem':'2rem', background: '#0a0f1a', minHeight: '100vh' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 style={{ fontSize: 28, fontWeight: 800, color: '#f1f5f9', margin: '0 0 2px' }}>Clients</h1>
@@ -1269,7 +1275,7 @@ export default function ClientsPage() {
         <button onClick={openNewClient} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 20px', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>+ New Client</button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: (isMobile||isTablet)?'1fr 1fr':'repeat(4,1fr)', gap: 12, marginBottom: '1.5rem' }}>
         {[
           { label: 'New leads',           sub: 'Past 30 days',  val: newLeads,    color: '#fbbf24' },
           { label: 'New clients',         sub: 'Past 30 days',  val: newClients,  color: '#4ade80' },

@@ -53,6 +53,12 @@ function statusBadge(status:string) {
 export default function InvoicesPage() {
   const [invoices, setInvoices]   = useState<Invoice[]>([])
   const [loading, setLoading]     = useState(true)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024)
+  useEffect(() => {
+    const fn = () => { setIsMobile(window.innerWidth < 768); setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024) }
+    window.addEventListener('resize', fn); return () => window.removeEventListener('resize', fn)
+  }, [])
   const [search, setSearch]       = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
   const [showNew, setShowNew]     = useState(false)
@@ -358,7 +364,7 @@ export default function InvoicesPage() {
     const inv = openInvoice
     const isPaid = inv.status==='paid'||inv.status==='Paid'
     return (
-      <div style={{padding:'2rem',background:'#0a0f1a',minHeight:'100vh',fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif'}}>
+      <div style={{padding:isMobile?'1rem':isTablet?'1.25rem':'2rem',background:'#0a0f1a',minHeight:'100vh',fontFamily:'-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif'}}>
         {toast && <div style={{position:'fixed',top:'1rem',right:'1rem',background:'#052e16',border:'1px solid #16a34a',borderRadius:10,padding:'10px 18px',fontSize:14,color:'#4ade80',fontWeight:600,zIndex:9999}}>{ toast}</div>}
 
         <button onClick={()=>setOpenInvoice(null)} style={{background:'none',border:'none',color:'#64748b',fontSize:13,cursor:'pointer',fontFamily:'inherit',marginBottom:16,display:'flex',alignItems:'center',gap:6}}>
@@ -569,7 +575,7 @@ export default function InvoicesPage() {
       </div>
 
       {/* KPI cards */}
-      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:12,marginBottom:'1.5rem'}}>
+      <div style={{display:'grid',gridTemplateColumns:isMobile?'1fr 1fr':isTablet?'repeat(3,1fr)':'repeat(auto-fit,minmax(200px,1fr))',gap:12,marginBottom:'1.5rem'}}>
         <div style={{background:'#0f172a',border:'1px solid #1e293b',borderTop:'3px solid #f87171',borderRadius:14,padding:'1.1rem 1.25rem'}}>
           <p style={{fontSize:12,fontWeight:700,color:'#f87171',textTransform:'uppercase',letterSpacing:'0.05em',margin:'0 0 8px'}}>Overview</p>
           <div style={{display:'flex',flexDirection:'column',gap:4}}>

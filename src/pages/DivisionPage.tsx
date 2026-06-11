@@ -47,6 +47,12 @@ export default function DivisionPage({ divisionId }: Props) {
   const [recentJobs, setRecentJobs] = useState<RecentJob[]>([])
   const [clientCount, setClientCount] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024)
+  useEffect(() => {
+    const fn = () => { setIsMobile(window.innerWidth < 768); setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024) }
+    window.addEventListener('resize', fn); return () => window.removeEventListener('resize', fn)
+  }, [])
 
   useEffect(() => {
     if (!div) return
@@ -93,7 +99,7 @@ export default function DivisionPage({ divisionId }: Props) {
   const sc = (s: string) => statusColors[s] || statusColors.draft
 
   return (
-    <div style={{ padding: '2rem', background: '#0a0f1a', minHeight: '100vh' }}>
+    <div style={{ padding: isMobile?'1rem':isTablet?'1.25rem':'2rem', background: '#0a0f1a', minHeight: '100vh' }}>
       {/* Header */}
       <div style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
@@ -108,7 +114,7 @@ export default function DivisionPage({ divisionId }: Props) {
       </div>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: '2rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: (isMobile||isTablet)?'1fr 1fr':'repeat(4,1fr)', gap: 12, marginBottom: '2rem' }}>
         {[
           { label: 'Division Clients',  val: stats.clients,    color: div.color,  fmt: (n: number) => String(n), sub: 'Total' },
           { label: 'Active Jobs',       val: stats.activeJobs, color: '#fbbf24',  fmt: (n: number) => String(n), sub: 'Scheduled or in progress' },
@@ -123,7 +129,7 @@ export default function DivisionPage({ divisionId }: Props) {
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: (isMobile||isTablet)?'1fr':'1fr 260px', gap: 16 }}>
 
         {/* Recent Jobs */}
         <div style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 14, padding: '1.25rem' }}>

@@ -70,6 +70,12 @@ export default function RequestsPage() {
   const [clients, setClients] = useState<any[]>([])
   const [uploadedImages, setUploadedImages] = useState<string[]>([])
   const [uploadingImg, setUploadingImg] = useState(false)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
+  const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024)
+  useEffect(() => {
+    const fn = () => { setIsMobile(window.innerWidth < 768); setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024) }
+    window.addEventListener('resize', fn); return () => window.removeEventListener('resize', fn)
+  }, [])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const inp: React.CSSProperties = { width:'100%', padding:'10px 14px', border:'1px solid #2d3748', borderRadius:8, fontSize:14, fontFamily:'inherit', outline:'none', background:'#1a2035', color:'#e2e8f0', boxSizing:'border-box' }
@@ -235,7 +241,7 @@ export default function RequestsPage() {
       </div>
 
       {/* Overview cards — Jobber layout */}
-      <div style={{ display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:'1.5rem' }}>
+      <div style={{ display:'grid',gridTemplateColumns:(isMobile||isTablet)?'1fr 1fr':'repeat(4,1fr)',gap:12,marginBottom:'1.5rem' }}>
         <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:12,padding:'1.1rem 1.25rem' }}>
           <p style={{ margin:'0 0 10px',fontSize:13,fontWeight:600,color:'#f1f5f9' }}>Overview</p>
           {[
@@ -604,7 +610,7 @@ export default function RequestsPage() {
       {selectedRequest && (
         <>
           <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:500 }} onClick={() => setSelectedRequest(null)} />
-          <div style={{ position:'fixed',top:0,right:0,width:'min(600px,100vw)',height:'100vh',background:'#0d1526',borderLeft:'1px solid #1e293b',zIndex:501,display:'flex',flexDirection:'column',overflow:'hidden' }}>
+          <div style={{ position:'fixed',top:0,right:0,width:isMobile?'100vw':isTablet?'min(520px,100vw)':'min(600px,100vw)',height:'100vh',background:'#0d1526',borderLeft:'1px solid #1e293b',zIndex:501,display:'flex',flexDirection:'column',overflow:'hidden' }}>
             {/* Header */}
             <div style={{ padding:'16px 20px',borderBottom:'1px solid #1e293b',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0 }}>
               <div>
