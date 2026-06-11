@@ -10,6 +10,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -17,13 +19,23 @@ jobs:
         with:
           version: latest
 
-      - name: Deploy all edge functions
-        run: |
-          supabase functions deploy invite-user      --project-ref gmblbltckwipghqutkhw --no-verify-jwt
-          supabase functions deploy send-sms         --project-ref gmblbltckwipghqutkhw --no-verify-jwt
-          supabase functions deploy send-fax         --project-ref gmblbltckwipghqutkhw --no-verify-jwt
-          supabase functions deploy signalwire-call  --project-ref gmblbltckwipghqutkhw --no-verify-jwt
-          supabase functions deploy send-email       --project-ref gmblbltckwipghqutkhw --no-verify-jwt
-          supabase functions deploy square-payment   --project-ref gmblbltckwipghqutkhw --no-verify-jwt
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      - name: Verify auth
+        run: supabase projects list
+
+      - name: Deploy invite-user
+        run: supabase functions deploy invite-user --project-ref gmblbltckwipghqutkhw --no-verify-jwt
+
+      - name: Deploy send-sms
+        run: supabase functions deploy send-sms --project-ref gmblbltckwipghqutkhw --no-verify-jwt
+
+      - name: Deploy send-fax
+        run: supabase functions deploy send-fax --project-ref gmblbltckwipghqutkhw --no-verify-jwt
+
+      - name: Deploy signalwire-call
+        run: supabase functions deploy signalwire-call --project-ref gmblbltckwipghqutkhw --no-verify-jwt
+
+      - name: Deploy send-email
+        run: supabase functions deploy send-email --project-ref gmblbltckwipghqutkhw --no-verify-jwt
+
+      - name: Deploy square-payment
+        run: supabase functions deploy square-payment --project-ref gmblbltckwipghqutkhw --no-verify-jwt
