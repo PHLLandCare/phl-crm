@@ -1,5 +1,5 @@
 // PHL Land Care CRM — Service Worker v3
-const CACHE = 'phl-crm-v5'
+const CACHE = 'phl-crm-v6'
 const APP_SHELL = [
   '/phl-crm/',
   '/phl-crm/index.html',
