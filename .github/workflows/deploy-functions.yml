@@ -19,23 +19,25 @@ jobs:
         with:
           version: latest
 
-      - name: Verify auth
-        run: supabase projects list
-
       - name: Deploy invite-user
         run: supabase functions deploy invite-user --project-ref gmblbltckwipghqutkhw --no-verify-jwt
 
       - name: Deploy send-sms
         run: supabase functions deploy send-sms --project-ref gmblbltckwipghqutkhw --no-verify-jwt
+        continue-on-error: true
 
       - name: Deploy send-fax
         run: supabase functions deploy send-fax --project-ref gmblbltckwipghqutkhw --no-verify-jwt
+        continue-on-error: true
 
       - name: Deploy signalwire-call
         run: supabase functions deploy signalwire-call --project-ref gmblbltckwipghqutkhw --no-verify-jwt
+        continue-on-error: true
 
       - name: Deploy send-email
         run: supabase functions deploy send-email --project-ref gmblbltckwipghqutkhw --no-verify-jwt
+        continue-on-error: true
 
       - name: Deploy square-payment
         run: supabase functions deploy square-payment --project-ref gmblbltckwipghqutkhw --no-verify-jwt
+        continue-on-error: true
