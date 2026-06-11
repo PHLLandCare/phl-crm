@@ -3,8 +3,6 @@
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
     <link rel="icon" type="image/png" href="/phl-crm/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -14,19 +12,14 @@
     <link rel="manifest" href="/phl-crm/manifest.json" />
     <link rel="apple-touch-icon" href="/phl-crm/icon-180.png" />
     <title>PHL Land Care CRM</title>
-    <script type="module" crossorigin src="/phl-crm/assets/index-Cbwf1VNm.js"></script>
+    <script type="module" crossorigin src="/phl-crm/assets/index-FRESH-1781205574.js"></script>
     <link rel="stylesheet" crossorigin href="/phl-crm/assets/index-D1oyTWt8.css">
   </head>
   <body>
     <div id="root"></div>
     <script>
-      // Unregister old service workers, then register new one
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(regs => {
-          regs.forEach(r => r.unregister())
-        }).then(() => {
-          navigator.serviceWorker.register('/phl-crm/sw.js', { scope: '/phl-crm/' })
-        })
+        navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()))
       }
     </script>
   </body>
