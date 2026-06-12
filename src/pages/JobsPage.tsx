@@ -1202,9 +1202,9 @@ export default function JobsPage() {
 
       {/* ── NEW / EDIT JOB MODAL ── */}
       {showModal && (
-        <>
-          <div style={{ position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',zIndex:500 }} onClick={() => setShowModal(false)} />
-          <div style={{ position:'fixed',top:0,right:0,width:'min(780px,100vw)',height:'100vh',overflowY:'auto',background:'#0d1526',borderLeft:'1px solid #1e293b',zIndex:501,display:'flex',flexDirection:'column' }}>
+        <div style={{ position:'fixed',inset:0,zIndex:500,display:'flex',justifyContent:'flex-end' }}>
+          <div style={{ position:'absolute',inset:0,background:'rgba(0,0,0,0.7)' }} onClick={() => setShowModal(false)} />
+          <div style={{ position:'relative',width:'min(780px,100%)',height:'100vh',overflowY:'auto',background:'#0d1526',borderLeft:'1px solid #1e293b',display:'flex',flexDirection:'column',zIndex:1 }}>
 
             {/* Header */}
             <div style={{ position:'sticky',top:0,zIndex:10,background:'#0d1526',borderBottom:'1px solid #1e293b',padding:'14px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0 }}>
@@ -1527,7 +1527,7 @@ export default function JobsPage() {
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* ── SERVICE PICKER ── */}
