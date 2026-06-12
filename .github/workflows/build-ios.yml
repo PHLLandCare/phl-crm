@@ -65,24 +65,21 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          set -e
-          {
+          set -ex
           sha256sum /tmp/PHL-Land-Care-Simulator.app.zip > ios-sha256.txt
           ls -la /tmp/PHL-Land-Care-Simulator.app.zip > ios-info.txt
+          rm -rf /tmp/ios-publish
           mkdir -p /tmp/ios-publish
           cp /tmp/PHL-Land-Care-Simulator.app.zip /tmp/ios-publish/
           cp ios-sha256.txt ios-info.txt /tmp/ios-publish/
           cd /tmp/ios-publish
-          git init -q
+          git init -q -b apk-builds
           git config user.email "bigc@phl.dev"
           git config user.name "Big C"
-          git checkout -q -b apk-builds
           git add .
           git commit -q -m "iOS simulator build from ${{ github.sha }}"
           git remote add origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git
-          git fetch origin apk-builds 2>&1 || true
-          git push -f origin apk-builds
-          } 2>&1 | tee -a /tmp/build.log
+          git push -f origin apk-builds:apk-builds
 
       - name: Post log to an issue for debugging
         if: failure()
