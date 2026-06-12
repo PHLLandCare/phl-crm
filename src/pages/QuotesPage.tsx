@@ -92,6 +92,7 @@ export default function QuotesPage() {
   const [sendingQuote, setSendingQuote] = useState<number|null>(null)
   const [duplicateQuotes, setDuplicateQuotes] = useState<Quote[]>([])
   const [showDuplicateModal, setShowDuplicateModal] = useState(false)
+  const [currentUserName, setCurrentUserName] = useState('')
   const showQToast = (msg: string) => { setQuoteToast(msg); setTimeout(() => setQuoteToast(''), 4000) }
 
   const sendQuoteForApproval = async (q: Quote) => {
@@ -147,7 +148,7 @@ export default function QuotesPage() {
 
   const [form, setForm] = useState({
     client_id: '', client_name: '', title: '', message: '', status: 'draft',
-    salesperson: 'Romy Cruz', irrigation: 'No', pest_control: 'No',
+    salesperson: '', irrigation: 'No', pest_control: 'No',
     discount: 0, discount_type: 'percent', tax: 0,
     contract_text: 'This quote is valid for the next 30 days, after which values may be subject to change.',
     internal_notes: '',
@@ -212,6 +213,16 @@ export default function QuotesPage() {
   useEffect(() => {
     loadQuotes()
     loadClients()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase.from('user_profiles').select('full_name').eq('id', user.id).single()
+        .then(({ data }) => {
+          if (data?.full_name) {
+            setCurrentUserName(data.full_name)
+            setForm(f => f.salesperson ? f : { ...f, salesperson: data.full_name })
+          }
+        })
+    })
     const channel = supabase.channel('quotes-page')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'quotes' }, loadQuotes)
       .subscribe()
@@ -286,7 +297,7 @@ export default function QuotesPage() {
       )
     }
     setShowNew(false)
-    setForm({ client_id:'', client_name:'', title:'', message:'', status:'draft', salesperson:'Romy Cruz', irrigation:'No', pest_control:'No', discount:0, discount_type:'percent', tax:0, contract_text:'This quote is valid for the next 30 days, after which values may be subject to change.', internal_notes:'' })
+    setForm({ client_id:'', client_name:'', title:'', message:'', status:'draft', salesperson:currentUserName, irrigation:'No', pest_control:'No', discount:0, discount_type:'percent', tax:0, contract_text:'This quote is valid for the next 30 days, after which values may be subject to change.', internal_notes:'' })
     setNewLineItems([{ name:'', description:'', qty:1, unit_price:0, is_optional:false }])
     setCustomFields([])
     loadQuotes()
@@ -429,7 +440,7 @@ export default function QuotesPage() {
                 title: selectedQuote.title||'',
                 message: selectedQuote.message||'',
                 status: selectedQuote.status||'draft',
-                salesperson: selectedQuote.salesperson||'Romy Cruz',
+                salesperson: selectedQuote.salesperson||currentUserName,
                 irrigation: selectedQuote.irrigation||'No',
                 pest_control: selectedQuote.pest_control||'No',
                 discount: selectedQuote.discount||0,
@@ -452,7 +463,7 @@ export default function QuotesPage() {
               {[
                 { label:'Client', value:selectedQuote.client_name },
                 { label:'Quote #', value:`#${selectedQuote.quote_number}` },
-                { label:'Salesperson', value:selectedQuote.salesperson || 'Romy Cruz' },
+                { label:'Salesperson', value:selectedQuote.salesperson || '—' },
                 { label:'Status', value:selectedQuote.status },
                 { label:'Created', value:fmtDate(selectedQuote.created_at) },
                 { label:'Last Updated', value:fmtDate(selectedQuote.updated_at) },

@@ -72,6 +72,7 @@ export default function RequestsPage() {
   const [uploadingImg, setUploadingImg] = useState(false)
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768)
   const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024)
+  const [currentUserName, setCurrentUserName] = useState('')
   useEffect(() => {
     const fn = () => { setIsMobile(window.innerWidth < 768); setIsTablet(window.innerWidth >= 768 && window.innerWidth < 1024) }
     window.addEventListener('resize', fn); return () => window.removeEventListener('resize', fn)
@@ -93,6 +94,11 @@ export default function RequestsPage() {
 
   useEffect(() => {
     loadRequests()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      supabase.from('user_profiles').select('full_name').eq('id', user.id).single()
+        .then(({ data }) => { if (data?.full_name) setCurrentUserName(data.full_name) })
+    })
     supabase.from('clients').select('id,first_name,last_name,company,phone,email,address,city,state,zip').is('deleted_at',null).order('first_name').then(({data})=>setClients(data??[]))
     const state = location.state as any
     if (state?.filter === 'new') setStatusFilter('New')
@@ -432,7 +438,7 @@ export default function RequestsPage() {
                   <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
                     <span style={{ fontSize:13,color:'#64748b' }}>Salesperson</span>
                     <span style={{ fontSize:12,background:'#1e293b',border:'1px solid #2d3748',borderRadius:20,padding:'3px 12px',color:'#f1f5f9' }}>
-                      Salesperson | Romy Cruz
+                      Salesperson | {currentUserName || '—'}
                     </span>
                   </div>
                 </div>
