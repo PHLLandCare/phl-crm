@@ -65,6 +65,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          exec >> /tmp/build.log 2>&1
           set -ex
           sha256sum /tmp/PHL-Land-Care-Simulator.app.zip > ios-sha256.txt
           ls -la /tmp/PHL-Land-Care-Simulator.app.zip > ios-info.txt
