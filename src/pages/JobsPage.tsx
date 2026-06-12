@@ -1203,9 +1203,8 @@ export default function JobsPage() {
 
       {/* ── NEW / EDIT JOB MODAL ── */}
       {showModal && (
-        <div style={{ position:'fixed',inset:0,zIndex:500,display:'flex',justifyContent:'flex-end' }}>
-          <div style={{ position:'absolute',inset:0,background:'rgba(0,0,0,0.7)' }} onClick={() => setShowModal(false)} />
-          <div style={{ position:'relative',width:'min(780px,100%)',height:'100vh',overflowY:'auto',background:'#2d3b46',borderLeft:'1px solid #1c2a35',borderTop:'4px solid #9ccc3f',display:'flex',flexDirection:'column',zIndex:1 }}>
+        <div style={{ position:'fixed',inset:0,zIndex:500 }}>
+          <div style={{ position:'absolute',inset:0,width:'100%',height:'100vh',overflowY:'auto',background:'#2d3b46',borderTop:'4px solid #9ccc3f',display:'flex',flexDirection:'column' }}>
 
             {/* Header */}
             <div style={{ position:'sticky',top:0,zIndex:10,background:'#2d3b46',borderBottom:'1px solid #1c2a35',padding:'14px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',flexShrink:0 }}>
