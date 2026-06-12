@@ -760,8 +760,9 @@ export default function JobsPage() {
   }
 
   const loadEmployees = async () => {
-    const { data } = await supabase.from('employees').select('id,name').order('name')
-    setEmployees(data ?? [])
+    const { data, error } = await supabase.from('employees').select('id,fname,lname').eq('active', true).order('fname')
+    if (error) { console.error('loadEmployees error:', error); setEmployees([]); return }
+    setEmployees((data ?? []).map((e: any) => ({ id: e.id, name: `${e.fname ?? ''} ${e.lname ?? ''}`.trim() })))
   }
 
   useEffect(() => {
