@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { getCurrentUserAccess, filterAssignedTo, type CurrentUserAccess } from '../lib/currentUserAccess'
 
 interface ScheduleItem {
   id: string
@@ -43,6 +44,7 @@ function isSameDay(a: Date, b: Date) { return a.getFullYear()===b.getFullYear()&
 export default function SchedulePage() {
   const navigate = useNavigate()
   const [items, setItems]         = useState<ScheduleItem[]>([])
+  const [access, setAccess]       = useState<CurrentUserAccess>({ role: 'worker_limited', fullName: '', isFieldWorker: true })
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading]     = useState(true)
   const [view, setView]           = useState<'Day'|'Week'|'Month'|'List'>(window.innerWidth < 768 ? 'List' : 'Month')
@@ -85,16 +87,18 @@ export default function SchedulePage() {
 
   const load = async () => {
     setLoading(true)
-    const [sRes, eRes] = await Promise.all([
+    const [sRes, eRes, currentAccess] = await Promise.all([
       supabase.from('schedules').select('*').order('scheduled_start'),
       supabase.from('employees').select('id,fname,lname,division').eq('active',true).order('fname'),
+      getCurrentUserAccess(),
     ])
-    setItems(sRes.data ?? [])
+    setAccess(currentAccess)
+    setItems(filterAssignedTo(sRes.data ?? [], currentAccess, i => i.assigned_to))
     setEmployees(eRes.data ?? [])
     // Also pull jobs as schedule items
     const { data: jobs } = await supabase.from('jobs').select('*').is('deleted_at',null).not('scheduled_start','is',null)
     if (jobs) {
-      const jobItems: ScheduleItem[] = jobs.map((j:any) => ({
+      const jobItems: ScheduleItem[] = filterAssignedTo(jobs, currentAccess, (j:any) => j.assigned_name).map((j:any) => ({
         id: `job-${j.id}`, title: j.title, client_name: j.client_name || '',
         phone: j.phone || '', email: j.email || '',
         address: [j.service_address, j.city, j.state, j.zip].filter(Boolean).join(', '),

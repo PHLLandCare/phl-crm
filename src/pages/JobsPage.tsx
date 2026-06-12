@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { getCurrentUserAccess, filterAssignedTo, type CurrentUserAccess } from '../lib/currentUserAccess'
 
 interface Job {
   id: string
@@ -682,6 +683,7 @@ function JobDetailView({ job, isLate, svcAddress, sc, statusLabel, fmtDate, fmt,
 export default function JobsPage() {
   const navigate = useNavigate()
   const [jobs, setJobs] = useState<Job[]>([])
+  const [access, setAccess] = useState<CurrentUserAccess>({ role: 'worker_limited', fullName: '', isFieldWorker: true })
   const [clients, setClients] = useState<any[]>([])
   const [employees, setEmployees] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -749,8 +751,12 @@ export default function JobsPage() {
 
   const loadJobs = async () => {
     setLoading(true)
-    const { data } = await supabase.from('jobs').select('*').is('deleted_at', null).order('created_at', { ascending: false })
-    setJobs(data ?? [])
+    const [{ data }, currentAccess] = await Promise.all([
+      supabase.from('jobs').select('*').is('deleted_at', null).order('created_at', { ascending: false }),
+      getCurrentUserAccess(),
+    ])
+    setAccess(currentAccess)
+    setJobs(filterAssignedTo(data ?? [], currentAccess, j => j.assigned_name))
     setLoading(false)
   }
 
@@ -1062,8 +1068,8 @@ export default function JobsPage() {
       )}
       <div style={{ display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:'1.5rem',flexWrap:'wrap',gap:12 }}>
         <div>
-          <h1 style={{ fontSize:28,fontWeight:800,color:'#f1f5f9',margin:'0 0 2px' }}>Jobs</h1>
-          <p style={{ fontSize:13,color:'#64748b',margin:0 }}>{jobs.length} total jobs</p>
+          <h1 style={{ fontSize:28,fontWeight:800,color:'#f1f5f9',margin:'0 0 2px' }}>{access.isFieldWorker ? 'My Jobs' : 'Jobs'}</h1>
+          <p style={{ fontSize:13,color:'#64748b',margin:0 }}>{jobs.length} {access.isFieldWorker ? 'assigned to you' : 'total jobs'}</p>
         </div>
         <button onClick={openCreate} style={{ background:'#16a34a',color:'#fff',border:'none',borderRadius:9,padding:'10px 20px',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit' }}>+ New Job</button>
       </div>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { getCurrentUserAccess, filterAssignedTo, type CurrentUserAccess } from '../lib/currentUserAccess'
 
 interface Stop {
   id: string
@@ -27,6 +28,7 @@ const STATUS_COLOR: Record<string,{bg:string;color:string}> = {
 
 export default function RoutePage() {
   const [stops, setStops]       = useState<Stop[]>([])
+  const [access, setAccess]     = useState<CurrentUserAccess>({ role: 'worker_limited', fullName: '', isFieldWorker: true })
   const [loading, setLoading]   = useState(true)
   const [date, setDate]         = useState(new Date().toISOString().slice(0,10))
   const [division, setDivision] = useState('All')
@@ -38,11 +40,13 @@ export default function RoutePage() {
 
   const load = async () => {
     setLoading(true)
-    const [sRes, eRes] = await Promise.all([
+    const [sRes, eRes, currentAccess] = await Promise.all([
       supabase.from('schedules').select('*').gte('scheduled_start', date+'T00:00:00').lte('scheduled_start', date+'T23:59:59').order('scheduled_start'),
       supabase.from('employees').select('fname,lname').eq('active',true).order('fname'),
+      getCurrentUserAccess(),
     ])
-    const raw = (sRes.data ?? []).map((s,i) => ({...s, order: i}))
+    setAccess(currentAccess)
+    const raw = filterAssignedTo(sRes.data ?? [], currentAccess, s => s.assigned_to).map((s,i) => ({...s, order: i}))
     setStops(raw)
     setEmployees(eRes.data ?? [])
     setLoading(false)
