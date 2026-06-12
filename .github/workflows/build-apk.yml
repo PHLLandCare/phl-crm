@@ -12,6 +12,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v4
 
@@ -27,23 +30,53 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install
+        run: npm install 2>&1 | tee /tmp/build.log
 
       - name: Build web assets
-        run: npm run build
+        run: npm run build 2>&1 | tee -a /tmp/build.log
 
       - name: Sync Capacitor
-        run: npx cap sync android
+        run: npx cap sync android 2>&1 | tee -a /tmp/build.log
 
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
       - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon 2>&1 | tee -a /tmp/build.log
 
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: phl-crm-app
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Post log to an issue for debugging
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          tail -c 60000 /tmp/build.log > /tmp/build_trimmed.log
+          python3 - <<'PYEOF'
+          import json, os, urllib.request
+          with open('/tmp/build_trimmed.log') as f:
+              content = f.read()
+          body = "```\n" + (content or "(empty log)") + "\n```"
+          payload = json.dumps({"title": "APK build log", "body": body}).encode()
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['REPO']}/issues",
+              data=payload,
+              method="POST",
+              headers={
+                  "Authorization": f"token {os.environ['GH_TOKEN']}",
+                  "Accept": "application/vnd.github+json",
+                  "User-Agent": "phl-crm-build",
+              },
+          )
+          with urllib.request.urlopen(req) as resp:
+              data = json.load(resp)
+          print("ISSUE_URL:", data["html_url"])
+          PYEOF
+
