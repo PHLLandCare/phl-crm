@@ -66,6 +66,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
+          {
           sha256sum /tmp/PHL-Land-Care-Simulator.app.zip > ios-sha256.txt
           ls -la /tmp/PHL-Land-Care-Simulator.app.zip > ios-info.txt
           mkdir -p /tmp/ios-publish
@@ -79,7 +80,9 @@ jobs:
           git add .
           git commit -q -m "iOS simulator build from ${{ github.sha }}"
           git remote add origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git
-          git push -f -q origin apk-builds
+          git fetch origin apk-builds 2>&1 || true
+          git push -f origin apk-builds
+          } 2>&1 | tee -a /tmp/build.log
 
       - name: Post log to an issue for debugging
         if: failure()
