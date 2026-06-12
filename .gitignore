@@ -18,6 +18,13 @@ dist-ssr
 .idea
 .DS_Store
 *.suo
+
+# iOS build artifacts
+ios/App/build
+ios/App/Pods
+ios/App/App.xcworkspace/xcuserdata
+ios/App/App.xcodeproj/xcuserdata
+*.xcuserstate
 *.ntvs*
 *.njsproj
 *.sln

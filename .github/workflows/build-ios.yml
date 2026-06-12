@@ -1,0 +1,114 @@
+name: Build iOS App (Simulator)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - 'ios/**'
+      - 'capacitor.config.ts'
+      - '.github/workflows/build-ios.yml'
+
+jobs:
+  build:
+    runs-on: macos-14
+    permissions:
+      contents: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install 2>&1 | tee /tmp/build.log
+
+      - name: Build web assets
+        run: npm run build 2>&1 | tee -a /tmp/build.log
+
+      - name: Sync Capacitor
+        run: npx cap sync ios 2>&1 | tee -a /tmp/build.log
+
+      - name: Install CocoaPods dependencies
+        working-directory: ios/App
+        run: pod install 2>&1 | tee -a /tmp/build.log
+
+      - name: Build for iOS Simulator (unsigned)
+        working-directory: ios/App
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee -a /tmp/build.log
+
+      - name: Package .app bundle
+        if: success()
+        run: |
+          set -e
+          cd ios/App/build/Build/Products/Debug-iphonesimulator
+          ls -la
+          zip -r /tmp/PHL-Land-Care-Simulator.app.zip App.app
+
+      - name: Upload Simulator build
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phl-crm-ios-simulator
+          path: /tmp/PHL-Land-Care-Simulator.app.zip
+
+      - name: Publish build info to apk-builds branch for verification
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          sha256sum /tmp/PHL-Land-Care-Simulator.app.zip > ios-sha256.txt
+          ls -la /tmp/PHL-Land-Care-Simulator.app.zip > ios-info.txt
+          mkdir -p /tmp/ios-publish
+          cp /tmp/PHL-Land-Care-Simulator.app.zip /tmp/ios-publish/
+          cp ios-sha256.txt ios-info.txt /tmp/ios-publish/
+          cd /tmp/ios-publish
+          git init -q
+          git config user.email "bigc@phl.dev"
+          git config user.name "Big C"
+          git checkout -q -b apk-builds
+          git add .
+          git commit -q -m "iOS simulator build from ${{ github.sha }}"
+          git remote add origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git
+          git push -f -q origin apk-builds
+
+      - name: Post log to an issue for debugging
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          tail -c 60000 /tmp/build.log > /tmp/build_trimmed.log
+          python3 - <<'PYEOF'
+          import json, os, urllib.request
+          with open('/tmp/build_trimmed.log') as f:
+              content = f.read()
+          body = "```\n" + (content or "(empty log)") + "\n```"
+          payload = json.dumps({"title": "iOS build log", "body": body}).encode()
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['REPO']}/issues",
+              data=payload,
+              method="POST",
+              headers={
+                  "Authorization": f"token {os.environ['GH_TOKEN']}",
+                  "Accept": "application/vnd.github+json",
+                  "User-Agent": "phl-crm-build",
+              },
+          )
+          with urllib.request.urlopen(req) as resp:
+              data = json.load(resp)
+          print("ISSUE_URL:", data["html_url"])
+          PYEOF
