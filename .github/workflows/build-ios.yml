@@ -32,16 +32,12 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync ios 2>&1 | tee -a /tmp/build.log
 
-      - name: Install CocoaPods dependencies
-        working-directory: ios/App
-        run: pod install 2>&1 | tee -a /tmp/build.log
-
       - name: Build for iOS Simulator (unsigned)
         working-directory: ios/App
         run: |
           set -o pipefail
           xcodebuild \
-            -workspace App.xcworkspace \
+            -project App.xcodeproj \
             -scheme App \
             -configuration Debug \
             -sdk iphonesimulator \
