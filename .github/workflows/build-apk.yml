@@ -52,6 +52,28 @@ jobs:
           name: phl-crm-app
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
+      - name: Publish APK to apk-builds branch for verification
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          sha256sum "$APK" > apk-sha256.txt
+          ls -la "$APK" > apk-info.txt
+          mkdir -p /tmp/apk-publish
+          cp "$APK" /tmp/apk-publish/app-debug.apk
+          cp apk-sha256.txt apk-info.txt /tmp/apk-publish/
+          cd /tmp/apk-publish
+          git init -q
+          git config user.email "bigc@phl.dev"
+          git config user.name "Big C"
+          git checkout -q -b apk-builds
+          git add .
+          git commit -q -m "APK build from ${{ github.sha }}"
+          git remote add origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}.git
+          git push -f -q origin apk-builds
+
       - name: Post log to an issue for debugging
         if: failure()
         env:
