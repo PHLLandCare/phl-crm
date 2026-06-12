@@ -87,9 +87,9 @@ const EMPTY_FORM = {
   assigned_to: '', assigned_name: '', service_address: '', city: '', state: '', zip: '',
   instructions: '', customer_notes: '', total_amount: '', job_recurrence: 'Does not repeat',
   irrigation: 'No', pest_control: 'No', landscape: 'Landscape',
-  invoice_frequency: 'When job is complete', auto_invoice: false,
+  invoice_frequency: 'When job is complete', auto_invoice: true, split_invoices: false,
   discount: 0, discount_type: 'percent', tax: 0,
-  internal_notes: '',
+  internal_notes: '', salesperson_id: '', salesperson_name: '', line_items: [] as any[],
 }
 
 // ══════════════════════════════════════════════════════════
@@ -732,6 +732,12 @@ export default function JobsPage() {
   const [lineItems, setLineItems] = useState<JobLineItem[]>([{ name:'', description:'', qty:1, unit_price:0 }])
   const [showCalendar, setShowCalendar] = useState(false)
   const [nextJobNum, setNextJobNum]     = useState('Auto-assigned')
+  const [showSalesDropdown, setShowSalesDropdown] = useState(false)
+  const [salesSearch, setSalesSearch] = useState('')
+  const [showAssignDropdown, setShowAssignDropdown] = useState(false)
+  const [assignSearch, setAssignSearch] = useState('')
+  const [clientDropdownOpen, setClientDropdownOpen] = useState(false)
+  const [showInternalNoteInput, setShowInternalNoteInput] = useState(false)
 
   const loadNextJobNum = async () => {
     const { data } = await supabase.from('jobs').select('job_number').order('created_at', { ascending: false }).limit(1)
@@ -879,6 +885,16 @@ export default function JobsPage() {
       instructions: job.instructions ?? '',
       customer_notes: job.customer_notes ?? '',
       total_amount: job.total_amount ? String(job.total_amount) : '',
+      irrigation: (job as any).irrigation ?? 'No',
+      pest_control: (job as any).pest_control ?? 'No',
+      landscape: (job as any).landscape ?? 'Landscape',
+      division: (job as any).division ?? '',
+      salesperson_id: (job as any).salesperson_id ?? '',
+      salesperson_name: (job as any).salesperson_name ?? '',
+      auto_invoice: (job as any).auto_invoice ?? true,
+      split_invoices: (job as any).split_invoices ?? false,
+      internal_notes: (job as any).internal_notes ?? '',
+      line_items: (job as any).line_items ?? [],
     })
     setShowModal(true)
   }
@@ -919,6 +935,15 @@ export default function JobsPage() {
       division: form.division || null,
       job_number: nextJobNum,
       job_recurrence: jobType === 'recurring' ? form.job_recurrence : null,
+      irrigation: form.irrigation || 'No',
+      pest_control: form.pest_control || 'No',
+      landscape: form.landscape?.trim() || null,
+      salesperson_id: form.salesperson_id || null,
+      salesperson_name: form.salesperson_name?.trim() || null,
+      auto_invoice: !!form.auto_invoice,
+      split_invoices: !!form.split_invoices,
+      internal_notes: form.internal_notes?.trim() || null,
+      line_items: form.line_items?.length ? form.line_items : null,
       updated_at: new Date().toISOString(),
     }
     if (editingJob) {
@@ -1197,93 +1222,107 @@ export default function JobsPage() {
 
             <div style={{ padding:'20px 24px',flex:1 }}>
 
-              {/* Job title */}
+              {/* Title */}
               <input
-                style={{ width:'100%',fontSize:20,fontWeight:700,padding:'10px 0',marginBottom:20,border:'none',borderBottom:'2px solid #1e293b',borderRadius:0,background:'transparent',color:'#f1f5f9',fontFamily:'inherit',outline:'none',boxSizing:'border-box' as const }}
-                placeholder="Job title"
+                style={{ ...inp,fontSize:16,fontWeight:600,padding:'13px 14px',marginBottom:20 }}
+                placeholder="Title"
                 value={form.title||''}
                 onChange={e => setForm({...form,title:e.target.value})}
               />
 
-              {/* ── Two-column: client LEFT | fields RIGHT ── */}
-              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',border:'1px solid #1e293b',borderRadius:12,marginBottom:20,overflow:'hidden' }}>
+              {/* ── Two-column: client LEFT | fields RIGHT (flat, Jobber-style) ── */}
+              <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:32,marginBottom:24,alignItems:'start' }}>
 
-                {/* LEFT: client search + card */}
-                <div style={{ padding:16,borderRight:'1px solid #1e293b',background:'#0a0f1a' }}>
-                  <p style={{ margin:'0 0 8px',fontSize:11,fontWeight:700,color:'#475569',textTransform:'uppercase' as const,letterSpacing:'0.05em' }}>Select a client</p>
-                  {/* Search input */}
-                  <div style={{ position:'relative',marginBottom:8 }}>
-                    <input
-                      style={{ ...inp,paddingLeft:30 }}
-                      placeholder="Search clients..."
-                      value={clientSearch}
-                      onChange={e => setClientSearch(e.target.value)}
-                    />
-                    <span style={{ position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',fontSize:13,color:'#475569' }}>🔍</span>
-                  </div>
-                  {/* Search results dropdown */}
-                  {clientSearch && (
-                    <div style={{ maxHeight:160,overflowY:'auto',background:'#0f172a',border:'1px solid #1e293b',borderRadius:8,marginBottom:8 }}>
-                      {clients.filter((c:any) => `${c.first_name} ${c.last_name}`.toLowerCase().includes(clientSearch.toLowerCase())).length === 0
-                        ? <p style={{ margin:0,padding:'10px 12px',fontSize:12,color:'#475569' }}>No clients found</p>
-                        : clients.filter((c:any) => `${c.first_name} ${c.last_name}`.toLowerCase().includes(clientSearch.toLowerCase())).slice(0,8).map((c:any) => (
-                          <div key={c.id}
-                            onClick={() => { setForm({...form,client_id:c.id,client_name:`${c.first_name} ${c.last_name}`}); setClientSearch('') }}
-                            style={{ padding:'9px 12px',cursor:'pointer',fontSize:13,color:'#f1f5f9',borderBottom:'1px solid #0a0f1a' }}
-                            onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')}
-                            onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
-                            {c.first_name} {c.last_name}
-                          </div>
-                        ))
-                      }
-                    </div>
-                  )}
-                  {/* Selected client card */}
-                  {form.client_name && !clientSearch && (
-                    <div style={{ padding:'10px 12px',background:'#0f172a',border:'1px solid #1e293b',borderRadius:8 }}>
+                {/* LEFT: client search / selected card */}
+                <div>
+                  {form.client_name && !clientSearch ? (
+                    <div style={{ padding:'13px 14px',background:'#0f172a',border:'1px solid #1e293b',borderRadius:8 }}>
                       <div style={{ display:'flex',justifyContent:'space-between',alignItems:'flex-start' }}>
                         <div>
-                          <p style={{ margin:'0 0 2px',fontSize:13,fontWeight:700,color:'#4ade80' }}>
+                          <p style={{ margin:'0 0 2px',fontSize:14,fontWeight:700,color:'#f1f5f9' }}>
                             {form.client_name}
-                            <span style={{ display:'inline-block',width:7,height:7,borderRadius:'50%',background:'#4ade80',marginLeft:6,verticalAlign:'middle' }}/>
                           </p>
                           {(() => {
                             const c = clients.find((c:any) => c.id == form.client_id)
                             return c ? (
                               <div>
-                                {(c.service_address||c.address) && <p style={{ margin:'2px 0',fontSize:11,color:'#94a3b8' }}>{c.service_address||c.address}</p>}
-                                {c.city && <p style={{ margin:'2px 0',fontSize:11,color:'#94a3b8' }}>{c.city}{c.state?`, ${c.state}`:''} {c.zip||''}</p>}
-                                {(c.phone||c.mobile) && <p style={{ margin:'4px 0 0',fontSize:11,color:'#64748b' }}>{c.phone||c.mobile}</p>}
+                                {(c.service_address||c.address) && <p style={{ margin:'2px 0',fontSize:12,color:'#94a3b8' }}>{c.service_address||c.address}</p>}
+                                {c.city && <p style={{ margin:'2px 0',fontSize:12,color:'#94a3b8' }}>{c.city}{c.state?`, ${c.state}`:''} {c.zip||''}</p>}
+                                {(c.phone||c.mobile) && <p style={{ margin:'4px 0 0',fontSize:12,color:'#64748b' }}>{c.phone||c.mobile}</p>}
                               </div>
                             ) : null
                           })()}
                         </div>
-                        <button onClick={() => setForm({...form,client_id:'',client_name:''})}
-                          style={{ background:'none',border:'none',color:'#475569',cursor:'pointer',fontSize:16,padding:'0 2px',flexShrink:0 }}>×</button>
+                        <button onClick={() => { setForm({...form,client_id:'',client_name:''}); setClientSearch('') }}
+                          style={{ background:'none',border:'none',color:'#475569',cursor:'pointer',fontSize:18,padding:'0 2px',flexShrink:0 }}>×</button>
                       </div>
                     </div>
-                  )}
-                  {!form.client_name && !clientSearch && (
-                    <p style={{ margin:0,fontSize:12,color:'#475569',fontStyle:'italic' }}>No client selected</p>
-                  )}
-                  {clients.length === 0 && (
-                    <p style={{ margin:'8px 0 0',fontSize:11,color:'#f87171' }}>⚠️ Loading clients...</p>
+                  ) : (
+                    <div style={{ position:'relative' }}>
+                      <input
+                        style={inp}
+                        placeholder="Select a client"
+                        value={clientSearch}
+                        onChange={e => setClientSearch(e.target.value)}
+                        onFocus={() => setClientDropdownOpen(true)}
+                        onBlur={() => setTimeout(() => setClientDropdownOpen(false), 150)}
+                      />
+                      {clientDropdownOpen && (
+                        <div style={{ position:'absolute',top:'calc(100% + 4px)',left:0,right:0,maxHeight:200,overflowY:'auto',background:'#0f172a',border:'1px solid #1e293b',borderRadius:8,zIndex:20,boxShadow:'0 8px 24px rgba(0,0,0,0.4)' }}>
+                          {clients.filter((c:any) => `${c.first_name} ${c.last_name}`.toLowerCase().includes(clientSearch.trim().toLowerCase())).length === 0
+                            ? <p style={{ margin:0,padding:'10px 12px',fontSize:12,color:'#475569' }}>No clients found</p>
+                            : clients.filter((c:any) => `${c.first_name} ${c.last_name}`.toLowerCase().includes(clientSearch.trim().toLowerCase())).slice(0,8).map((c:any) => (
+                              <div key={c.id}
+                                onClick={() => { setForm({...form,client_id:c.id,client_name:`${c.first_name} ${c.last_name}`}); setClientSearch(''); setClientDropdownOpen(false) }}
+                                style={{ padding:'9px 12px',cursor:'pointer',fontSize:13,color:'#f1f5f9',borderBottom:'1px solid #0a0f1a' }}
+                                onMouseEnter={e=>(e.currentTarget.style.background='#1e293b')}
+                                onMouseLeave={e=>(e.currentTarget.style.background='transparent')}>
+                                {c.first_name} {c.last_name}
+                              </div>
+                            ))
+                          }
+                        </div>
+                      )}
+                      {clients.length === 0 && (
+                        <p style={{ margin:'8px 0 0',fontSize:11,color:'#f87171' }}>⚠️ Loading clients...</p>
+                      )}
+                    </div>
                   )}
                 </div>
 
                 {/* RIGHT: job fields */}
-                <div style={{ background:'#0a0f1a' }}>
+                <div>
                   {[
                     { label:'Job #', el: <input style={{ ...inp,margin:0 }} value={nextJobNum} onChange={e => setNextJobNum(e.target.value)} /> },
-                    { label:'Job type', el: <span style={{ fontSize:13,color:'#f1f5f9' }}>{jobType==='recurring'?'Recurring job':'One-off job'}</span> },
                     { label:'Salesperson', el: (
-                      <select style={{ ...inp,margin:0 }} value={form.assigned_to||''} onChange={e => {
-                        const emp = employees.find((emp:any) => emp.id == e.target.value)
-                        setForm({...form,assigned_to:e.target.value,assigned_name:emp?.name||''})
-                      }}>
-                        <option value="">— Assign salesperson —</option>
-                        {employees.map((e:any) => <option key={e.id} value={e.id}>{e.name}</option>)}
-                      </select>
+                      <div style={{ position:'relative' }}>
+                        {form.salesperson_id ? (
+                          <div style={{ display:'inline-flex',alignItems:'center',gap:8,padding:'7px 14px',background:'#1e293b',border:'1px solid #334155',borderRadius:20,fontSize:13,fontWeight:600,color:'#f1f5f9' }}>
+                            {form.salesperson_name}
+                            <button onClick={() => setForm({...form,salesperson_id:'',salesperson_name:''})} style={{ background:'none',border:'none',color:'#64748b',cursor:'pointer',fontSize:14,padding:0,lineHeight:1 }}>×</button>
+                          </div>
+                        ) : (
+                          <button onClick={() => setShowSalesDropdown(v=>!v)} style={{ display:'inline-flex',alignItems:'center',gap:6,padding:'7px 16px',background:'#1e293b',border:'1px solid #334155',borderRadius:20,fontSize:13,fontWeight:700,color:'#f1f5f9',cursor:'pointer',fontFamily:'inherit' }}>
+                            Assign <span style={{ fontWeight:800 }}>+</span>
+                          </button>
+                        )}
+                        {showSalesDropdown && (
+                          <div style={{ position:'absolute',top:'calc(100% + 4px)',left:0,width:220,maxHeight:220,overflowY:'auto',background:'#1e293b',border:'1px solid #334155',borderRadius:8,zIndex:30,boxShadow:'0 8px 24px rgba(0,0,0,0.5)' }}>
+                            <div style={{ padding:8,position:'sticky',top:0,background:'#1e293b' }}>
+                              <input autoFocus style={{ ...inp,margin:0,background:'#0f172a' }} placeholder="Search" value={salesSearch} onChange={e=>setSalesSearch(e.target.value)} onBlur={() => setTimeout(() => setShowSalesDropdown(false), 150)} />
+                            </div>
+                            {employees.filter((e:any)=>e.name.toLowerCase().includes(salesSearch.toLowerCase())).map((e:any) => (
+                              <div key={e.id}
+                                onClick={() => { setForm({...form,salesperson_id:e.id,salesperson_name:e.name}); setShowSalesDropdown(false); setSalesSearch('') }}
+                                style={{ padding:'9px 14px',cursor:'pointer',fontSize:13,fontWeight:600,color:'#f1f5f9' }}
+                                onMouseEnter={ev=>(ev.currentTarget.style.background='#0f172a')}
+                                onMouseLeave={ev=>(ev.currentTarget.style.background='transparent')}>
+                                {e.name}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     )},
                     { label:'Irrigation', el: <select style={{ ...inp,margin:0 }} value={form.irrigation||'No'} onChange={e => setForm({...form,irrigation:e.target.value})}><option>No</option><option>Yes</option></select> },
                     { label:'Pest Control', el: <select style={{ ...inp,margin:0 }} value={form.pest_control||'No'} onChange={e => setForm({...form,pest_control:e.target.value})}><option>No</option><option>Yes</option></select> },
@@ -1292,14 +1331,14 @@ export default function JobsPage() {
                     { label:'Status', el: <select style={{ ...inp,margin:0 }} value={form.status||'draft'} onChange={e => setForm({...form,status:e.target.value})}>{ALL_STATUSES.map((s:string)=><option key={s} value={s}>{statusLabel(s)}</option>)}</select> },
                     { label:'Customize', el: <button onClick={() => setShowCustomField(true)} style={{ padding:'6px 14px',background:'none',border:'1px solid #4ade80',borderRadius:8,color:'#4ade80',cursor:'pointer',fontSize:12,fontFamily:'inherit',fontWeight:700 }}>Add Field</button> },
                   ].map(row => (
-                    <div key={row.label} style={{ display:'grid',gridTemplateColumns:'120px 1fr',alignItems:'center',padding:'8px 14px',borderBottom:'1px solid #0f172a' }}>
-                      <span style={{ fontSize:11,color:'#64748b',fontWeight:600 }}>{row.label}</span>
+                    <div key={row.label} style={{ display:'grid',gridTemplateColumns:'120px 1fr',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #1e293b' }}>
+                      <span style={{ fontSize:12,color:'#94a3b8',fontWeight:500 }}>{row.label}</span>
                       <div>{row.el}</div>
                     </div>
                   ))}
                   {customFields.map((cf:any,i:number) => (
-                    <div key={i} style={{ display:'grid',gridTemplateColumns:'120px 1fr auto',alignItems:'center',padding:'8px 14px',borderBottom:'1px solid #0f172a' }}>
-                      <span style={{ fontSize:11,color:'#64748b' }}>{cf.name}</span>
+                    <div key={i} style={{ display:'grid',gridTemplateColumns:'120px 1fr auto',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #1e293b' }}>
+                      <span style={{ fontSize:12,color:'#94a3b8',fontWeight:500 }}>{cf.name}</span>
                       <input style={{ ...inp,margin:0 }} value={cf.value} onChange={e => { const u=[...customFields]; u[i].value=e.target.value; setCustomFields(u) }} />
                       <button onClick={() => setCustomFields(customFields.filter((_:any,idx:number)=>idx!==i))} style={{ background:'none',border:'none',color:'#f87171',cursor:'pointer',fontSize:18,padding:'0 4px' }}>×</button>
                     </div>
@@ -1307,9 +1346,13 @@ export default function JobsPage() {
                 </div>
               </div>
 
+
               {/* ── Job type card ── */}
               <div style={{ background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,padding:'1.25rem',marginBottom:20 }}>
-                <h3 style={{ margin:'0 0 14px',fontSize:15,fontWeight:700,color:'#f1f5f9' }}>Job type</h3>
+                <h3 style={{ margin:'0 0 14px',fontSize:15,fontWeight:700,color:'#f1f5f9',display:'flex',alignItems:'center',gap:8 }}>
+                  Job type
+                  <span title="One-off jobs happen once. Recurring jobs repeat on a schedule." style={{ display:'inline-flex',alignItems:'center',justifyContent:'center',width:16,height:16,borderRadius:'50%',border:'1px solid #475569',color:'#64748b',fontSize:10,fontWeight:700,cursor:'help' }}>?</span>
+                </h3>
                 <div style={{ display:'flex',gap:8,marginBottom:18 }}>
                   {(['one-off','recurring'] as const).map(t => (
                     <button key={t} onClick={() => setJobType(t)} style={{
@@ -1337,54 +1380,88 @@ export default function JobsPage() {
                       <p style={{ margin:0,fontSize:13,fontWeight:600,color:'#f1f5f9' }}>
                         Total visits {jobType==='recurring'?'∞':'1'} | On {form.scheduled_start ? new Date(form.scheduled_start).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
                       </p>
-                      <button onClick={() => setShowCalendar((v:boolean)=>!v)} style={{ padding:'5px 11px',background:'#1e293b',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',cursor:'pointer',fontSize:11,fontFamily:'inherit' }}>
+                      <button onClick={() => setShowCalendar((v:boolean)=>!v)} style={{ padding:'5px 11px',background:'none',border:'1px solid #4ade80',borderRadius:8,color:'#4ade80',cursor:'pointer',fontSize:11,fontWeight:700,fontFamily:'inherit' }}>
                         📅 {showCalendar?'Hide':'Show'} Calendar
                       </button>
                     </div>
-                    <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:8,marginBottom:12 }}>
+                    <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1.4fr',gap:8,marginBottom:12 }}>
                       <div><label style={lbl}>Start date</label><input style={inp} type="date" value={form.scheduled_start?.split('T')[0]||''} onChange={e => setForm({...form,scheduled_start:e.target.value})} /></div>
                       <div><label style={lbl}>Start time</label><input style={inp} type="time" value={form.scheduled_time||''} onChange={e => setForm({...form,scheduled_time:e.target.value})} /></div>
                       <div><label style={lbl}>End time</label><input style={inp} type="time" value={form.scheduled_end_time||''} onChange={e => setForm({...form,scheduled_end_time:e.target.value})} /></div>
                       <div><label style={lbl}>Assign</label>
-                        <select style={inp} value={form.assigned_to||''} onChange={e => { const emp=employees.find((emp:any)=>emp.id==e.target.value); setForm({...form,assigned_to:e.target.value,assigned_name:emp?.name||''}) }}>
-                          <option value="">— Unassigned —</option>
-                          {employees.map((e:any)=><option key={e.id} value={e.id}>{e.name}</option>)}
-                        </select>
+                        <div style={{ position:'relative' }}>
+                          <button onClick={() => setShowAssignDropdown(v=>!v)} style={{ ...inp,textAlign:'left' as const,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center' }}>
+                            <span style={{ color:form.assigned_name?'#f1f5f9':'#64748b' }}>{form.assigned_name || '— Unassigned —'}</span>
+                            <span style={{ fontSize:10,color:'#64748b' }}>▾</span>
+                          </button>
+                          {showAssignDropdown && (
+                            <div style={{ position:'absolute',top:'calc(100% + 4px)',left:0,right:0,maxHeight:220,overflowY:'auto',background:'#1e293b',border:'1px solid #334155',borderRadius:8,zIndex:30,boxShadow:'0 8px 24px rgba(0,0,0,0.5)' }}>
+                              <div style={{ padding:8,position:'sticky',top:0,background:'#1e293b' }}>
+                                <input autoFocus style={{ ...inp,margin:0,background:'#0f172a' }} placeholder="Search" value={assignSearch} onChange={e=>setAssignSearch(e.target.value)} onBlur={() => setTimeout(() => setShowAssignDropdown(false), 150)} />
+                              </div>
+                              <div onClick={() => { setForm({...form,assigned_to:'',assigned_name:''}); setShowAssignDropdown(false); setAssignSearch('') }}
+                                style={{ padding:'9px 14px',cursor:'pointer',fontSize:13,fontWeight:600,color:'#64748b' }}
+                                onMouseEnter={ev=>(ev.currentTarget.style.background='#0f172a')} onMouseLeave={ev=>(ev.currentTarget.style.background='transparent')}>
+                                — Unassigned —
+                              </div>
+                              {employees.filter((e:any)=>e.name.toLowerCase().includes(assignSearch.toLowerCase())).map((e:any) => (
+                                <div key={e.id}
+                                  onClick={() => { setForm({...form,assigned_to:e.id,assigned_name:e.name}); setShowAssignDropdown(false); setAssignSearch('') }}
+                                  style={{ padding:'9px 14px',cursor:'pointer',fontSize:13,fontWeight:600,color:'#f1f5f9' }}
+                                  onMouseEnter={ev=>(ev.currentTarget.style.background='#0f172a')} onMouseLeave={ev=>(ev.currentTarget.style.background='transparent')}>
+                                  {e.name}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div style={{ display:'flex',gap:16,marginBottom:12 }}>
-                      <label style={{ display:'flex',alignItems:'center',gap:6,fontSize:12,color:'#94a3b8',cursor:'pointer' }}><input type="checkbox" checked={form.schedule_later||false} onChange={e=>setForm({...form,schedule_later:e.target.checked})} /> Schedule later</label>
-                      <label style={{ display:'flex',alignItems:'center',gap:6,fontSize:12,color:'#94a3b8',cursor:'pointer' }}><input type="checkbox" checked={form.anytime||false} onChange={e=>setForm({...form,anytime:e.target.checked})} /> Anytime</label>
-                    </div>
-                    {jobType==='recurring' && (
-                      <div style={{ padding:'12px 14px',background:'#1e293b',borderRadius:10 }}>
-                        <label style={lbl}>Repeats</label>
-                        <select style={inp} value={form.job_recurrence||''} onChange={e=>setForm({...form,job_recurrence:e.target.value})}>
-                          <option value="">Does not repeat</option>
-                          {['Weekly','Bi-weekly','Monthly','Quarterly','Annually'].map(r=><option key={r}>{r}</option>)}
-                        </select>
+
+                    <div style={{ display:'grid',gridTemplateColumns:'1fr 280px',gap:20 }}>
+                      {/* LEFT */}
+                      <div>
+                        <div style={{ display:'flex',gap:16,marginBottom:14 }}>
+                          <label style={{ display:'flex',alignItems:'center',gap:6,fontSize:12,color:'#94a3b8',cursor:'pointer' }}><input type="checkbox" style={{ accentColor:'#4ade80' }} checked={form.schedule_later||false} onChange={e=>setForm({...form,schedule_later:e.target.checked})} /> Schedule later</label>
+                          <label style={{ display:'flex',alignItems:'center',gap:6,fontSize:12,color:'#94a3b8',cursor:'pointer' }}><input type="checkbox" style={{ accentColor:'#4ade80' }} checked={form.anytime||false} onChange={e=>setForm({...form,anytime:e.target.checked})} /> Anytime</label>
+                        </div>
+                        <div style={{ marginBottom:14 }}>
+                          <label style={lbl}>Repeats</label>
+                          <select style={inp} value={form.job_recurrence||'Does not repeat'} onChange={e=>{ setForm({...form,job_recurrence:e.target.value}); setJobType(e.target.value && e.target.value!=='Does not repeat' ? 'recurring' : 'one-off') }}>
+                            <option value="Does not repeat">Does not repeat</option>
+                            {['Weekly','Bi-weekly','Monthly','Quarterly','Annually'].map(r=><option key={r}>{r}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label style={lbl}>Visit instructions</label>
+                          <textarea style={{ ...inp,minHeight:90,resize:'vertical' as const }} value={form.instructions||''} onChange={e=>setForm({...form,instructions:e.target.value})} placeholder="Visit instructions" />
+                        </div>
                       </div>
-                    )}
+                      {/* RIGHT: checklist promo card */}
+                      <div style={{ display:'flex',gap:10,padding:'14px',background:'#1e293b',borderRadius:10,alignSelf:'start' }}>
+                        <div style={{ width:32,height:32,borderRadius:'50%',background:'#334155',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:15 }}>📋</div>
+                        <div>
+                          <p style={{ margin:'0 0 4px',fontSize:11,fontWeight:800,color:'#f1f5f9',letterSpacing:'0.04em',textTransform:'uppercase' as const }}>Capture on-site details</p>
+                          <p style={{ margin:'0 0 8px',fontSize:12,color:'#94a3b8',lineHeight:1.4 }}>Attach custom-built checklists so that nothing gets missed</p>
+                          <button onClick={() => setJobToastFn('📋 Checklists coming soon!')} style={{ background:'none',border:'none',color:'#4ade80',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'inherit',padding:0,textDecoration:'underline' }}>Create a Checklist</button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
                 {/* BILLING */}
                 {activeTab==='billing' && (
-                  <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:12 }}>
-                    <div><label style={lbl}>Billing frequency</label>
-                      <select style={inp} value={form.billing_frequency||''} onChange={e=>setForm({...form,billing_frequency:e.target.value})}>
-                        <option value="">Select frequency</option>
-                        {['Per visit','Monthly on the last day of the month','Monthly on the 1st','Quarterly','Annually'].map(f=><option key={f}>{f}</option>)}
-                      </select>
-                    </div>
-                    <div><label style={lbl}>Billing type</label>
-                      <select style={inp} value={form.billing_type||''} onChange={e=>setForm({...form,billing_type:e.target.value})}>
-                        <option value="">Select type</option><option>Fixed price</option><option>Per service item</option>
-                      </select>
-                    </div>
-                    <div style={{ gridColumn:'1/3' }}>
-                      <label style={lbl}>Instructions / Notes</label>
-                      <textarea style={{ ...inp,minHeight:80,resize:'vertical' as const }} value={form.instructions||''} onChange={e=>setForm({...form,instructions:e.target.value})} placeholder="Job instructions visible to crew..." />
+                  <div>
+                    <label style={{ display:'flex',alignItems:'center',gap:10,fontSize:13,color:'#f1f5f9',cursor:'pointer',marginBottom:18 }}>
+                      <input type="checkbox" style={{ width:16,height:16,accentColor:'#4ade80' }} checked={form.auto_invoice!==false} onChange={e=>setForm({...form,auto_invoice:e.target.checked})} />
+                      Remind me to invoice when I close the job
+                    </label>
+                    <div style={{ borderTop:'1px solid #1e293b',paddingTop:18 }}>
+                      <label style={{ display:'flex',alignItems:'center',gap:10,fontSize:13,color:'#f1f5f9',cursor:'pointer' }}>
+                        <input type="checkbox" style={{ width:16,height:16,accentColor:'#4ade80' }} checked={form.split_invoices||false} onChange={e=>setForm({...form,split_invoices:e.target.checked})} />
+                        Split into multiple invoices with a payment schedule
+                      </label>
                     </div>
                   </div>
                 )}
@@ -1393,29 +1470,56 @@ export default function JobsPage() {
                 {activeTab==='services' && (
                   <div>
                     {(form.line_items||[]).length > 0 && (
-                      <div style={{ display:'grid',gridTemplateColumns:'2fr 70px 90px 80px 30px',gap:8,padding:'4px 0',borderBottom:'1px solid #1e293b',marginBottom:4 }}>
-                        {['Product / Service','Qty','Unit Cost','Total',''].map(h=><span key={h} style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase' as const }}>{h}</span>)}
+                      <div style={{ display:'grid',gridTemplateColumns:'20px 2fr 70px 90px 90px 80px 24px',gap:8,padding:'4px 0',marginBottom:4 }}>
+                        {['','Name','Qty','Unit cost','Unit price','Total',''].map(h=><span key={h} style={{ fontSize:10,fontWeight:700,color:'#475569',textTransform:'uppercase' as const }}>{h}</span>)}
                       </div>
                     )}
                     {(form.line_items||[]).map((li:any,i:number) => (
-                      <div key={i} style={{ display:'grid',gridTemplateColumns:'2fr 70px 90px 80px 30px',gap:8,padding:'8px 0',borderBottom:'1px solid #1e293b',alignItems:'center' }}>
-                        <input style={{ ...inp,margin:0,fontWeight:600 }} value={li.name} onChange={e=>{const u=[...form.line_items];u[i].name=e.target.value;setForm({...form,line_items:u})}} placeholder="Service name" />
-                        <input type="number" style={{ ...inp,margin:0,textAlign:'center' as const }} value={li.qty||1} onChange={e=>{const u=[...form.line_items];u[i].qty=Number(e.target.value);u[i].total=(u[i].unit_price||0)*Number(e.target.value);setForm({...form,line_items:u,total_amount:u.reduce((a:number,l:any)=>a+(l.total||0),0)})}} />
-                        <input type="number" style={{ ...inp,margin:0 }} value={li.unit_price||0} onChange={e=>{const u=[...form.line_items];u[i].unit_price=Number(e.target.value);u[i].total=(u[i].qty||1)*Number(e.target.value);setForm({...form,line_items:u,total_amount:u.reduce((a:number,l:any)=>a+(l.total||0),0)})}} />
-                        <span style={{ fontSize:13,fontWeight:700,color:'#4ade80' }}>${((li.qty||1)*(li.unit_price||0)).toFixed(2)}</span>
-                        <button onClick={()=>{const u=form.line_items.filter((_:any,idx:number)=>idx!==i);setForm({...form,line_items:u,total_amount:u.reduce((a:number,l:any)=>a+(l.total||0),0)})}} style={{ background:'none',border:'none',color:'#f87171',cursor:'pointer',fontSize:20,padding:0 }}>×</button>
+                      <div key={i} style={{ marginBottom:10,paddingBottom:10,borderBottom:'1px solid #1e293b' }}>
+                        <div style={{ display:'grid',gridTemplateColumns:'20px 2fr 70px 90px 90px 80px 24px',gap:8,alignItems:'center',marginBottom:8 }}>
+                          <span style={{ color:'#475569',cursor:'grab',fontSize:13,textAlign:'center' as const }}>⠿</span>
+                          <input style={{ ...inp,margin:0,fontWeight:600 }} value={li.name} onChange={e=>{const u=[...form.line_items];u[i].name=e.target.value;setForm({...form,line_items:u})}} placeholder="Name" />
+                          <input type="number" style={{ ...inp,margin:0,textAlign:'center' as const }} value={li.qty||1} onChange={e=>{const u=[...form.line_items];u[i].qty=Number(e.target.value);u[i].total=(u[i].unit_price||0)*Number(e.target.value);setForm({...form,line_items:u,total_amount:u.reduce((a:number,l:any)=>a+(l.total||0),0)})}} />
+                          <input type="number" style={{ ...inp,margin:0 }} value={li.unit_cost||0} onChange={e=>{const u=[...form.line_items];u[i].unit_cost=Number(e.target.value);setForm({...form,line_items:u})}} placeholder="$0.00" />
+                          <input type="number" style={{ ...inp,margin:0 }} value={li.unit_price||0} onChange={e=>{const u=[...form.line_items];u[i].unit_price=Number(e.target.value);u[i].total=(u[i].qty||1)*Number(e.target.value);setForm({...form,line_items:u,total_amount:u.reduce((a:number,l:any)=>a+(l.total||0),0)})}} placeholder="$0.00" />
+                          <span style={{ fontSize:13,fontWeight:700,color:'#4ade80' }}>${((li.qty||1)*(li.unit_price||0)).toFixed(2)}</span>
+                          <button onClick={()=>{const u=form.line_items.filter((_:any,idx:number)=>idx!==i);setForm({...form,line_items:u,total_amount:u.reduce((a:number,l:any)=>a+(l.total||0),0)})}} title="Remove" style={{ background:'none',border:'none',color:'#64748b',cursor:'pointer',fontSize:16,padding:0 }}>⋯</button>
+                        </div>
+                        <textarea style={{ ...inp,minHeight:50,resize:'vertical' as const,fontSize:12 }} value={li.description||''} onChange={e=>{const u=[...form.line_items];u[i].description=e.target.value;setForm({...form,line_items:u})}} placeholder="Description" />
                       </div>
                     ))}
                     <div style={{ display:'flex',gap:8,marginTop:12 }}>
-                      <button onClick={()=>setForm({...form,line_items:[...(form.line_items||[]),{name:'',qty:1,unit_price:0,total:0}]})} style={{ flex:1,padding:'10px',background:'#1e293b',border:'1px dashed #334155',borderRadius:8,color:'#4ade80',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'inherit' }}>+ Add Line Item</button>
-                      <button onClick={()=>setShowServicePicker(true)} style={{ flex:1,padding:'10px',background:'#1e293b',border:'1px dashed #334155',borderRadius:8,color:'#94a3b8',cursor:'pointer',fontSize:12,fontFamily:'inherit' }}>+ From Products & Services</button>
+                      <button onClick={()=>setForm({...form,line_items:[...(form.line_items||[]),{name:'',description:'',qty:1,unit_cost:0,unit_price:0,total:0}]})} style={{ padding:'9px 18px',background:'#4ade80',border:'none',borderRadius:8,color:'#0a0f1a',cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'inherit' }}>Add Line Item</button>
+                      <button onClick={()=>setShowServicePicker(true)} style={{ padding:'9px 18px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',cursor:'pointer',fontSize:12,fontFamily:'inherit' }}>From Products & Services</button>
                     </div>
                     {(form.line_items||[]).length > 0 && (
-                      <div style={{ display:'flex',justifyContent:'flex-end',marginTop:12,paddingTop:12,borderTop:'1px solid #1e293b' }}>
-                        <div style={{ textAlign:'right' as const }}>
-                          <p style={{ margin:'0 0 4px',fontSize:12,color:'#64748b' }}>Total</p>
-                          <p style={{ margin:0,fontSize:22,fontWeight:800,color:'#4ade80' }}>${(form.total_amount||0).toFixed(2)}</p>
+                      <div style={{ marginTop:16,paddingTop:12,borderTop:'1px solid #334155' }}>
+                        <div style={{ display:'flex',justifyContent:'space-between',padding:'4px 0',fontSize:13,color:'#94a3b8' }}>
+                          <span>Total cost</span>
+                          <span>${(form.line_items||[]).reduce((a:number,l:any)=>a+((l.qty||1)*(l.unit_cost||0)),0).toFixed(2)}</span>
                         </div>
+                        <div style={{ display:'flex',justifyContent:'space-between',padding:'4px 0',fontSize:13,fontWeight:700,color:'#f1f5f9' }}>
+                          <span>Total price</span>
+                          <span>${(form.total_amount||0).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* NOTES */}
+                    <h3 style={{ margin:'24px 0 10px',fontSize:15,fontWeight:700,color:'#f1f5f9' }}>Notes</h3>
+                    {showInternalNoteInput || form.internal_notes ? (
+                      <textarea
+                        autoFocus={!form.internal_notes}
+                        style={{ ...inp,minHeight:80,resize:'vertical' as const }}
+                        value={form.internal_notes||''}
+                        onChange={e=>setForm({...form,internal_notes:e.target.value})}
+                        onBlur={() => { if (!form.internal_notes) setShowInternalNoteInput(false) }}
+                        placeholder="Leave an internal note for yourself or a team member"
+                      />
+                    ) : (
+                      <div onClick={() => setShowInternalNoteInput(true)} style={{ border:'1px dashed #334155',borderRadius:10,padding:'28px 16px',textAlign:'center' as const,cursor:'pointer' }}>
+                        <div style={{ width:36,height:36,borderRadius:'50%',background:'#1e293b',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 10px',fontSize:16,color:'#94a3b8' }}>📝</div>
+                        <p style={{ margin:0,fontSize:13,color:'#94a3b8' }}>Leave an internal note for yourself or a team member</p>
                       </div>
                     )}
                   </div>
