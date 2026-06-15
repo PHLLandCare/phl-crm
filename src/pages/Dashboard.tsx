@@ -85,8 +85,10 @@ export default function Dashboard() {
   useEffect(() => {
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
+      let profile: { full_name?: string; role?: string } | null = null
       if (user) {
-        const { data: profile } = await supabase.from('user_profiles').select('full_name, role').eq('id', user.id).single()
+        const { data } = await supabase.from('user_profiles').select('full_name, role').eq('id', user.id).single()
+        profile = data
         if (profile?.full_name) {
           setUserName(profile.full_name)
           setUserInitials(profile.full_name.split(' ').map((n:string)=>n[0]).slice(0,2).join('').toUpperCase())
@@ -118,7 +120,11 @@ export default function Dashboard() {
 
       setCounts({clients:0, requests: newReqCount, quotes: pendingQuoteCount, jobs: activeJobCount, invoices: overdueInvCount})
       setRecentClients(rc.data??[])
-      setTodaysJobs(todayJobsData.data??[])
+      setTodaysJobs(
+        can(profile?.role as UserRole || 'worker_limited', 'view_pricing')
+          ? (todayJobsData.data??[])
+          : (todayJobsData.data??[]).filter((j:any) => (j.assigned_name||'').trim().toLowerCase() === (profile?.full_name||'').trim().toLowerCase())
+      )
       setClientGrowth({
         newLeads30: newLeadsData.count??0,
         newClients30: newClientsData.count??0,
@@ -379,10 +385,11 @@ export default function Dashboard() {
                 <div style={{background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,overflow:'hidden'}}>
                   <div style={{padding:'1rem 1.25rem',borderBottom:'1px solid #1e293b'}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-                      <h3 style={{margin:0,fontSize:16,fontWeight:700,color:'#f1f5f9'}}>Today's appointments</h3>
+                      <h3 style={{margin:0,fontSize:16,fontWeight:700,color:'#f1f5f9'}}>{can(userRole,'view_pricing') ? "Today's appointments" : "My appointments today"}</h3>
                       <button onClick={()=>navigate('/schedule')} style={{background:'transparent',border:'1px solid #334155',borderRadius:8,padding:'5px 14px',fontSize:12,color:'#94a3b8',cursor:'pointer',fontFamily:'inherit'}}>View Schedule</button>
                     </div>
                     {/* Summary row */}
+                    {can(userRole,'view_pricing') && (
                     <div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)',gap:8}}>
                       {[
                         {label:'Total',val:'$'+((todaysJobs.reduce((a,j)=>a+(j.amount||0),0)/1000).toFixed(1))+'K'},
@@ -397,9 +404,11 @@ export default function Dashboard() {
                         </div>
                       ))}
                     </div>
+                    )}
                   </div>
 
                   {/* Visit / Employee tabs */}
+                  {can(userRole,'view_pricing') && (
                   <div style={{display:'flex',padding:'0 1rem',borderBottom:'1px solid #1e293b'}}>
                     {(['visit','employee'] as const).map(tab=>(
                       <button key={tab} onClick={()=>setScheduleTab(tab)}
@@ -410,9 +419,10 @@ export default function Dashboard() {
                       </button>
                     ))}
                   </div>
+                  )}
 
                   {/* Visit tab */}
-                  {scheduleTab==='visit' && (
+                  {(scheduleTab==='visit' || !can(userRole,'view_pricing')) && (
                     <div style={{padding:'0.75rem 1rem'}}>
                       {todaysJobs.length===0 ? (
                         <div style={{padding:'2rem',textAlign:'center',color:'#475569',fontSize:13}}>No scheduled appointments today</div>
@@ -441,7 +451,7 @@ export default function Dashboard() {
                                       {job.assigned_name.split(' ').map((n:string)=>n[0]).slice(0,2).join('')}
                                     </div>
                                   )}
-                                  {job.amount>0 && <span style={{fontSize:12,color:'#4ade80',fontWeight:700,flexShrink:0}}>${(job.amount/1000).toFixed(1)}K</span>}
+                                  {job.amount>0 && can(userRole,'view_pricing') && <span style={{fontSize:12,color:'#4ade80',fontWeight:700,flexShrink:0}}>${(job.amount/1000).toFixed(1)}K</span>}
                                 </div>
                               ))}
                               {group.jobs.length>3 && (
