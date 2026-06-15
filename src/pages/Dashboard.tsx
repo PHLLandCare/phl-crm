@@ -385,7 +385,7 @@ export default function Dashboard() {
                 <div style={{background:'#0f172a',border:'1px solid #1e293b',borderRadius:14,overflow:'hidden'}}>
                   <div style={{padding:'1rem 1.25rem',borderBottom:'1px solid #1e293b'}}>
                     <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
-                      <h3 style={{margin:0,fontSize:16,fontWeight:700,color:'#f1f5f9'}}>{can(userRole,'view_pricing') ? "Today's appointments" : "My appointments today"}</h3>
+                      <h3 style={{margin:0,fontSize:16,fontWeight:700,color:'#f1f5f9'}}>Today's appointments</h3>
                       <button onClick={()=>navigate('/schedule')} style={{background:'transparent',border:'1px solid #334155',borderRadius:8,padding:'5px 14px',fontSize:12,color:'#94a3b8',cursor:'pointer',fontFamily:'inherit'}}>View Schedule</button>
                     </div>
                     {/* Summary row */}
