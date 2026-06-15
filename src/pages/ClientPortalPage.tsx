@@ -82,7 +82,7 @@ export default function ClientPortalPage() {
     const init = async () => {
       try {
         // Load Square credentials from org_settings
-        const { data: settings } = await supabase.from('org_settings').select('square_app_id,square_location_id').limit(1).single()
+        const { data: settings } = await supabase.from('org_settings_public').select('square_app_id,square_location_id').limit(1).single()
         const appId = settings?.square_app_id || ''
         const locationId = settings?.square_location_id || ''
         if (!appId || !locationId) {
