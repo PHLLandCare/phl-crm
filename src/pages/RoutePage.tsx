@@ -65,19 +65,35 @@ export default function RoutePage() {
     return true
   })
 
-  const optimizeRoute = () => {
-    // Simple nearest-neighbor heuristic using address hash as proxy coordinate
-    // In production this would call Google Maps Directions API
-    const shuffled = [...filtered].sort((a,b) => {
-      const scoreA = a.address?.length || 0
-      const scoreB = b.address?.length || 0
-      return scoreA - scoreB
-    })
-    setStops(prev => {
-      const other = prev.filter(s => !filtered.find(f=>f.id===s.id))
-      return [...other, ...shuffled.map((s,i)=>({...s, order:i}))]
-    })
-    setOptimized(true)
+  const [optimizing, setOptimizing] = useState(false)
+  const [optimizeError, setOptimizeError] = useState('')
+
+  const optimizeRoute = async () => {
+    setOptimizeError('')
+    const withAddr = filtered.filter(s => s.address && s.address.trim())
+    if (withAddr.length < 2) { setOptimized(true); return }
+
+    setOptimizing(true)
+    try {
+      const { data, error } = await supabase.functions.invoke('optimize-route', {
+        body: { stops: filtered.map(s => ({ id: s.id, address: s.address })) }
+      })
+      if (error || data?.error) throw new Error(data?.error || error?.message || 'Optimization failed')
+
+      const orderMap = new Map<string, number>(data.order.map((id: string, i: number) => [id, i]))
+      const reordered = [...filtered].sort((a, b) => (orderMap.get(a.id) ?? 999) - (orderMap.get(b.id) ?? 999))
+
+      setStops(prev => {
+        const other = prev.filter(s => !filtered.find(f => f.id === s.id))
+        return [...other, ...reordered.map((s, i) => ({ ...s, order: i }))]
+      })
+      setOptimized(true)
+    } catch (e: any) {
+      setOptimizeError(e.message.includes('not configured')
+        ? 'Google Maps isn\'t set up yet — add an API key in Settings → Integrations.'
+        : 'Couldn\'t optimize: ' + e.message)
+    }
+    setOptimizing(false)
   }
 
   const openInMaps = () => {
@@ -127,9 +143,9 @@ export default function RoutePage() {
           <p style={{fontSize:14,color:'#64748b',margin:0}}>{filtered.length} stops · {completed} completed · {pct}% done</p>
         </div>
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-          <button onClick={optimizeRoute}
-            style={{padding:'9px 18px',background:'#1a0533',border:'1px solid #9333ea',borderRadius:8,color:'#d8b4fe',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:6}}>
-            ⚡ Optimize Route
+          <button onClick={optimizeRoute} disabled={optimizing}
+            style={{padding:'9px 18px',background:'#1a0533',border:'1px solid #9333ea',borderRadius:8,color:'#d8b4fe',fontSize:13,fontWeight:700,cursor:optimizing?'default':'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:6,opacity:optimizing?0.7:1}}>
+            {optimizing ? '⏳ Optimizing…' : '⚡ Optimize Route'}
           </button>
           <button onClick={openInMaps} disabled={filtered.length===0}
             style={{padding:'9px 18px',background:'#0c1a2e',border:'1px solid #0ea5e9',borderRadius:8,color:'#7dd3fc',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',gap:6,opacity:filtered.length===0?0.5:1}}>
@@ -147,6 +163,11 @@ export default function RoutePage() {
           </button>
         </div>
       </div>
+      {optimizeError && (
+        <div style={{background:'rgba(248,113,113,0.1)',border:'1px solid rgba(248,113,113,0.3)',borderRadius:8,padding:'10px 14px',fontSize:13,color:'#f87171',marginBottom:'1rem'}}>
+          {optimizeError}
+        </div>
+      )}
       <div style={{display:'flex',gap:10,marginBottom:'1.5rem',flexWrap:'wrap',alignItems:'center'}}>
         <input type="date" value={date} onChange={e=>setDate(e.target.value)}
           style={{padding:'8px 12px',background:'#0f172a',border:'1.5px solid #1e293b',borderRadius:8,color:'#f1f5f9',fontSize:14,outline:'none',fontFamily:'inherit'}} />

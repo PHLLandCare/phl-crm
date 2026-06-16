@@ -106,6 +106,32 @@ interface TeamMember {
   active: boolean
 }
 
+interface EmployeeRow {
+  id: string
+  employee_id: string
+  fname: string
+  lname: string
+  pto_balance: number
+  sick_balance: number
+  vacation_balance: number
+  time_off_approver_id: string | null
+}
+
+interface TimeOffRequest {
+  id: string
+  employee_id: string
+  employee_name: string
+  type: 'pto' | 'sick' | 'vacation'
+  start_date: string
+  end_date: string
+  days: number
+  reason: string | null
+  status: 'pending' | 'approved' | 'denied' | 'cancelled'
+  reviewed_by: string | null
+  reviewed_at: string | null
+  created_at: string
+}
+
 const ROLE_OPTIONS: { value: UserRole; label: string; desc: string }[] = [
   { value: 'superadmin',     label: 'Superadmin',       desc: 'Full access to everything including billing and settings' },
   { value: 'manager',        label: 'Manager',          desc: 'Manage all areas including billing — excludes payroll' },
@@ -351,6 +377,13 @@ export default function TeamPage() {
   const [paperworkFiles, setPaperworkFiles] = useState<{name:string;url:string}[]>([])
   const [showEdit, setShowEdit] = useState(false)
   const [editMember, setEditMember] = useState<TeamMember | null>(null)
+  const [drawerTab, setDrawerTab] = useState<'permissions' | 'timeoff'>('permissions')
+  const [linkedEmployee, setLinkedEmployee] = useState<EmployeeRow | null>(null)
+  const [employeeLookupDone, setEmployeeLookupDone] = useState(false)
+  const [balanceEdits, setBalanceEdits] = useState<{ pto: string; sick: string; vacation: string; approver_id: string }>({ pto: '', sick: '', vacation: '', approver_id: '' })
+  const [savingBalances, setSavingBalances] = useState(false)
+  const [timeOffRequests, setTimeOffRequests] = useState<TimeOffRequest[]>([])
+  const [loadingTimeOff, setLoadingTimeOff] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteName, setInviteName] = useState('')
   const [inviteRole, setInviteRole] = useState<UserRole>('worker_limited')
@@ -358,6 +391,7 @@ export default function TeamPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [deactivateConfirm, setDeactivateConfirm] = useState<TeamMember | null>(null)
+  const [allEmployees, setAllEmployees] = useState<EmployeeRow[]>([])
 
   const loadMembers = async () => {
     setLoading(true)
@@ -379,6 +413,84 @@ export default function TeamPage() {
   }
 
   useEffect(() => { loadMembers() }, [])
+
+  useEffect(() => {
+    supabase.from('employees').select('id, employee_id, fname, lname, pto_balance, sick_balance, vacation_balance, time_off_approver_id')
+      .then(({ data }) => setAllEmployees((data ?? []) as EmployeeRow[]))
+  }, [])
+
+  // When the edit drawer opens for a member, find their matching employees row
+  // (linked by name, since user_profiles and employees are separate identity spaces)
+  // so we can show/edit PTO/Sick/Vacation balances and load their requests.
+  useEffect(() => {
+    if (!showEdit || !editMember) { setLinkedEmployee(null); setEmployeeLookupDone(false); return }
+    setEmployeeLookupDone(false)
+    const name = editMember.full_name.trim().toLowerCase()
+    supabase.from('employees')
+      .select('id, employee_id, fname, lname, pto_balance, sick_balance, vacation_balance, time_off_approver_id')
+      .then(({ data }) => {
+        const match = (data ?? []).find((e: any) => `${e.fname} ${e.lname}`.trim().toLowerCase() === name) || null
+        setLinkedEmployee(match as EmployeeRow | null)
+        if (match) {
+          setBalanceEdits({
+            pto: String((match as any).pto_balance ?? 0),
+            sick: String((match as any).sick_balance ?? 0),
+            vacation: String((match as any).vacation_balance ?? 0),
+            approver_id: (match as any).time_off_approver_id || '',
+          })
+          loadTimeOffForEmployee((match as any).employee_id)
+        }
+        setEmployeeLookupDone(true)
+      })
+  }, [showEdit, editMember?.id])
+
+  const loadTimeOffForEmployee = async (employeeId: string) => {
+    setLoadingTimeOff(true)
+    const { data } = await supabase.from('time_off_requests').select('*')
+      .eq('employee_id', employeeId).order('created_at', { ascending: false })
+    setTimeOffRequests((data ?? []) as TimeOffRequest[])
+    setLoadingTimeOff(false)
+  }
+
+  const handleSaveBalances = async () => {
+    if (!linkedEmployee) return
+    setSavingBalances(true); setError(null)
+    try {
+      const { error: err } = await supabase.from('employees').update({
+        pto_balance: parseFloat(balanceEdits.pto) || 0,
+        sick_balance: parseFloat(balanceEdits.sick) || 0,
+        vacation_balance: parseFloat(balanceEdits.vacation) || 0,
+        time_off_approver_id: balanceEdits.approver_id || null,
+      }).eq('id', linkedEmployee.id)
+      if (err) throw new Error(err.message)
+      setSuccess('Time off balances saved.'); setTimeout(() => setSuccess(null), 3000)
+      setAllEmployees(prev => prev.map(e => e.id === linkedEmployee.id
+        ? { ...e, pto_balance: parseFloat(balanceEdits.pto) || 0, sick_balance: parseFloat(balanceEdits.sick) || 0, vacation_balance: parseFloat(balanceEdits.vacation) || 0, time_off_approver_id: balanceEdits.approver_id || null }
+        : e))
+    } catch (e: any) { setError('Failed: ' + e.message) }
+    setSavingBalances(false)
+  }
+
+  const handleReviewRequest = async (req: TimeOffRequest, status: 'approved' | 'denied') => {
+    setError(null)
+    try {
+      const { error: err } = await supabase.from('time_off_requests').update({
+        status, reviewed_by: 'Admin', reviewed_at: new Date().toISOString(),
+      }).eq('id', req.id)
+      if (err) throw new Error(err.message)
+
+      // On approval, deduct the days from the employee's balance for that type
+      if (status === 'approved' && linkedEmployee) {
+        const col = req.type === 'pto' ? 'pto_balance' : req.type === 'sick' ? 'sick_balance' : 'vacation_balance'
+        const current = req.type === 'pto' ? parseFloat(balanceEdits.pto) : req.type === 'sick' ? parseFloat(balanceEdits.sick) : parseFloat(balanceEdits.vacation)
+        const updated = Math.max(0, (current || 0) - req.days)
+        await supabase.from('employees').update({ [col]: updated }).eq('id', linkedEmployee.id)
+        setBalanceEdits(prev => ({ ...prev, [req.type === 'pto' ? 'pto' : req.type === 'sick' ? 'sick' : 'vacation']: String(updated) }))
+      }
+      loadTimeOffForEmployee(req.employee_id)
+      setSuccess(`Request ${status}.`); setTimeout(() => setSuccess(null), 3000)
+    } catch (e: any) { setError('Failed: ' + e.message) }
+  }
 
   const handleInvite = async () => {
     if (!inviteEmail.trim() || !inviteName.trim()) { setError('Name and email are required.'); return }
@@ -752,14 +864,24 @@ export default function TeamPage() {
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
               <div>
                 <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>{editMember.full_name}</h2>
-                <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Edit permissions</p>
+                <p style={{ margin: 0, fontSize: 12, color: '#64748b' }}>Edit team member</p>
               </div>
               <button onClick={() => setShowEdit(false)} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 22, cursor: 'pointer' }}>×</button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 0, padding: '10px 20px 0', borderBottom: '1px solid #1e293b', flexShrink: 0 }}>
+              {[{ key: 'permissions', label: 'Permissions' }, { key: 'timeoff', label: '🌴 Time Off' }].map(t => (
+                <button key={t.key} onClick={() => setDrawerTab(t.key as any)}
+                  style={{ padding: '8px 14px', border: 'none', borderBottom: drawerTab === t.key ? '2px solid #16a34a' : '2px solid transparent', background: 'transparent', color: drawerTab === t.key ? '#f1f5f9' : '#64748b', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', marginBottom: -1 }}>
+                  {t.label}
+                </button>
+              ))}
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
               {error && <div style={{ background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.3)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: '#f87171', marginBottom: 14 }}>{error}</div>}
 
+              {drawerTab === 'permissions' && (<>
               {/* Preset picker */}
               <div style={{ marginBottom: 20 }}>
                 <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Preset permission level</p>
@@ -858,6 +980,90 @@ export default function TeamPage() {
                 <Section title="Payments" enabled={editMember.permissions.payments_enabled} onToggle={v => updatePerm('payments_enabled', v)} subtitle="Allow payment collection on quotes and invoices." />
                 <Section title="Reports" enabled={editMember.permissions.reports_enabled} onToggle={v => updatePerm('reports_enabled', v)} subtitle="Users will only see reports available based on their other permissions." />
               </div>
+              </>)}
+
+              {drawerTab === 'timeoff' && (<>
+                {!employeeLookupDone ? (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#475569', fontSize: 13 }}>Loading…</div>
+                ) : !linkedEmployee ? (
+                  <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 10, padding: '14px 16px', fontSize: 13, color: '#fbbf24' }}>
+                    No matching employee record found for "{editMember.full_name}". Time off balances live on the <code>employees</code> table (payroll record) — add this person there first (e.g. via "Add team member" → Bulk CSV, or directly in Supabase) using the exact same name, then balances will show here.
+                  </div>
+                ) : (<>
+                  <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Balances</p>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 16 }}>
+                    {[
+                      { key: 'pto', label: 'PTO', color: '#60a5fa' },
+                      { key: 'sick', label: 'Sick', color: '#f87171' },
+                      { key: 'vacation', label: 'Vacation', color: '#4ade80' },
+                    ].map(b => (
+                      <div key={b.key}>
+                        <label style={lbl}>{b.label} days</label>
+                        <input style={inp} type="number" step="0.5" value={(balanceEdits as any)[b.key]}
+                          onChange={e => setBalanceEdits(prev => ({ ...prev, [b.key]: e.target.value }))} />
+                      </div>
+                    ))}
+                  </div>
+
+                  <label style={lbl}>Time off approver</label>
+                  <select style={{ ...inp, marginBottom: 8 }} value={balanceEdits.approver_id}
+                    onChange={e => setBalanceEdits(prev => ({ ...prev, approver_id: e.target.value }))}>
+                    <option value="">— Any Admin/Manager (default) —</option>
+                    {allEmployees.filter(e => e.id !== linkedEmployee.id).map(e => (
+                      <option key={e.id} value={e.id}>{e.fname} {e.lname}</option>
+                    ))}
+                  </select>
+                  <p style={{ margin: '0 0 16px', fontSize: 11, color: '#475569' }}>If set, this person's requests route to the selected approver. Leave blank to allow any Admin/Manager.</p>
+
+                  <button onClick={handleSaveBalances} disabled={savingBalances}
+                    style={{ width: '100%', padding: '10px', border: 'none', borderRadius: 8, background: '#16a34a', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', opacity: savingBalances ? 0.6 : 1, marginBottom: 24 }}>
+                    {savingBalances ? 'Saving…' : 'Save balances'}
+                  </button>
+
+                  <div style={{ borderTop: '1px solid #1e293b', paddingTop: 16 }}>
+                    <p style={{ margin: '0 0 12px', fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Requests</p>
+                    {loadingTimeOff ? (
+                      <div style={{ textAlign: 'center', padding: '1rem', color: '#475569', fontSize: 13 }}>Loading…</div>
+                    ) : timeOffRequests.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '1rem', color: '#475569', fontSize: 13 }}>No time off requests yet.</div>
+                    ) : timeOffRequests.map(req => {
+                      const STATUS_COLOR: Record<string, { bg: string; color: string }> = {
+                        pending: { bg: 'rgba(251,191,36,0.1)', color: '#fbbf24' },
+                        approved: { bg: 'rgba(74,222,128,0.1)', color: '#4ade80' },
+                        denied: { bg: 'rgba(248,113,113,0.1)', color: '#f87171' },
+                        cancelled: { bg: 'rgba(100,116,139,0.1)', color: '#64748b' },
+                      }
+                      return (
+                        <div key={req.id} style={{ background: '#0f172a', border: '1px solid #1e293b', borderRadius: 10, padding: '10px 12px', marginBottom: 8 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9', textTransform: 'capitalize' }}>{req.type}</span>
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: STATUS_COLOR[req.status].bg, color: STATUS_COLOR[req.status].color, textTransform: 'capitalize' }}>{req.status}</span>
+                          </div>
+                          <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 4 }}>
+                            {new Date(req.start_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            {' – '}
+                            {new Date(req.end_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            {' · '}{req.days} day{req.days !== 1 ? 's' : ''}
+                          </div>
+                          {req.reason && <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>"{req.reason}"</div>}
+                          {req.status === 'pending' && (
+                            <div style={{ display: 'flex', gap: 6 }}>
+                              <button onClick={() => handleReviewRequest(req, 'approved')}
+                                style={{ flex: 1, padding: '6px', border: 'none', borderRadius: 6, background: 'rgba(74,222,128,0.15)', color: '#4ade80', cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: 'inherit' }}>
+                                Approve
+                              </button>
+                              <button onClick={() => handleReviewRequest(req, 'denied')}
+                                style={{ flex: 1, padding: '6px', border: 'none', borderRadius: 6, background: 'rgba(248,113,113,0.15)', color: '#f87171', cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: 'inherit' }}>
+                                Deny
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </>)}
+              </>)}
             </div>
 
             <div style={{ padding: '12px 20px', borderTop: '1px solid #1e293b', display: 'flex', gap: 8, justifyContent: 'space-between', flexShrink: 0 }}>
@@ -867,14 +1073,17 @@ export default function TeamPage() {
               </button>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => setShowEdit(false)} style={{ padding: '9px 16px', border: '1px solid #1e293b', borderRadius: 8, background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>Cancel</button>
-                <button onClick={handleSavePermissions} disabled={saving} style={{ padding: '9px 20px', border: 'none', borderRadius: 8, background: '#16a34a', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
-                  {saving ? 'Saving...' : 'Save changes'}
-                </button>
+                {drawerTab === 'permissions' && (
+                  <button onClick={handleSavePermissions} disabled={saving} style={{ padding: '9px 20px', border: 'none', borderRadius: 8, background: '#16a34a', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
+                    {saving ? 'Saving...' : 'Save changes'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </>
       )}
+
 
       {/* DEACTIVATE CONFIRM */}
       {deactivateConfirm && (

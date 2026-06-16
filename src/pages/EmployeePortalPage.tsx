@@ -12,6 +12,20 @@ interface Employee {
   employee_type: string
   phone: string
   personal_email: string
+  pto_balance?: number
+  sick_balance?: number
+  vacation_balance?: number
+}
+
+interface TimeOffReq {
+  id: string
+  type: 'pto' | 'sick' | 'vacation'
+  start_date: string
+  end_date: string
+  days: number
+  reason: string | null
+  status: 'pending' | 'approved' | 'denied' | 'cancelled'
+  created_at: string
 }
 
 interface ClockEvent {
@@ -32,7 +46,7 @@ interface Job {
   instructions: string | null
 }
 
-type Screen = 'login' | 'home' | 'schedule' | 'timeclock' | 'pay' | 'qr'
+type Screen = 'login' | 'home' | 'schedule' | 'timeclock' | 'pay' | 'qr' | 'timeoff'
 
 const CARD: React.CSSProperties = {
   background: '#0f172a', border: '1px solid #1e293b', borderRadius: 16, padding: '1.25rem',
@@ -61,6 +75,14 @@ export default function EmployeePortalPage() {
   const [clockMsg, setClockMsg] = useState('')
   const [now, setNow] = useState(new Date())
   const [weekOffset, setWeekOffset] = useState(0)
+  const [timeOffReqs, setTimeOffReqs] = useState<TimeOffReq[]>([])
+  const [showRequestForm, setShowRequestForm] = useState(false)
+  const [reqType, setReqType] = useState<'pto' | 'sick' | 'vacation'>('pto')
+  const [reqStart, setReqStart] = useState('')
+  const [reqEnd, setReqEnd] = useState('')
+  const [reqReason, setReqReason] = useState('')
+  const [reqSaving, setReqSaving] = useState(false)
+  const [reqMsg, setReqMsg] = useState('')
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000)
@@ -78,6 +100,7 @@ export default function EmployeePortalPage() {
     const ch = supabase.channel('emp-portal-rt')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'clock_events' }, () => loadData(emp, weekOffset))
       .on('postgres_changes', { event: '*', schema: 'public', table: 'jobs' }, () => loadData(emp, weekOffset))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'time_off_requests' }, () => loadTimeOff(emp))
       .subscribe()
     return () => { supabase.removeChannel(ch) }
   }, [emp?.employee_id])
@@ -91,8 +114,45 @@ export default function EmployeePortalPage() {
     if (!data) { setLoginErr('Employee ID not found. Check with your manager.'); setLogging(false); return }
     setEmp(data)
     await loadData(data)
+    await loadTimeOff(data)
     setScreen('home')
     setLogging(false)
+  }
+
+  const loadTimeOff = async (e: Employee) => {
+    const { data } = await supabase.from('time_off_requests').select('*')
+      .eq('employee_id', e.employee_id).order('created_at', { ascending: false })
+    setTimeOffReqs((data ?? []) as TimeOffReq[])
+  }
+
+  const handleSubmitRequest = async () => {
+    if (!emp || !reqStart || !reqEnd) { setReqMsg('Please pick start and end dates.'); return }
+    const start = new Date(reqStart + 'T00:00:00')
+    const end = new Date(reqEnd + 'T00:00:00')
+    if (end < start) { setReqMsg('End date must be after start date.'); return }
+    const days = Math.round((end.getTime() - start.getTime()) / 86400000) + 1
+
+    setReqSaving(true); setReqMsg('')
+    const { error } = await supabase.from('time_off_requests').insert({
+      employee_id: emp.employee_id,
+      employee_name: `${emp.fname} ${emp.lname}`,
+      type: reqType,
+      start_date: reqStart,
+      end_date: reqEnd,
+      days,
+      reason: reqReason.trim() || null,
+      status: 'pending',
+    })
+    if (error) {
+      setReqMsg('❌ ' + error.message)
+    } else {
+      setReqMsg('✅ Request submitted — waiting on approval.')
+      setReqStart(''); setReqEnd(''); setReqReason('')
+      setShowRequestForm(false)
+      await loadTimeOff(emp)
+    }
+    setReqSaving(false)
+    setTimeout(() => setReqMsg(''), 5000)
   }
 
   const loadData = async (e: Employee, wOffset: number = weekOffset) => {
@@ -288,6 +348,20 @@ export default function EmployeePortalPage() {
             </div>
           </div>
 
+          {/* Time Off */}
+          <button onClick={() => setScreen('timeoff')} style={{ ...CARD, width:'100%', marginBottom:16, display:'flex', alignItems:'center', justifyContent:'space-between', cursor:'pointer', textAlign:'left', fontFamily:'inherit', border:'1px solid #1e293b' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ fontSize:22 }}>🌴</span>
+              <div>
+                <div style={{ fontSize:14, fontWeight:700, color:'#f1f5f9' }}>Time Off</div>
+                <div style={{ fontSize:12, color:'#64748b' }}>
+                  {emp.pto_balance ?? 0} PTO · {emp.sick_balance ?? 0} Sick · {emp.vacation_balance ?? 0} Vacation
+                </div>
+              </div>
+            </div>
+            <span style={{ color:'#475569', fontSize:18 }}>›</span>
+          </button>
+
           {/* Today's jobs */}
           <div style={{ ...CARD }}>
             <div style={{ fontSize:13, fontWeight:700, color:'#f1f5f9', marginBottom:12 }}>📋 My Upcoming Jobs</div>
@@ -437,6 +511,105 @@ export default function EmployeePortalPage() {
               </div>
             ))
           }
+        </div>
+      )}
+
+      {/* ── TIME OFF ── */}
+      {screen === 'timeoff' && (
+        <div style={{ padding:16 }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+            <h2 style={{ margin:0, fontSize:18, fontWeight:700, color:'#f1f5f9' }}>Time Off</h2>
+            <button onClick={() => setShowRequestForm(v => !v)}
+              style={{ padding:'8px 14px', background:'#16a34a', border:'none', borderRadius:9, color:'#fff', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+              {showRequestForm ? 'Cancel' : '+ Request'}
+            </button>
+          </div>
+
+          {/* Balances */}
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:16 }}>
+            {[
+              { label:'PTO', value: emp.pto_balance ?? 0, color:'#60a5fa' },
+              { label:'Sick', value: emp.sick_balance ?? 0, color:'#f87171' },
+              { label:'Vacation', value: emp.vacation_balance ?? 0, color:'#4ade80' },
+            ].map(b => (
+              <div key={b.label} style={{ ...CARD, borderTop:`3px solid ${b.color}`, textAlign:'center', padding:'12px 8px' }}>
+                <div style={{ fontSize:10, fontWeight:700, color:b.color, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4 }}>{b.label}</div>
+                <div style={{ fontSize:20, fontWeight:800, color:'#f1f5f9' }}>{b.value}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Request form */}
+          {showRequestForm && (
+            <div style={{ ...CARD, marginBottom:16 }}>
+              <div style={{ fontSize:13, fontWeight:700, color:'#f1f5f9', marginBottom:12 }}>New Request</div>
+              {reqMsg && <div style={{ fontSize:13, color: reqMsg.startsWith('❌') ? '#f87171' : '#4ade80', marginBottom:10 }}>{reqMsg}</div>}
+
+              <label style={{ fontSize:11, fontWeight:700, color:'#64748b', display:'block', marginBottom:6 }}>TYPE</label>
+              <div style={{ display:'flex', gap:6, marginBottom:12 }}>
+                {(['pto','sick','vacation'] as const).map(t => (
+                  <button key={t} onClick={() => setReqType(t)}
+                    style={{ flex:1, padding:'8px', borderRadius:8, border:'none', cursor:'pointer', fontFamily:'inherit', fontSize:12, fontWeight:700, textTransform:'capitalize',
+                      background: reqType===t ? 'rgba(74,222,128,0.15)' : '#1e293b', color: reqType===t ? '#4ade80' : '#64748b' }}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12 }}>
+                <div>
+                  <label style={{ fontSize:11, fontWeight:700, color:'#64748b', display:'block', marginBottom:6 }}>START DATE</label>
+                  <input type="date" value={reqStart} onChange={e => setReqStart(e.target.value)}
+                    style={{ width:'100%', padding:'10px', background:'#0f172a', border:'1px solid #334155', borderRadius:8, color:'#f1f5f9', fontSize:13, fontFamily:'inherit', boxSizing:'border-box' }} />
+                </div>
+                <div>
+                  <label style={{ fontSize:11, fontWeight:700, color:'#64748b', display:'block', marginBottom:6 }}>END DATE</label>
+                  <input type="date" value={reqEnd} onChange={e => setReqEnd(e.target.value)}
+                    style={{ width:'100%', padding:'10px', background:'#0f172a', border:'1px solid #334155', borderRadius:8, color:'#f1f5f9', fontSize:13, fontFamily:'inherit', boxSizing:'border-box' }} />
+                </div>
+              </div>
+
+              <label style={{ fontSize:11, fontWeight:700, color:'#64748b', display:'block', marginBottom:6 }}>REASON (OPTIONAL)</label>
+              <textarea value={reqReason} onChange={e => setReqReason(e.target.value)} rows={2} placeholder="e.g. family trip"
+                style={{ width:'100%', padding:'10px', background:'#0f172a', border:'1px solid #334155', borderRadius:8, color:'#f1f5f9', fontSize:13, fontFamily:'inherit', boxSizing:'border-box', marginBottom:14, resize:'vertical' }} />
+
+              <button onClick={handleSubmitRequest} disabled={reqSaving}
+                style={{ width:'100%', padding:'12px', background:'#16a34a', border:'none', borderRadius:10, color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'inherit', opacity: reqSaving ? 0.6 : 1 }}>
+                {reqSaving ? 'Submitting…' : 'Submit Request'}
+              </button>
+            </div>
+          )}
+
+          {/* Request history */}
+          <div style={{ ...CARD }}>
+            <div style={{ fontSize:13, fontWeight:700, color:'#f1f5f9', marginBottom:12 }}>My Requests</div>
+            {timeOffReqs.length === 0
+              ? <div style={{ fontSize:13, color:'#475569', textAlign:'center', padding:'1rem 0' }}>No requests yet</div>
+              : timeOffReqs.map(req => {
+                const STATUS: Record<string,{bg:string;color:string}> = {
+                  pending:{bg:'rgba(251,191,36,0.1)',color:'#fbbf24'},
+                  approved:{bg:'rgba(74,222,128,0.1)',color:'#4ade80'},
+                  denied:{bg:'rgba(248,113,113,0.1)',color:'#f87171'},
+                  cancelled:{bg:'rgba(100,116,139,0.1)',color:'#64748b'},
+                }
+                return (
+                  <div key={req.id} style={{ padding:'10px 0', borderBottom:'1px solid #1e293b' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:3 }}>
+                      <span style={{ fontSize:13, fontWeight:700, color:'#f1f5f9', textTransform:'capitalize' }}>{req.type}</span>
+                      <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:20, background:STATUS[req.status].bg, color:STATUS[req.status].color, textTransform:'capitalize' }}>{req.status}</span>
+                    </div>
+                    <div style={{ fontSize:12, color:'#64748b' }}>
+                      {new Date(req.start_date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+                      {' – '}
+                      {new Date(req.end_date+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})}
+                      {' · '}{req.days} day{req.days!==1?'s':''}
+                    </div>
+                    {req.reason && <div style={{ fontSize:12, color:'#475569', marginTop:4 }}>"{req.reason}"</div>}
+                  </div>
+                )
+              })
+            }
+          </div>
         </div>
       )}
 
