@@ -713,10 +713,9 @@ function renderKioskRecent() {
 function renderTimesheets() {
   var tb = document.getElementById('ts-tbody');
   if (!tb) return;
-  var events = weeklyClockEvents.length ? weeklyClockEvents : allClockEvents;
-  if (!events.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">No clock events this week</td></tr>'; return; }
+  if (!allClockEvents.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">No clock events this week</td></tr>'; return; }
   tb.innerHTML = '';
-  events.forEach(function(r) {
+  allClockEvents.forEach(function(r) {
     var inTime = r.clock_in ? new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '—';
     var outTime = r.clock_out ? new Date(r.clock_out).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '—';
     var hrs = '—';
@@ -1115,36 +1114,7 @@ function switchTab(id, el) {
   if (el) el.classList.add('active');
   if (id === 'employees') loadEmployees();
   if (id === 'archived') renderArch();
-  if (id === 'timesheets') loadWeeklyTimesheets();
-}
-
-// ── WEEKLY TIMESHEETS ──
-var weeklyClockEvents = [];
-async function loadWeeklyTimesheets() {
-  var tb = document.getElementById('ts-tbody');
-  if (tb) tb.innerHTML = '<tr><td colspan="6" class="empty">Loading...</td></tr>';
-
-  var now = new Date();
-  var day = now.getDay(); // 0=Sun,1=Mon,...
-  var diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday
-  var weekMon = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0, 0);
-  var weekSun = new Date(weekMon.getTime() + 7 * 86400000);
-
-  var wsISO = weekMon.toISOString();
-  var weISO = weekSun.toISOString();
-
-  // Fetch all events that started this week OR ended this week
-  var byIn  = await sb('GET', '/clock_events?select=*&clock_in=gte.' + wsISO + '&clock_in=lt.' + weISO + '&order=clock_in.desc');
-  var byOut = await sb('GET', '/clock_events?select=*&clock_out=gte.' + wsISO + '&clock_out=lt.' + weISO + '&order=clock_in.desc');
-  var open  = await sb('GET', '/clock_events?select=*&clock_out=is.null&clock_in=gte.' + wsISO + '&order=clock_in.desc');
-
-  var seen = {}, merged = [];
-  [].concat(byIn||[], byOut||[], open||[]).forEach(function(r) {
-    if (!seen[r.id]) { seen[r.id] = true; merged.push(r); }
-  });
-  merged.sort(function(a,b){ return new Date(b.clock_in||b.created_at) - new Date(a.clock_in||a.created_at); });
-  weeklyClockEvents = merged;
-  renderTimesheets();
+  if (id === 'timesheets') renderTimesheets();
 }
 
 // ── TOAST ──
