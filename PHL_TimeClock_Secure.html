@@ -324,6 +324,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
   <!-- Drawer tabs -->
   <div style="display:flex;border-bottom:1px solid var(--border);background:#fafbfc;flex-shrink:0">
     <button id="dtab-info" onclick="switchDrawerTab('info')" style="flex:1;padding:10px;border:none;background:transparent;font-size:12px;font-weight:700;color:#1e3a5f;border-bottom:2px solid #1e3a5f;cursor:pointer;font-family:inherit">👤 Employee Info</button>
+    <button id="dtab-timeoff" onclick="switchDrawerTab('timeoff')" style="flex:1;padding:10px;border:none;background:transparent;font-size:12px;font-weight:600;color:#6b7a90;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit">🌴 Time Off</button>
     <button id="dtab-docs" onclick="switchDrawerTab('docs')" style="flex:1;padding:10px;border:none;background:transparent;font-size:12px;font-weight:600;color:#6b7a90;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit">📁 Documents</button>
   </div>
 
@@ -393,6 +394,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
     </div>
     <div style="background:#e6f9fd;border-radius:8px;padding:10px 12px;font-size:12px;color:#0c447c;margin-top:10px">
       ⬛ QR <strong>QR badge:</strong> After saving, click the QR button next to the employee to print their personal badge. They scan it to clock in — no PIN needed.
+    </div>
+  </div>
+
+  <!-- TIME OFF TAB -->
+  <div class="drawer-body" id="dtab-timeoff-panel" style="display:none">
+    <div id="timeoff-no-employee-msg" style="display:none;background:#fff3cd;border:1px solid #f0d68a;border-radius:8px;padding:10px 12px;font-size:12px;color:#7a5c00">
+      Save this employee first, then balances and requests will show here.
+    </div>
+    <div id="timeoff-content">
+      <div class="form-sec" style="margin-top:0">Balances</div>
+      <div class="fg">
+        <div><div class="fl">PTO days</div><input class="fi" id="to-pto" type="number" step="0.5" value="0"></div>
+        <div><div class="fl">Sick days</div><input class="fi" id="to-sick" type="number" step="0.5" value="0"></div>
+        <div><div class="fl">Vacation days</div><input class="fi" id="to-vacation" type="number" step="0.5" value="0"></div>
+      </div>
+      <div class="fg" style="margin-top:8px">
+        <div class="fg-full">
+          <div class="fl">Time off approver <span style="font-size:10px;color:#6b7a90;font-weight:400">(leave blank to allow any Admin/Manager)</span></div>
+          <select class="fs" id="to-approver"><option value="">— Any Admin/Manager (default) —</option></select>
+        </div>
+      </div>
+      <button onclick="saveTimeOffBalances()" id="to-save-btn" style="width:100%;margin-top:12px;padding:10px;border:none;border-radius:8px;background:#1e3a5f;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Save Balances</button>
+
+      <div class="form-sec">Requests</div>
+      <div id="timeoff-requests-list" style="font-size:12px;color:#6b7a90">Loading…</div>
     </div>
   </div>
 
@@ -1151,33 +1177,139 @@ var pendingDocLabel = null;
 function switchDrawerTab(tab) {
   var infoPanel = document.getElementById('dtab-info-panel');
   var docsPanel = document.getElementById('dtab-docs-panel');
+  var toPanel   = document.getElementById('dtab-timeoff-panel');
   var infoBtn   = document.getElementById('dtab-info');
   var docsBtn   = document.getElementById('dtab-docs');
-  if (tab === 'info') {
-    infoPanel.style.display = '';
-    docsPanel.style.display = 'none';
-    infoBtn.style.color = '#1e3a5f';
-    infoBtn.style.borderBottomColor = '#1e3a5f';
-    infoBtn.style.fontWeight = '700';
-    docsBtn.style.color = '#6b7a90';
-    docsBtn.style.borderBottomColor = 'transparent';
-    docsBtn.style.fontWeight = '600';
-  } else {
-    infoPanel.style.display = 'none';
-    docsPanel.style.display = '';
-    docsBtn.style.color = '#1e3a5f';
-    docsBtn.style.borderBottomColor = '#1e3a5f';
-    docsBtn.style.fontWeight = '700';
-    infoBtn.style.color = '#6b7a90';
-    infoBtn.style.borderBottomColor = 'transparent';
-    infoBtn.style.fontWeight = '600';
+  var toBtn     = document.getElementById('dtab-timeoff');
+  var tabs = [
+    { key:'info',    panel:infoPanel, btn:infoBtn },
+    { key:'timeoff', panel:toPanel,   btn:toBtn },
+    { key:'docs',    panel:docsPanel, btn:docsBtn },
+  ];
+  tabs.forEach(function(t){
+    var active = t.key === tab;
+    t.panel.style.display = active ? '' : 'none';
+    t.btn.style.color = active ? '#1e3a5f' : '#6b7a90';
+    t.btn.style.borderBottomColor = active ? '#1e3a5f' : 'transparent';
+    t.btn.style.fontWeight = active ? '700' : '600';
+  });
+  if (tab === 'docs') {
     if (currentDocEmpId) loadDocuments(currentDocEmpId);
     else {
       document.getElementById('doc-empty-msg').textContent = 'Save the employee first, then upload their paperwork.';
       document.getElementById('doc-empty-msg').style.display = 'block';
     }
   }
+  if (tab === 'timeoff') {
+    if (editingEmpId) loadTimeOffTab(editingEmpId);
+    else {
+      document.getElementById('timeoff-content').style.display = 'none';
+      document.getElementById('timeoff-no-employee-msg').style.display = 'block';
+    }
+  }
 }
+
+// ── TIME OFF TAB ──
+function populateApproverDropdown(excludeEid) {
+  var sel = document.getElementById('to-approver');
+  sel.innerHTML = '<option value="">— Any Admin/Manager (default) —</option>';
+  allEmployees.forEach(function(e){
+    if (e.employee_id === excludeEid) return;
+    var opt = document.createElement('option');
+    opt.value = e.id;
+    opt.textContent = fullName(e);
+    sel.appendChild(opt);
+  });
+}
+
+async function loadTimeOffTab(eid) {
+  document.getElementById('timeoff-no-employee-msg').style.display = 'none';
+  document.getElementById('timeoff-content').style.display = '';
+  var e = allEmployees.find(function(x){ return x.employee_id === eid; });
+  if (!e) return;
+
+  document.getElementById('to-pto').value = e.pto_balance || 0;
+  document.getElementById('to-sick').value = e.sick_balance || 0;
+  document.getElementById('to-vacation').value = e.vacation_balance || 0;
+  populateApproverDropdown(eid);
+  document.getElementById('to-approver').value = e.time_off_approver_id || '';
+
+  var listEl = document.getElementById('timeoff-requests-list');
+  listEl.textContent = 'Loading…';
+  try {
+    var reqs = await sb('GET', '/time_off_requests?employee_id=eq.' + encodeURIComponent(eid) + '&order=created_at.desc');
+    if (!reqs.length) { listEl.innerHTML = '<div style="padding:8px 0">No time off requests yet.</div>'; return; }
+    listEl.innerHTML = reqs.map(function(r){
+      var statusColors = { pending:'#7a5c00', approved:'#0a7a3c', denied:'#b3261e', cancelled:'#6b7a90' };
+      var statusBg = { pending:'#fff3cd', approved:'#e6f7ec', denied:'#fde8e6', cancelled:'#f0f1f3' };
+      var actions = r.status === 'pending'
+        ? '<div style="display:flex;gap:6px;margin-top:6px">'
+          + '<button onclick="reviewTimeOffRequest(\'' + r.id + '\',\'approved\')" style="flex:1;padding:6px;border:none;border-radius:6px;background:#e6f7ec;color:#0a7a3c;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Approve</button>'
+          + '<button onclick="reviewTimeOffRequest(\'' + r.id + '\',\'denied\')" style="flex:1;padding:6px;border:none;border-radius:6px;background:#fde8e6;color:#b3261e;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Deny</button>'
+          + '</div>'
+        : '';
+      return '<div style="background:#f8fafc;border:1px solid #e1e8ef;border-radius:8px;padding:8px 10px;margin-bottom:6px">'
+        + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px">'
+        + '<span style="font-weight:700;text-transform:capitalize;color:#1e3a5f">' + r.type + '</span>'
+        + '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:' + statusBg[r.status] + ';color:' + statusColors[r.status] + ';text-transform:capitalize">' + r.status + '</span>'
+        + '</div>'
+        + '<div style="color:#6b7a90">' + r.start_date + ' – ' + r.end_date + ' · ' + r.days + ' day' + (r.days != 1 ? 's' : '') + '</div>'
+        + (r.reason ? '<div style="color:#475569;margin-top:4px">"' + r.reason + '"</div>' : '')
+        + actions
+        + '</div>';
+    }).join('');
+  } catch(err) {
+    listEl.innerHTML = '<div style="color:#b3261e">Failed to load requests: ' + err.message + '</div>';
+  }
+}
+
+async function saveTimeOffBalances() {
+  if (!editingEmpId) return;
+  var btn = document.getElementById('to-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  var e = allEmployees.find(function(x){ return x.employee_id === editingEmpId; });
+  var data = {
+    pto_balance: parseFloat(document.getElementById('to-pto').value) || 0,
+    sick_balance: parseFloat(document.getElementById('to-sick').value) || 0,
+    vacation_balance: parseFloat(document.getElementById('to-vacation').value) || 0,
+    time_off_approver_id: document.getElementById('to-approver').value || null,
+  };
+  try {
+    var patchUrl = e && e.id ? '/employees?id=eq.' + e.id : '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId);
+    await sb('PATCH', patchUrl, data);
+    if (e) { e.pto_balance = data.pto_balance; e.sick_balance = data.sick_balance; e.vacation_balance = data.vacation_balance; e.time_off_approver_id = data.time_off_approver_id; }
+    toast('✅ Time off balances saved');
+  } catch(err) {
+    toast('❌ Failed: ' + err.message);
+  }
+  btn.disabled = false; btn.textContent = 'Save Balances';
+}
+
+async function reviewTimeOffRequest(reqId, status) {
+  try {
+    var updated = await sb('PATCH', '/time_off_requests?id=eq.' + reqId, { status: status, reviewed_by: 'Admin', reviewed_at: new Date().toISOString() });
+    if (status === 'approved' && updated && updated[0]) {
+      var r = updated[0];
+      var e = allEmployees.find(function(x){ return x.employee_id === r.employee_id; });
+      if (e) {
+        var col = r.type === 'pto' ? 'pto_balance' : r.type === 'sick' ? 'sick_balance' : 'vacation_balance';
+        var newBal = Math.max(0, (e[col] || 0) - r.days);
+        var patchBody = {};
+        patchBody[col] = newBal;
+        await sb('PATCH', '/employees?id=eq.' + e.id, patchBody);
+        e[col] = newBal;
+        if (col === 'pto_balance') document.getElementById('to-pto').value = newBal;
+        if (col === 'sick_balance') document.getElementById('to-sick').value = newBal;
+        if (col === 'vacation_balance') document.getElementById('to-vacation').value = newBal;
+      }
+    }
+    toast(status === 'approved' ? '✅ Request approved' : '✅ Request denied');
+    loadTimeOffTab(editingEmpId);
+  } catch(err) {
+    toast('❌ Failed: ' + err.message);
+  }
+}
+
 
 function setDocLabel(label) {
   pendingDocLabel = label;
