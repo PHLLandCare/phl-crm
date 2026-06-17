@@ -2,7 +2,7 @@
   "name": "PHL Land Care CRM",
   "short_name": "PHL CRM",
   "description": "PHL Land Care Inc. \u2014 Client & Employee Management",
-  "start_url": "/phl-crm/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#0a2540",
   "theme_color": "#0a2540",
