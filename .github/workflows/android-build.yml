@@ -46,16 +46,27 @@ jobs:
         run: npm run build
 
       - name: Install Capacitor CLI and sync Android project
-        run: npx cap sync android
+        id: capsync
+        run: npx cap sync android 2>&1 | tee /tmp/cap-sync.log
+        continue-on-error: true
+
+      - name: Surface cap sync failure as annotation
+        if: steps.capsync.outcome == 'failure'
+        run: |
+          echo "::error::CAP_SYNC_OUTPUT: $(tail -c 800 /tmp/cap-sync.log | tr '\n' '|')"
+          exit 1
 
       - name: Make gradlew executable
+        if: steps.capsync.outcome == 'success'
         run: chmod +x android/gradlew
 
       - name: Build debug APK
+        if: steps.capsync.outcome == 'success'
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK
+        if: steps.capsync.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: phl-crm-debug-apk
