@@ -47,7 +47,7 @@ jobs:
 
       - name: Install Capacitor CLI and sync Android project
         id: capsync
-        run: npx cap sync android 2>&1 | tee /tmp/cap-sync.log
+        run: npx cap sync android > /tmp/cap-sync.log 2>&1
         continue-on-error: true
 
       - name: Surface cap sync failure as annotation
@@ -64,7 +64,7 @@ jobs:
         id: gradlebuild
         if: steps.capsync.outcome == 'success'
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/gradle-build.log
+        run: ./gradlew assembleDebug --no-daemon --stacktrace > /tmp/gradle-build.log 2>&1
         continue-on-error: true
 
       - name: Surface gradle failure as annotation
