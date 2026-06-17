@@ -61,12 +61,20 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Build debug APK
+        id: gradlebuild
         if: steps.capsync.outcome == 'success'
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon
+        run: ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/gradle-build.log
+        continue-on-error: true
+
+      - name: Surface gradle failure as annotation
+        if: steps.gradlebuild.outcome == 'failure'
+        run: |
+          echo "::error::GRADLE_OUTPUT: $(tail -c 3000 /tmp/gradle-build.log | tr '\n' '|')"
+          exit 1
 
       - name: Upload APK
-        if: steps.capsync.outcome == 'success'
+        if: steps.gradlebuild.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: phl-crm-debug-apk
