@@ -206,6 +206,7 @@ export default function Dashboard() {
     const href = onClick ? undefined : `#/${id}`
     const handleClick = (e: React.MouseEvent) => {
       if (sidebarRef.current) sidebarScrollRef.current = sidebarRef.current.scrollTop
+      if (isMobile) setDrawerOpen(false)
       if (onClick) { e.preventDefault(); onClick() }
       // else let the <a> handle navigation naturally (supports Ctrl+click, middle-click, right-click)
     }
@@ -542,13 +543,17 @@ export default function Dashboard() {
         .phl-sidebar::-webkit-scrollbar { display: none; }
         .phl-sidebar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
-      <div ref={(el)=>{ if(el){ (sidebarRef as any).current=el; el.scrollTop=sidebarScrollRef.current } }} onScroll={e=>{ sidebarScrollRef.current=(e.currentTarget as HTMLElement).scrollTop }} className="phl-sidebar" style={{width:220,flexShrink:0,background:'#0d1526',display:'flex',flexDirection:'column',position:'fixed',top:0,left:0,height:'100vh',overflowY:'auto',zIndex:200,borderRight:'1px solid #1e293b'}}>
+      <div ref={(el)=>{ if(el){ (sidebarRef as any).current=el; el.scrollTop=sidebarScrollRef.current } }} onScroll={e=>{ sidebarScrollRef.current=(e.currentTarget as HTMLElement).scrollTop }} className="phl-sidebar" style={{width:220,flexShrink:0,background:'#0d1526',display:'flex',flexDirection:'column',position:'fixed',top:0,left:0,height:'100vh',overflowY:'auto',zIndex:200,borderRight:'1px solid #1e293b',transform: isMobile && !drawerOpen ? 'translateX(-100%)' : 'translateX(0)',transition:'transform .2s ease',boxShadow: isMobile && drawerOpen ? '4px 0 24px rgba(0,0,0,0.4)' : 'none'}}>
         <div style={{padding:'12px 14px',borderBottom:'1px solid #1e293b',display:'flex',alignItems:'center',gap:10}}>
           <img src="https://phllandcare.github.io/phl-crm/phl_logo.jpg" alt="PHL" style={{width:36,height:36,borderRadius:8,objectFit:'cover',flexShrink:0,background:'#fff',padding:2}} />
-          <div>
+          <div style={{flex:1}}>
             <p style={{margin:0,fontSize:12.5,fontWeight:700,color:'#f1f5f9',lineHeight:1.2}}>PHL Land Care Inc.</p>
             <p style={{margin:0,fontSize:10,color:'#475569'}}>Field Service CRM</p>
           </div>
+          {isMobile && (
+            <button onClick={()=>setDrawerOpen(false)} aria-label="Close menu"
+              style={{background:'transparent',border:'none',color:'#64748b',fontSize:20,cursor:'pointer',padding:4,lineHeight:1}}>✕</button>
+          )}
         </div>
         <div style={{padding:'10px 14px',borderBottom:'1px solid #1e293b',display:'flex',alignItems:'center',gap:8}}>
           <div style={{width:30,height:30,borderRadius:'50%',background:'#16a34a',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff',flexShrink:0}}>{userInitials||'?'}</div>
@@ -623,7 +628,18 @@ export default function Dashboard() {
           </button>
         </div>
       </div>
-      <div style={{flex:1,marginLeft:220,height:'100vh',overflowY:'auto',background:'#0a0f1a'}} key={page} ref={(el)=>{if(el)el.scrollTop=0}}>
+      {isMobile && drawerOpen && (
+        <div onClick={()=>setDrawerOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:190}} />
+      )}
+      {isMobile && (
+        <div style={{position:'fixed',top:0,left:0,right:0,height:48,background:'#0d1526',borderBottom:'1px solid #1e293b',display:'flex',alignItems:'center',gap:10,padding:'0 12px',zIndex:150}}>
+          <button onClick={()=>setDrawerOpen(true)} aria-label="Open menu"
+            style={{background:'transparent',border:'none',color:'#cbd5e1',fontSize:22,cursor:'pointer',padding:4,lineHeight:1}}>☰</button>
+          <img src="https://phllandcare.github.io/phl-crm/phl_logo.jpg" alt="PHL" style={{width:24,height:24,borderRadius:6,objectFit:'cover',background:'#fff',padding:1}} />
+          <p style={{margin:0,fontSize:13,fontWeight:700,color:'#f1f5f9'}}>PHL Land Care</p>
+        </div>
+      )}
+      <div style={{flex:1,marginLeft: isMobile ? 0 : 220,marginTop: isMobile ? 48 : 0,height: isMobile ? 'calc(100vh - 48px)' : '100vh',overflowY:'auto',background:'#0a0f1a'}} key={page} ref={(el)=>{if(el)el.scrollTop=0}}>
         <Suspense fallback={<div style={{ textAlign: 'center', padding: '3rem', color: '#475569' }}>Loading...</div>}>
           {renderPage()}
         </Suspense>
