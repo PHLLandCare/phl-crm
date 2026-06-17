@@ -1,25 +1,29 @@
 // v2
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, lazy, Suspense } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import ClientsPage from './ClientsPage'
-import ClientPortalPage from './ClientPortalPage'
-import JobsPage from './JobsPage'
-import InvoicesPage from './InvoicesPage'
-import QuotesPage from './QuotesPage'
-import SchedulePage from './SchedulePage'
-import PayrollPage from './PayrollPage'
-import ExpensesPage from './ExpensesPage'
-import InventoryPage from './InventoryPage'
-import TeamPage from './TeamPage'
-import SettingsPage from './SettingsPage'
-import TeamChatPage from './TeamChatPage'
-import RoutePage from './RoutePage'
-import ReportsPage from './ReportsPage'
-import ProductsServicesPage from './ProductsServicesPage'
-import DivisionPage from './DivisionPage'
-import RequestsPage from './RequestsPage'
-import DialerPage from './DialerPage'
+
+// Lazy-loaded so visiting one page (e.g. the Dashboard home screen) doesn't
+// force-download the code for all 17 other pages too. Each becomes its own
+// chunk that only loads when actually navigated to.
+const ClientsPage = lazy(() => import('./ClientsPage'))
+const ClientPortalPage = lazy(() => import('./ClientPortalPage'))
+const JobsPage = lazy(() => import('./JobsPage'))
+const InvoicesPage = lazy(() => import('./InvoicesPage'))
+const QuotesPage = lazy(() => import('./QuotesPage'))
+const SchedulePage = lazy(() => import('./SchedulePage'))
+const PayrollPage = lazy(() => import('./PayrollPage'))
+const ExpensesPage = lazy(() => import('./ExpensesPage'))
+const InventoryPage = lazy(() => import('./InventoryPage'))
+const TeamPage = lazy(() => import('./TeamPage'))
+const SettingsPage = lazy(() => import('./SettingsPage'))
+const TeamChatPage = lazy(() => import('./TeamChatPage'))
+const RoutePage = lazy(() => import('./RoutePage'))
+const ReportsPage = lazy(() => import('./ReportsPage'))
+const ProductsServicesPage = lazy(() => import('./ProductsServicesPage'))
+const DivisionPage = lazy(() => import('./DivisionPage'))
+const RequestsPage = lazy(() => import('./RequestsPage'))
+const DialerPage = lazy(() => import('./DialerPage'))
 
 type UserRole = 'superadmin' | 'manager' | 'dispatcher' | 'worker' | 'worker_limited'
 
@@ -620,7 +624,9 @@ export default function Dashboard() {
         </div>
       </div>
       <div style={{flex:1,marginLeft:220,height:'100vh',overflowY:'auto',background:'#0a0f1a'}} key={page} ref={(el)=>{if(el)el.scrollTop=0}}>
-        {renderPage()}
+        <Suspense fallback={<div style={{ textAlign: 'center', padding: '3rem', color: '#475569' }}>Loading...</div>}>
+          {renderPage()}
+        </Suspense>
       </div>
     </div>
   )
