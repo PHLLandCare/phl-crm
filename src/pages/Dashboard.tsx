@@ -53,7 +53,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const location = useLocation()
   const page = location.pathname.replace('/', '') || 'dashboard'
-  const [counts, setCounts] = useState({clients:0,requests:0,quotes:0,jobs:0,invoices:0})
+  const [counts, setCounts] = useState({clients:0,requests:0,quotes:0,jobs:0,invoices:0,timeOff:0})
   const [userName, setUserName] = useState('')
   const [userInitials, setUserInitials] = useState('')
   const [userRole, setUserRole] = useState<UserRole>('worker_limited')
@@ -96,7 +96,7 @@ export default function Dashboard() {
         if (profile?.role) setUserRole(profile.role as UserRole)
       }
 
-      const [c,q,j,i,rc,allJobs,allInvoices,allQuotes,newReq,pendingQ,activeJ,overdueI,todayJobsData,newLeadsData,newClientsData] = await Promise.all([
+      const [c,q,j,i,rc,allJobs,allInvoices,allQuotes,newReq,pendingQ,activeJ,overdueI,todayJobsData,newLeadsData,newClientsData,pendingTO] = await Promise.all([
         supabase.from('clients').select('*',{count:'exact',head:true}).is('deleted_at',null),
         supabase.from('quotes').select('*',{count:'exact',head:true}).is('deleted_at',null),
         supabase.from('jobs').select('*',{count:'exact',head:true}).is('deleted_at',null),
@@ -112,13 +112,15 @@ export default function Dashboard() {
         supabase.from('jobs').select('id,title,client_name,status,scheduled_start,scheduled_end,assigned_name,amount').is('deleted_at',null).order('scheduled_start',{ascending:true}).limit(50),
         supabase.from('clients').select('*',{count:'exact',head:true}).eq('status','lead').gte('created_at', new Date(Date.now()-30*24*60*60*1000).toISOString()),
         supabase.from('clients').select('*',{count:'exact',head:true}).eq('status','active').gte('created_at', new Date(Date.now()-30*24*60*60*1000).toISOString()),
+        supabase.from('time_off_requests').select('*',{count:'exact',head:true}).eq('status','pending'),
       ])
       const newReqCount = newReq.count ?? 0
       const pendingQuoteCount = pendingQ.count ?? 0
       const activeJobCount = activeJ.count ?? 0
       const overdueInvCount = overdueI.count ?? 0
+      const pendingTimeOffCount = pendingTO.count ?? 0
 
-      setCounts({clients:0, requests: newReqCount, quotes: pendingQuoteCount, jobs: activeJobCount, invoices: overdueInvCount})
+      setCounts({clients:0, requests: newReqCount, quotes: pendingQuoteCount, jobs: activeJobCount, invoices: overdueInvCount, timeOff: pendingTimeOffCount})
       setRecentClients(rc.data??[])
       setTodaysJobs(
         can(profile?.role as UserRole || 'worker_limited', 'view_pricing')
@@ -168,6 +170,7 @@ export default function Dashboard() {
       .on('postgres_changes',{event:'*',schema:'public',table:'clients'},loadData)
       .on('postgres_changes',{event:'*',schema:'public',table:'jobs'},loadData)
       .on('postgres_changes',{event:'*',schema:'public',table:'invoices'},loadData)
+      .on('postgres_changes',{event:'*',schema:'public',table:'time_off_requests'},loadData)
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [])
@@ -603,7 +606,7 @@ export default function Dashboard() {
           <NavItem label="Time Clock"    id="timeclock"  icon="⏰" onClick={()=>{ window.open('https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html','_blank'); }} />
           <NavItem label="Employee Portal" id="emp-portal" icon="👷" onClick={()=>{ window.open('https://phllandcare.github.io/phl-crm/#/employee','_blank'); }} />
           {can(userRole,'view_payroll')   && <NavItem label="Payroll"           id="payroll"   icon="💵" />}
-          {can(userRole,'view_team')      && <NavItem label="All Employees"     id="team"      icon="👤" />}
+          {can(userRole,'view_team')      && <NavItem label="All Employees"     id="team"      icon="👤" count={counts.timeOff} />}
           {can(userRole,'view_expenses')  && <NavItem label="Expenses"          id="expenses"  icon="🧾" />}
           {can(userRole,'view_inventory') && <NavItem label="Inventory"         id="inventory" icon="📦" />}
           {can(userRole,'view_quotes')    && <NavItem label="Products & Services" id="products" icon="🛒" />}

@@ -916,11 +916,9 @@ export default function JobsPage() {
     return sub - disc + tax
   }
 
-  const handleSave = async () => {
-    if (!form.title.trim()) return
-    setSaving(true)
+  const buildJobPayload = () => {
     const lineTotal = calcTotal()
-    const payload: any = {
+    return {
       title: form.title.trim(),
       description: form.description?.trim() || null,
       client_id: form.client_id || null,
@@ -953,6 +951,12 @@ export default function JobsPage() {
       line_items: form.line_items?.length ? form.line_items : null,
       updated_at: new Date().toISOString(),
     }
+  }
+
+  const handleSave = async () => {
+    if (!form.title.trim()) return
+    setSaving(true)
+    const payload: any = buildJobPayload()
     if (editingJob) {
       const { job_number: _jn, ...editPayload } = payload
       await supabase.from('jobs').update(editPayload).eq('id', editingJob.id)
@@ -964,6 +968,26 @@ export default function JobsPage() {
     loadJobs()
     loadNextJobNum()
   }
+
+  // ── Autosave (existing jobs only) ──────────────────────────────────────
+  // While editing an already-created job, silently save in the background
+  // a beat after the user stops typing/tabbing — so a dropped signal or a
+  // tab-away in the field doesn't lose what was just entered. New jobs still
+  // require the explicit Save button, since there's no row to autosave into
+  // until the required fields (title, etc.) are first filled in.
+  const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  useEffect(() => {
+    if (!showModal || !editingJob || !form.title?.trim()) return
+    setAutosaveStatus('idle')
+    const timer = setTimeout(async () => {
+      setAutosaveStatus('saving')
+      const { job_number: _jn, ...editPayload } = buildJobPayload()
+      await supabase.from('jobs').update(editPayload).eq('id', editingJob.id)
+      setAutosaveStatus('saved')
+    }, 1500)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, jobType, showModal, editingJob])
 
   const handleDelete = async (id: string) => {
     await supabase.from('jobs').update({ deleted_at: new Date().toISOString() }).eq('id', id)
@@ -1217,6 +1241,8 @@ export default function JobsPage() {
               <div style={{ display:'flex',alignItems:'center',gap:10 }}>
                 <span>🔧</span>
                 <h2 style={{ margin:0,fontSize:16,fontWeight:700,color:'#f1f5f9' }}>{editingJob ? `Edit Job` : 'New Job'}</h2>
+                {editingJob && autosaveStatus === 'saving' && <span style={{ fontSize:11,color:'#64748b' }}>Saving…</span>}
+                {editingJob && autosaveStatus === 'saved' && <span style={{ fontSize:11,color:'#4ade80' }}>✓ Saved</span>}
               </div>
               <div style={{ display:'flex',gap:8 }}>
                 <button onClick={() => setShowModal(false)} style={{ padding:'8px 16px',border:'1px solid #4a5a68',borderRadius:8,background:'transparent',color:'#64748b',cursor:'pointer',fontSize:13,fontFamily:'inherit' }}>Cancel</button>

@@ -309,6 +309,23 @@ export default function ClientsPage() {
     loadClients()
   }
 
+  // ── Autosave (existing clients only) ───────────────────────────────────
+  // While Edit Contact Information is open on an existing client, silently
+  // save in the background a beat after the user stops typing — so a dropped
+  // signal or a tab-away in the field doesn't lose what was just entered.
+  const [autosaveStatus, setAutosaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  useEffect(() => {
+    if (!editMode || !selectedClient) return
+    setAutosaveStatus('idle')
+    const timer = setTimeout(async () => {
+      setAutosaveStatus('saving')
+      await supabase.from('clients').update({ ...form, updated_at: new Date().toISOString() }).eq('id', selectedClient.id)
+      setAutosaveStatus('saved')
+    }, 1500)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, editMode, selectedClient?.id])
+
   const handleSaveNote = async () => {
     if (!selectedClient || !newNote.trim()) return
     const existing = selectedClient.notes || ''
@@ -973,7 +990,11 @@ export default function ClientsPage() {
             {/* ── CONTACT INFO (edit) ── */}
             {editMode && (
               <div id="client-edit-form" style={{ background: '#0f172a', border: '2px solid #4ade80', borderRadius: 14, padding: '1.25rem' }}>
-                <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 700, color: '#f1f5f9' }}>Edit Contact Information</h3>
+                <h3 style={{ margin: '0 0 16px', fontSize: 14, fontWeight: 700, color: '#f1f5f9', display:'flex', alignItems:'center', gap:8 }}>
+                  Edit Contact Information
+                  {autosaveStatus === 'saving' && <span style={{ fontSize:11, fontWeight:400, color:'#64748b' }}>Saving…</span>}
+                  {autosaveStatus === 'saved' && <span style={{ fontSize:11, fontWeight:400, color:'#4ade80' }}>✓ Saved</span>}
+                </h3>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   <div><label style={lbl}>First Name</label><input style={inp} value={form.first_name} onChange={e => setForm({...form, first_name: e.target.value})} /></div>
                   <div><label style={lbl}>Last Name</label><input style={inp} value={form.last_name} onChange={e => setForm({...form, last_name: e.target.value})} /></div>

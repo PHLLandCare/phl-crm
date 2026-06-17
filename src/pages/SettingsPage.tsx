@@ -47,8 +47,8 @@ export default function SettingsPage() {
   const [swSpaceUrl, setSwSpaceUrl] = useState('')
   const [swPhone, setSwPhone] = useState('')
   const [keysSaving, setKeysSaving] = useState(false)
-  // Google Maps (Route Optimization)
-  const [gmapsKey, setGmapsKey] = useState('')
+  // OpenRouteService (Route Optimization) — free, no credit card required
+  const [orsKey, setOrsKey] = useState('')
 
   // Autobilling state
   const [autobillEnabled, setAutobillEnabled] = useState(false)
@@ -191,7 +191,7 @@ export default function SettingsPage() {
         if (s.signalwire_api_token)   setSwApiToken(s.signalwire_api_token)
         if (s.signalwire_space_url)   setSwSpaceUrl(s.signalwire_space_url)
         if (s.signalwire_phone_number) setSwPhone(s.signalwire_phone_number)
-        if (s.google_maps_api_key) setGmapsKey(s.google_maps_api_key)
+        if (s.ors_api_key) setOrsKey(s.ors_api_key)
       }
     }
     load()
@@ -912,28 +912,28 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* ── GOOGLE MAPS (Route Optimization) ── */}
+            {/* ── OPENROUTESERVICE (Route Optimization) ── */}
             <div style={card}>
               <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
-                <div style={{ background:'#fff',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#4285F4' }}>🗺️ Maps</div>
+                <div style={{ background:'#fff',borderRadius:8,padding:'6px 10px',fontSize:13,fontWeight:800,color:'#16a34a' }}>🗺️ Maps</div>
                 <div>
-                  <h2 style={{ ...secTitle,margin:0 }}>Google Maps</h2>
-                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Powers real route optimization on the Routes page (drive times, traffic, stop order)</p>
+                  <h2 style={{ ...secTitle,margin:0 }}>OpenRouteService</h2>
+                  <p style={{ margin:'2px 0 0',fontSize:12,color:'#64748b' }}>Powers real route optimization on the Routes page (drive times, stop order) — free, no credit card required</p>
                 </div>
-                <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:gmapsKey?'#052e16':'#1a1000',color:gmapsKey?'#4ade80':'#fcd34d',padding:'3px 10px',borderRadius:20,border:`1px solid ${gmapsKey?'#16a34a':'#d97706'}` }}>{gmapsKey?'Configured':'Setup needed'}</span>
+                <span style={{ marginLeft:'auto',fontSize:12,fontWeight:600,background:orsKey?'#052e16':'#1a1000',color:orsKey?'#4ade80':'#fcd34d',padding:'3px 10px',borderRadius:20,border:`1px solid ${orsKey?'#16a34a':'#d97706'}` }}>{orsKey?'Configured':'Setup needed'}</span>
               </div>
               <div style={{ marginBottom:12 }}>
-                <label style={lbl}>Google Maps API Key</label>
-                <input style={inp} type="password" placeholder="AIzaSy..." value={gmapsKey} onChange={e=>setGmapsKey(e.target.value)} />
-                <p style={{ margin:'4px 0 0',fontSize:11,color:'#475569' }}>Needs Directions API, Distance Matrix API, and Geocoding API enabled in Google Cloud Console.</p>
+                <label style={lbl}>OpenRouteService API Key</label>
+                <input style={inp} type="password" placeholder="eyJ..." value={orsKey} onChange={e=>setOrsKey(e.target.value)} />
+                <p style={{ margin:'4px 0 0',fontSize:11,color:'#475569' }}>Sign up free at openrouteservice.org → Dev Dashboard → Tokens → request a token. No billing or card needed.</p>
               </div>
               <div style={{ display:'flex',gap:8 }}>
-                <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer"
+                <a href="https://openrouteservice.org/dev/#/signup" target="_blank" rel="noreferrer"
                   style={{ padding:'9px 16px',background:'none',border:'1px solid #334155',borderRadius:8,color:'#94a3b8',fontSize:13,textDecoration:'none',display:'inline-flex',alignItems:'center',gap:6 }}>
-                  ↗ Open Google Cloud Console
+                  ↗ Get a free OpenRouteService key
                 </a>
-                <button onClick={()=>saveApiKeys({google_maps_api_key:gmapsKey},'Google Maps settings')} disabled={keysSaving}
-                  style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save Google Maps Settings</button>
+                <button onClick={()=>saveApiKeys({ors_api_key:orsKey},'Route optimization settings')} disabled={keysSaving}
+                  style={{ padding:'9px 18px',border:'none',borderRadius:8,background:'#16a34a',color:'#fff',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',opacity:keysSaving?0.7:1 }}>Save Route Optimization Settings</button>
               </div>
             </div>
 

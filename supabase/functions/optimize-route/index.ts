@@ -11,40 +11,56 @@ interface StopIn {
   address: string
 }
 
+// Geocode a single address to [lon, lat] using OpenRouteService's free
+// Pelias-based geocoder. No billing/card required for this service.
+async function geocode(address: string, apiKey: string): Promise<[number, number] | null> {
+  const url = `https://api.openrouteservice.org/geocode/search?` +
+    `api_key=${apiKey}&text=${encodeURIComponent(address)}&size=1&boundary.country=US`
+  const resp = await fetch(url)
+  if (!resp.ok) return null
+  const data = await resp.json()
+  const coords = data?.features?.[0]?.geometry?.coordinates
+  return Array.isArray(coords) ? [coords[0], coords[1]] : null
+}
+
 // Build a square drive-time matrix (seconds) between every stop, using
-// Google's Distance Matrix API. Origin point (first stop, e.g. the shop or
-// the first job of the day) is included as index 0 if provided separately.
-async function getDurationMatrix(addresses: string[], apiKey: string): Promise<number[][]> {
+// OpenRouteService: geocode each address, then a single Matrix API call
+// for real drive-time durations between every pair.
+async function getDurationMatrix(addresses: string[], apiKey: string): Promise<{ matrix: number[][]; unreachable: number[] }> {
   const n = addresses.length
-  const matrix: number[][] = Array.from({ length: n }, () => new Array(n).fill(0))
 
-  // Distance Matrix API allows up to 25 origins x 25 destinations per request.
-  // Our route stop counts are small (field service days), so one request
-  // covering all stops at once is almost always enough; chunk defensively
-  // just in case a day ever has a very large stop count.
-  const CHUNK = 25
-  for (let oStart = 0; oStart < n; oStart += CHUNK) {
-    const origins = addresses.slice(oStart, oStart + CHUNK)
-    for (let dStart = 0; dStart < n; dStart += CHUNK) {
-      const destinations = addresses.slice(dStart, dStart + CHUNK)
-      const url = `https://maps.googleapis.com/maps/api/distancematrix/json?` +
-        `origins=${origins.map(encodeURIComponent).join('|')}` +
-        `&destinations=${destinations.map(encodeURIComponent).join('|')}` +
-        `&units=imperial&key=${apiKey}`
+  // Geocode every address to coordinates first.
+  const coords = await Promise.all(addresses.map(a => geocode(a, apiKey)))
+  const unreachable: number[] = []
+  coords.forEach((c, i) => { if (!c) unreachable.push(i) })
 
-      const resp = await fetch(url)
-      const data = await resp.json()
-      if (data.status !== 'OK') throw new Error(`Distance Matrix error: ${data.status} ${data.error_message || ''}`)
+  const matrix: number[][] = Array.from({ length: n }, () => new Array(n).fill(99999))
+  const validIdx = coords.map((c, i) => c ? i : -1).filter(i => i !== -1)
+  if (validIdx.length < 2) return { matrix, unreachable }
 
-      data.rows.forEach((row: any, i: number) => {
-        row.elements.forEach((el: any, j: number) => {
-          const duration = el.status === 'OK' ? el.duration.value : 99999 // seconds; huge penalty if unreachable
-          matrix[oStart + i][dStart + j] = duration
-        })
-      })
-    }
-  }
-  return matrix
+  // ORS Matrix allows up to 3,500 location-pairs per request (e.g. 50x50).
+  // Field service stop counts are small, so one call covers a full day.
+  const locations = validIdx.map(i => coords[i] as [number, number])
+  const resp = await fetch('https://api.openrouteservice.org/v2/matrix/driving-car', {
+    method: 'POST',
+    headers: {
+      'Authorization': apiKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ locations, metrics: ['duration'], units: 'mi' }),
+  })
+  const data = await resp.json()
+  if (!resp.ok) throw new Error(`OpenRouteService Matrix error: ${data?.error?.message || resp.statusText}`)
+
+  const durations: number[][] = data.durations
+  validIdx.forEach((origI, oi) => {
+    validIdx.forEach((destI, di) => {
+      const d = durations?.[oi]?.[di]
+      matrix[origI][destI] = typeof d === 'number' ? d : 99999
+    })
+  })
+
+  return { matrix, unreachable }
 }
 
 // Nearest-neighbor construction starting from stop 0 (kept fixed — typically
@@ -105,9 +121,9 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
-    const { data: s } = await supabase.from('org_settings').select('google_maps_api_key').limit(1).single()
-    const apiKey = s?.google_maps_api_key
-    if (!apiKey) throw new Error('Google Maps API key not configured. Add it in Settings → Integrations.')
+    const { data: s } = await supabase.from('org_settings').select('ors_api_key').limit(1).single()
+    const apiKey = s?.ors_api_key
+    if (!apiKey) throw new Error('OpenRouteService API key not configured. Add it in Settings → Integrations (it\'s free, no credit card needed).')
 
     const withAddress = stops.filter(s => s.address && s.address.trim())
     if (withAddress.length < 2) {
@@ -118,19 +134,34 @@ serve(async (req) => {
     }
 
     const addresses = withAddress.map(s => s.address)
-    const matrix = await getDurationMatrix(addresses, apiKey)
-    let order = nearestNeighborOrder(matrix)
-    order = twoOpt(order, matrix)
+    const { matrix, unreachable } = await getDurationMatrix(addresses, apiKey)
+    const unreachableSet = new Set(unreachable)
+    const reachableLocalIdx = withAddress.map((_, i) => i).filter(i => !unreachableSet.has(i))
+
+    if (reachableLocalIdx.length < 2) {
+      throw new Error('Could not geocode enough addresses to optimize this route. Check that stop addresses are complete (street, city, state).')
+    }
+
+    // Run the optimizer only over reachable stops, using a sub-matrix.
+    const subMatrix = reachableLocalIdx.map(r => reachableLocalIdx.map(c => matrix[r][c]))
+    let subOrder = nearestNeighborOrder(subMatrix)
+    subOrder = twoOpt(subOrder, subMatrix)
+    const order = subOrder.map(i => reachableLocalIdx[i])
 
     const totalDriveSeconds = order.slice(0, -1).reduce((sum, idx, i) => sum + matrix[idx][order[i + 1]], 0)
     const orderedIds = order.map(i => withAddress[i].id)
 
-    // Re-append any stops with no address at the end, unchanged order
-    const noAddressIds = stops.filter(s => !s.address || !s.address.trim()).map(s => s.id)
+    // Re-append any stops with no address, or that failed to geocode, at the
+    // end in their original order, so nothing silently disappears from the route.
+    const skippedIds = [
+      ...stops.filter(s => !s.address || !s.address.trim()).map(s => s.id),
+      ...unreachable.map(i => withAddress[i].id),
+    ]
 
     return new Response(JSON.stringify({
-      order: [...orderedIds, ...noAddressIds],
+      order: [...orderedIds, ...skippedIds],
       totalDriveSeconds,
+      skippedCount: skippedIds.length,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })

@@ -12,9 +12,11 @@ interface Employee {
   employee_type: string
   phone: string
   personal_email: string
+  work_email?: string
   pto_balance?: number
   sick_balance?: number
   vacation_balance?: number
+  time_off_approver_id?: string | null
 }
 
 interface TimeOffReq {
@@ -125,6 +127,33 @@ export default function EmployeePortalPage() {
     setTimeOffReqs((data ?? []) as TimeOffReq[])
   }
 
+  // Best-effort notification — never blocks the request from going through.
+  // If no SMTP/Resend is configured yet in Settings → Integrations, this
+  // silently no-ops (the request itself is still saved and visible to admins).
+  const notifyTimeOffSubmitted = async (e: Employee, type: string, start: string, end: string, days: number) => {
+    try {
+      let recipients: string[] = []
+      if (e.time_off_approver_id) {
+        const { data: approver } = await supabase.from('employees')
+          .select('work_email, personal_email').eq('id', e.time_off_approver_id).single()
+        recipients = [approver?.work_email, approver?.personal_email].filter(Boolean) as string[]
+      } else {
+        const { data: admins } = await supabase.from('user_profiles')
+          .select('email').in('role', ['superadmin', 'manager']).eq('active', true)
+        recipients = (admins ?? []).map((a: any) => a.email).filter(Boolean)
+      }
+      const subject = `Time off request — ${e.fname} ${e.lname}`
+      const html = `<p><strong>${e.fname} ${e.lname}</strong> requested ${type.toUpperCase()} time off.</p>` +
+        `<p>${start} to ${end} (${days} day${days === 1 ? '' : 's'})</p>` +
+        `<p>Review and approve/deny in the Team page or the Time Clock admin tool.</p>`
+      await Promise.all(recipients.map(to =>
+        supabase.functions.invoke('send-email', { body: { to, subject, html } }).catch(() => {})
+      ))
+    } catch {
+      // Notification failure should never block the employee's request.
+    }
+  }
+
   const handleSubmitRequest = async () => {
     if (!emp || !reqStart || !reqEnd) { setReqMsg('Please pick start and end dates.'); return }
     const start = new Date(reqStart + 'T00:00:00')
@@ -147,6 +176,7 @@ export default function EmployeePortalPage() {
       setReqMsg('❌ ' + error.message)
     } else {
       setReqMsg('✅ Request submitted — waiting on approval.')
+      notifyTimeOffSubmitted(emp, reqType, reqStart, reqEnd, days)
       setReqStart(''); setReqEnd(''); setReqReason('')
       setShowRequestForm(false)
       await loadTimeOff(emp)

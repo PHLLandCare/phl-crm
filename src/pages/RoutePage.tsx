@@ -90,7 +90,7 @@ export default function RoutePage() {
       setOptimized(true)
     } catch (e: any) {
       setOptimizeError(e.message.includes('not configured')
-        ? 'Google Maps isn\'t set up yet — add an API key in Settings → Integrations.'
+        ? 'Route optimization isn\'t set up yet — add a free OpenRouteService API key in Settings → Integrations.'
         : 'Couldn\'t optimize: ' + e.message)
     }
     setOptimizing(false)
