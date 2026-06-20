@@ -377,7 +377,7 @@ export default function TeamPage() {
   const [paperworkFiles, setPaperworkFiles] = useState<{name:string;url:string}[]>([])
   const [showEdit, setShowEdit] = useState(false)
   const [editMember, setEditMember] = useState<TeamMember | null>(null)
-  const [drawerTab, setDrawerTab] = useState<'permissions' | 'timeoff'>('permissions')
+  const [drawerTab, setDrawerTab] = useState<'permissions' | 'timeoff' | 'details'>('permissions')
   const [linkedEmployee, setLinkedEmployee] = useState<EmployeeRow | null>(null)
   const [employeeLookupDone, setEmployeeLookupDone] = useState(false)
   const [balanceEdits, setBalanceEdits] = useState<{ pto: string; sick: string; vacation: string; approver_id: string }>({ pto: '', sick: '', vacation: '', approver_id: '' })
@@ -392,6 +392,12 @@ export default function TeamPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [deactivateConfirm, setDeactivateConfirm] = useState<TeamMember | null>(null)
   const [allEmployees, setAllEmployees] = useState<EmployeeRow[]>([])
+  const [empDetails, setEmpDetails] = useState<{ address: string; city: string; state: string; zip: string; ssn: string; employee_id: string }>({ address: '', city: '', state: '', zip: '', ssn: '', employee_id: '' })
+  const [empDocs, setEmpDocs] = useState<{ name: string; url: string; label: string }[]>([])
+  const [docUploading, setDocUploading] = useState(false)
+  const [nextDocLabel, setNextDocLabel] = useState('W-4')
+  const [savingDetails, setSavingDetails] = useState(false)
+  const [detailsLoaded, setDetailsLoaded] = useState(false)
 
   const loadMembers = async () => {
     setLoading(true)
@@ -438,9 +444,36 @@ export default function TeamPage() {
             vacation: String((match as any).vacation_balance ?? 0),
             approver_id: (match as any).time_off_approver_id || '',
           })
+          setEmpDetails(prev => ({ ...prev, employee_id: (match as any).employee_id || '' }))
           loadTimeOffForEmployee((match as any).employee_id)
         }
         setEmployeeLookupDone(true)
+      })
+  }, [showEdit, editMember?.id])
+
+  // Load the employee's stored address/SSN/paperwork on drawer open. Lives in
+  // employee_details (keyed by user_profiles.id) -- a separate identity space
+  // from the employees payroll table, which only carries employee_id/balances.
+  useEffect(() => {
+    if (!showEdit || !editMember) {
+      setEmpDetails({ address: '', city: '', state: '', zip: '', ssn: '', employee_id: '' })
+      setEmpDocs([])
+      setDetailsLoaded(false)
+      return
+    }
+    setDetailsLoaded(false)
+    supabase.from('employee_details').select('*').eq('user_id', editMember.id).maybeSingle()
+      .then(({ data }) => {
+        setEmpDetails(prev => ({
+          ...prev,
+          address: data?.address || '', city: data?.city || '', state: data?.state || '', zip: data?.zip || '', ssn: data?.ssn || '',
+        }))
+        let docs: any[] = []
+        if (data?.paperwork_files) {
+          try { docs = typeof data.paperwork_files === 'string' ? JSON.parse(data.paperwork_files) : data.paperwork_files } catch { docs = [] }
+        }
+        setEmpDocs(docs)
+        setDetailsLoaded(true)
       })
   }, [showEdit, editMember?.id])
 
@@ -469,6 +502,72 @@ export default function TeamPage() {
         : e))
     } catch (e: any) { setError('Failed: ' + e.message) }
     setSavingBalances(false)
+  }
+
+  const handleSaveDetails = async () => {
+    if (!editMember) return
+    setSavingDetails(true); setError(null)
+    try {
+      const { error: err } = await supabase.from('employee_details').upsert({
+        user_id: editMember.id,
+        full_name: editMember.full_name,
+        address: empDetails.address.trim() || null,
+        city: empDetails.city.trim() || null,
+        state: empDetails.state.trim() || null,
+        zip: empDetails.zip.trim() || null,
+        ssn: empDetails.ssn.trim() || null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' })
+      if (err) throw new Error(err.message)
+
+      if (linkedEmployee && empDetails.employee_id.trim() && empDetails.employee_id.trim() !== linkedEmployee.employee_id) {
+        const newId = empDetails.employee_id.trim()
+        const { error: empErr } = await supabase.from('employees').update({ employee_id: newId }).eq('id', linkedEmployee.id)
+        if (empErr) throw new Error(empErr.message)
+        setLinkedEmployee(prev => prev ? { ...prev, employee_id: newId } : prev)
+        setAllEmployees(prev => prev.map(e => e.id === linkedEmployee.id ? { ...e, employee_id: newId } : e))
+      }
+      setSuccess('Employee details saved.'); setTimeout(() => setSuccess(null), 3000)
+    } catch (e: any) { setError('Failed: ' + e.message) }
+    setSavingDetails(false)
+  }
+
+  // Documents persist immediately on upload/remove (not gated behind Save
+  // details) so nothing is lost if the admin closes the drawer before
+  // hitting Save -- matches how document libraries elsewhere in the CRM behave.
+  const persistDocs = async (docs: { name: string; url: string; label: string }[]) => {
+    if (!editMember) return
+    await supabase.from('employee_details').upsert({
+      user_id: editMember.id,
+      full_name: editMember.full_name,
+      paperwork_files: docs.length > 0 ? JSON.stringify(docs) : null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' })
+  }
+
+  const handleDocFiles = async (files: File[]) => {
+    if (!editMember) return
+    for (const file of files) {
+      if (file.size > 10 * 1024 * 1024) { setError(`"${file.name}" is over the 10MB limit and was skipped.`); continue }
+      setDocUploading(true)
+      const path = `employee-docs/${editMember.id}/${Date.now()}_${file.name.replace(/\s/g, '_')}`
+      const { error: upErr } = await supabase.storage.from('employee-docs').upload(path, file, { upsert: true })
+      if (!upErr) {
+        const { data: { publicUrl } } = supabase.storage.from('employee-docs').getPublicUrl(path)
+        const updated = [...empDocs, { name: file.name, url: publicUrl, label: nextDocLabel }]
+        setEmpDocs(updated)
+        await persistDocs(updated)
+      } else {
+        setError('Upload failed: ' + upErr.message)
+      }
+      setDocUploading(false)
+    }
+  }
+
+  const handleRemoveDoc = async (i: number) => {
+    const updated = empDocs.filter((_, j) => j !== i)
+    setEmpDocs(updated)
+    await persistDocs(updated)
   }
 
   const handleReviewRequest = async (req: TimeOffRequest, status: 'approved' | 'denied') => {
@@ -870,7 +969,7 @@ export default function TeamPage() {
             </div>
 
             <div style={{ display: 'flex', gap: 0, padding: '10px 20px 0', borderBottom: '1px solid #1e293b', flexShrink: 0 }}>
-              {[{ key: 'permissions', label: 'Permissions' }, { key: 'timeoff', label: '🌴 Time Off' }].map(t => (
+              {[{ key: 'permissions', label: 'Permissions' }, { key: 'details', label: '🪪 Details' }, { key: 'timeoff', label: '🌴 Time Off' }].map(t => (
                 <button key={t.key} onClick={() => setDrawerTab(t.key as any)}
                   style={{ padding: '8px 14px', border: 'none', borderBottom: drawerTab === t.key ? '2px solid #16a34a' : '2px solid transparent', background: 'transparent', color: drawerTab === t.key ? '#f1f5f9' : '#64748b', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', marginBottom: -1 }}>
                   {t.label}
@@ -980,6 +1079,85 @@ export default function TeamPage() {
                 <Section title="Payments" enabled={editMember.permissions.payments_enabled} onToggle={v => updatePerm('payments_enabled', v)} subtitle="Allow payment collection on quotes and invoices." />
                 <Section title="Reports" enabled={editMember.permissions.reports_enabled} onToggle={v => updatePerm('reports_enabled', v)} subtitle="Users will only see reports available based on their other permissions." />
               </div>
+              </>)}
+
+              {drawerTab === 'details' && (<>
+                {!detailsLoaded ? (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#475569', fontSize: 13 }}>Loading…</div>
+                ) : (<>
+                  <p style={{ margin: '0 0 16px', fontSize: 12, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Employee info</p>
+
+                  <label style={lbl}>Employee ID</label>
+                  <input style={{ ...inp, marginBottom: 4 }} value={empDetails.employee_id}
+                    onChange={e => setEmpDetails(prev => ({ ...prev, employee_id: e.target.value }))}
+                    placeholder="e.g. PHL-0001" />
+                  {!linkedEmployee && (
+                    <p style={{ margin: '4px 0 12px', fontSize: 11, color: '#fbbf24' }}>No matching payroll record found for "{editMember.full_name}" yet — add this person under the Time Off tab first, then the Employee ID will save there too.</p>
+                  )}
+
+                  <label style={{ ...lbl, marginTop: linkedEmployee ? 12 : 0 }}>Home address</label>
+                  <input style={{ ...inp, marginBottom: 8 }} placeholder="Street address" value={empDetails.address}
+                    onChange={e => setEmpDetails(prev => ({ ...prev, address: e.target.value }))} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 100px', gap: 8, marginBottom: 12 }}>
+                    <input style={inp} placeholder="City" value={empDetails.city} onChange={e => setEmpDetails(prev => ({ ...prev, city: e.target.value }))} />
+                    <input style={inp} placeholder="State" maxLength={2} value={empDetails.state} onChange={e => setEmpDetails(prev => ({ ...prev, state: e.target.value }))} />
+                    <input style={inp} placeholder="Zip" maxLength={10} value={empDetails.zip} onChange={e => setEmpDetails(prev => ({ ...prev, zip: e.target.value }))} />
+                  </div>
+
+                  <label style={lbl}>Social Security # <span style={{ fontSize: 10, color: '#475569', fontWeight: 400, textTransform: 'none' }}>(stored securely)</span></label>
+                  <input style={{ ...inp, marginBottom: 20 }} type="password" placeholder="XXX-XX-XXXX" maxLength={11} autoComplete="off"
+                    value={empDetails.ssn} onChange={e => setEmpDetails(prev => ({ ...prev, ssn: e.target.value }))} />
+
+                  <button onClick={handleSaveDetails} disabled={savingDetails}
+                    style={{ width: '100%', padding: '10px', border: 'none', borderRadius: 8, background: '#16a34a', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', opacity: savingDetails ? 0.6 : 1, marginBottom: 24 }}>
+                    {savingDetails ? 'Saving…' : 'Save details'}
+                  </button>
+
+                  <div style={{ borderTop: '1px solid #1e293b', paddingTop: 16 }}>
+                    <p style={{ margin: '0 0 4px', fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>Employee paperwork &amp; documents</p>
+                    <p style={{ margin: '0 0 12px', fontSize: 12, color: '#64748b' }}>Upload W4, I-9, direct deposit forms, contracts, or any other employee documents. Files are stored securely and only visible to admins.</p>
+
+                    <div style={{ border: '2px dashed #334155', borderRadius: 10, padding: '1rem', marginBottom: 12 }}
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={e => { e.preventDefault(); handleDocFiles(Array.from(e.dataTransfer.files)) }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <label style={{ cursor: 'pointer', display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          <span style={{ fontSize: 24 }}>📎</span>
+                          <span style={{ fontSize: 12, color: '#4ade80', fontWeight: 600 }}>{docUploading ? 'Uploading…' : 'Click to upload or drag files here'}</span>
+                          <span style={{ fontSize: 11, color: '#475569' }}>PDF, Word, images accepted · Max 10MB per file</span>
+                          <input type="file" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" style={{ display: 'none' }}
+                            onChange={e => handleDocFiles(Array.from(e.target.files || []))} />
+                        </label>
+                      </div>
+                    </div>
+
+                    <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Quick label for next upload</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+                      {['W-4', 'I-9', 'Direct Deposit', 'SSN Card', 'Driver License', 'Contract', 'Background Check', 'Other'].map(t => (
+                        <button key={t} onClick={() => setNextDocLabel(t)}
+                          style={{ padding: '5px 12px', borderRadius: 20, border: `1px solid ${nextDocLabel === t ? '#16a34a' : '#1e293b'}`, background: nextDocLabel === t ? 'rgba(74,222,128,0.12)' : 'transparent', color: nextDocLabel === t ? '#4ade80' : '#94a3b8', cursor: 'pointer', fontSize: 11, fontWeight: 600, fontFamily: 'inherit' }}>
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+
+                    {empDocs.length === 0 ? (
+                      <p style={{ textAlign: 'center', fontSize: 13, color: '#475569', padding: '8px 0' }}>No documents yet. Upload W4, I-9, and other paperwork above.</p>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {empDocs.map((f, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#1e293b', borderRadius: 6, padding: '6px 10px' }}>
+                            <span style={{ fontSize: 14 }}>{f.name.endsWith('.pdf') ? '📄' : /\.(jpg|jpeg|png)$/i.test(f.name) ? '🖼️' : '📁'}</span>
+                            <span style={{ fontSize: 12, color: '#f1f5f9', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                            {f.label && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: 'rgba(96,165,250,0.12)', color: '#60a5fa', flexShrink: 0 }}>{f.label}</span>}
+                            {f.url && <a href={f.url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#60a5fa', flexShrink: 0 }}>View</a>}
+                            <button onClick={() => handleRemoveDoc(i)} style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', fontSize: 14, flexShrink: 0 }}>×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>)}
               </>)}
 
               {drawerTab === 'timeoff' && (<>
