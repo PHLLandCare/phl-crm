@@ -99,11 +99,13 @@ interface TeamMember {
   id: string
   full_name: string
   email: string
+  phone: string
   role: UserRole
   permissions: Permissions
   last_sign_in_at: string | null
   created_at: string
   active: boolean
+  employee_id?: string // linked employees.employee_id for QR code URL
 }
 
 interface EmployeeRow {
@@ -397,17 +399,28 @@ export default function TeamPage() {
     setLoading(true)
     const { data } = await supabase
       .from('user_profiles')
-      .select('id, full_name, role, permissions, created_at, active')
+      .select('id, full_name, role, permissions, created_at, active, email, phone')
       .order('full_name')
+
+    // Also pull employee_id so QR codes and SMS use the right ID
+    const { data: empRows } = await supabase
+      .from('employees')
+      .select('user_id, employee_id')
+
+    const empMap: Record<string, string> = {}
+    ;(empRows || []).forEach((e: any) => { if (e.user_id) empMap[e.user_id] = e.employee_id })
+
     setMembers((data ?? []).map(p => ({
       id: p.id,
       full_name: p.full_name || '—',
-      email: '—',
+      email: p.email || '—',
+      phone: p.phone || '',
       role: (p.role as UserRole) || 'worker_limited',
       permissions: p.permissions || DEFAULT_PERMISSIONS[(p.role as UserRole) || 'worker_limited'],
       last_sign_in_at: null,
       created_at: p.created_at,
       active: p.active !== false,
+      employee_id: empMap[p.id] || undefined,
     })))
     setLoading(false)
   }
@@ -578,6 +591,62 @@ export default function TeamPage() {
   const activeMembers = members.filter(m => m.active)
   const inactiveMembers = members.filter(m => !m.active)
 
+  // ── Reset password ────────────────────────────────────────────
+  const [resetTarget, setResetTarget] = useState<TeamMember | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [resetMsg, setResetMsg] = useState('')
+
+  const handleResetPassword = async () => {
+    if (!resetTarget || newPassword.length < 8) { setResetMsg('Password must be at least 8 characters.'); return }
+    setResetMsg('Saving…')
+    const { error } = await supabase.functions.invoke('reset-user-password', {
+      body: { userId: resetTarget.id, newPassword }
+    })
+    if (error) { setResetMsg('Error: ' + error.message); return }
+    setResetMsg('✅ Password updated!')
+    setTimeout(() => { setResetTarget(null); setNewPassword(''); setResetMsg('') }, 2000)
+  }
+
+  // ── Send QR via SMS / Email ───────────────────────────────────
+  const [sendQRState, setSendQRState] = useState<{ member: TeamMember; channel: 'sms' | 'email' } | null>(null)
+  const [qrSendMsg, setQRSendMsg] = useState('')
+
+  const getClockUrl = (m: TeamMember) =>
+    `https://phllandcare.github.io/phl-crm/#/clockin?emp=${encodeURIComponent(m.employee_id || m.id)}`
+
+  const handleSendQR = async () => {
+    if (!sendQRState) return
+    const { member, channel } = sendQRState
+    const clockUrl = getClockUrl(member)
+    const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(clockUrl)}`
+    setQRSendMsg('Sending…')
+    if (channel === 'sms') {
+      if (!member.phone) { setQRSendMsg('No phone number on file for this employee.'); return }
+      const body = `Hi ${member.full_name.split(' ')[0]}! Here's your PHL Land Care clock-in link:\n${clockUrl}\n\nBookmark it on your phone to clock in/out anytime.`
+      const { error } = await supabase.functions.invoke('send-sms', { body: { to: member.phone, message: body } })
+      if (error) { setQRSendMsg('SMS error: ' + error.message); return }
+      setQRSendMsg('✅ Sent via text!')
+    } else {
+      if (!member.email || member.email === '—') { setQRSendMsg('No email on file for this employee.'); return }
+      const html = `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#f8fafc;border-radius:12px">
+        <h2 style="color:#1e3a5f;margin:0 0 8px">Your Clock-In QR Code</h2>
+        <p style="color:#475569;margin:0 0 20px">Hi ${member.full_name.split(' ')[0]}, scan the QR code below or tap the button to clock in / out.</p>
+        <div style="text-align:center;background:#fff;border-radius:10px;padding:20px;border:1px solid #e2e8f0;margin-bottom:20px">
+          <img src="${qrImageUrl}" alt="QR Code" style="width:180px;height:180px"/>
+          <p style="margin:12px 0 0;font-size:12px;color:#64748b">Employee ID: ${member.employee_id || '—'}</p>
+        </div>
+        <a href="${clockUrl}" style="display:block;text-align:center;background:#16a34a;color:#fff;padding:12px;border-radius:8px;text-decoration:none;font-weight:700">Open Clock-In Page</a>
+        <p style="color:#94a3b8;font-size:11px;margin-top:16px;text-align:center">PHL Land Care Inc. · 772-466-3617 · phllandcare.com</p>
+      </div>`
+      const { error } = await supabase.functions.invoke('send-email', {
+        body: { to: member.email, subject: `Your PHL Land Care Clock-In QR Code`, html }
+      })
+      if (error) { setQRSendMsg('Email error: ' + error.message); return }
+      setQRSendMsg('✅ Sent via email!')
+    }
+    setTimeout(() => { setSendQRState(null); setQRSendMsg('') }, 2500)
+  }
+
   return (
     <div style={{ padding: '2rem', background: '#0a0f1a', minHeight: '100vh' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 12 }}>
@@ -645,10 +714,22 @@ export default function TeamPage() {
                     <td style={{ padding: '12px 16px', fontSize: 13, color: '#64748b' }}>{m.email}</td>
                     <td style={{ padding: '12px 16px', fontSize: 13, color: '#64748b' }}>{fmtDate(m.last_sign_in_at)}</td>
                     <td style={{ padding: '12px 16px' }}>
-                      <div style={{ display: 'flex', gap: 6 }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         <button onClick={() => { setEditMember({ ...m, permissions: m.permissions || DEFAULT_PERMISSIONS[m.role] }); setShowEdit(true); setError(null) }}
                           style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
                           Edit permissions
+                        </button>
+                        <button onClick={() => { setResetTarget(m); setNewPassword(''); setResetMsg('') }}
+                          style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                          🔑 Reset PW
+                        </button>
+                        <button onClick={() => { setSendQRState({ member: m, channel: 'sms' }); setQRSendMsg('') }}
+                          style={{ background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                          📱 QR→SMS
+                        </button>
+                        <button onClick={() => { setSendQRState({ member: m, channel: 'email' }); setQRSendMsg('') }}
+                          style={{ background: 'rgba(139,92,246,0.1)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.2)', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
+                          📧 QR→Email
                         </button>
                         <button onClick={() => setDeactivateConfirm(m)}
                           style={{ background: 'rgba(248,113,113,0.1)', color: '#f87171', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -1096,6 +1177,57 @@ export default function TeamPage() {
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={() => setDeactivateConfirm(null)} style={{ flex: 1, padding: '10px', border: '1px solid #1e293b', borderRadius: 9, background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>Cancel</button>
               <button onClick={() => handleDeactivate(deactivateConfirm)} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 9, background: '#dc2626', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>Deactivate</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* RESET PASSWORD MODAL */}
+      {resetTarget && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 600 }} onClick={() => setResetTarget(null)} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 360, background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 601, padding: 24 }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>🔑 Reset Password</h3>
+            <p style={{ margin: '0 0 16px', fontSize: 13, color: '#64748b' }}>{resetTarget.full_name}</p>
+            <label style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'block' }}>New Password (min 8 characters)</label>
+            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Enter new password"
+              style={{ width: '100%', padding: '9px 12px', background: '#0a0f1a', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 12 }} />
+            {resetMsg && <p style={{ margin: '0 0 12px', fontSize: 13, color: resetMsg.startsWith('✅') ? '#22c55e' : '#f87171' }}>{resetMsg}</p>}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setResetTarget(null)} style={{ flex: 1, padding: '10px', border: '1px solid #1e293b', borderRadius: 9, background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={handleResetPassword} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 9, background: '#f59e0b', color: '#000', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>Reset Password</button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* SEND QR MODAL */}
+      {sendQRState && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 600 }} onClick={() => setSendQRState(null)} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 380, background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 601, padding: 24 }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>
+              {sendQRState.channel === 'sms' ? '📱 Send QR Code via Text' : '📧 Send QR Code via Email'}
+            </h3>
+            <p style={{ margin: '0 0 4px', fontSize: 13, color: '#94a3b8' }}>{sendQRState.member.full_name}</p>
+            <p style={{ margin: '0 0 16px', fontSize: 12, color: '#475569' }}>
+              {sendQRState.channel === 'sms'
+                ? `Sending to: ${sendQRState.member.phone || '⚠️ No phone number on file'}`
+                : `Sending to: ${sendQRState.member.email === '—' ? '⚠️ No email on file' : sendQRState.member.email}`}
+            </p>
+            <div style={{ background: '#0a0f1a', borderRadius: 10, padding: 14, marginBottom: 16, textAlign: 'center' }}>
+              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(getClockUrl(sendQRState.member))}`}
+                alt="QR Preview" style={{ width: 140, height: 140, borderRadius: 6 }} />
+              <p style={{ margin: '8px 0 0', fontSize: 11, color: '#475569' }}>
+                Employee ID: {sendQRState.member.employee_id || sendQRState.member.id.slice(0, 8).toUpperCase()}
+              </p>
+            </div>
+            {qrSendMsg && <p style={{ margin: '0 0 12px', fontSize: 13, color: qrSendMsg.startsWith('✅') ? '#22c55e' : '#f87171', textAlign: 'center' }}>{qrSendMsg}</p>}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => setSendQRState(null)} style={{ flex: 1, padding: '10px', border: '1px solid #1e293b', borderRadius: 9, background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={handleSendQR} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 9, background: sendQRState.channel === 'sms' ? '#16a34a' : '#7c3aed', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
+                {sendQRState.channel === 'sms' ? '📱 Send Text' : '📧 Send Email'}
+              </button>
             </div>
           </div>
         </>
