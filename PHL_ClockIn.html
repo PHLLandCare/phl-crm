@@ -157,14 +157,54 @@ window.addEventListener('load', function() {
   }
 });
 
-// Enter key support
+// ── Zebra DS9308 / USB barcode scanner support ─────────────────────────
+// The DS9308 acts as a USB HID keyboard: it types the full scanned string
+// then sends Enter. Two cases:
+//
+// Case 1: Employee's QR code encodes their full clock-in URL.
+//   Scanner types the URL into emp-input → we detect it, extract the emp=
+//   parameter, set the field to just the employee ID, and auto-submit.
+//
+// Case 2: Employee's QR code encodes just their Employee ID (e.g. EMP-005).
+//   Scanner types "EMP-005" + Enter → normal Enter-key handler submits.
+//
+// This means the page works regardless of how the QR codes were generated,
+// and no special scanner configuration is needed beyond the default
+// "add Enter suffix" setting (which ships enabled on DS9308 out of the box).
 document.addEventListener('DOMContentLoaded', function() {
   var input = document.getElementById('emp-input');
-  if (input) {
-    input.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') lookupEmployee();
-    });
-  }
+  if (!input) return;
+
+  input.addEventListener('keydown', function(e) {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    var val = input.value.trim();
+
+    // If it looks like a URL containing emp= extract just the ID
+    if (val.indexOf('emp=') !== -1) {
+      try {
+        // Handle hash-based URLs: grab the query string after the hash
+        var hashIdx = val.indexOf('#');
+        var queryStr = hashIdx !== -1 ? val.slice(hashIdx + 1) : val;
+        var qIdx = queryStr.indexOf('?');
+        if (qIdx !== -1) queryStr = queryStr.slice(qIdx + 1);
+        var params = new URLSearchParams(queryStr);
+        var empId = params.get('emp');
+        if (empId) {
+          input.value = empId;
+        }
+      } catch(err) { /* fall through with raw value */ }
+    }
+
+    lookupEmployee();
+  });
+
+  // Also keep the input focused so scans always land in the right field.
+  // Re-focus after any click elsewhere on the page (kiosk mode).
+  document.addEventListener('click', function(evt) {
+    if (evt.target !== input) input.focus();
+  });
+  input.focus();
 });
 
 async function lookupEmployee() {
