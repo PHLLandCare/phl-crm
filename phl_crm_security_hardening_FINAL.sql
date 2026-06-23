@@ -500,8 +500,8 @@ CREATE POLICY "authenticated_insert_team_messages" ON team_messages
   FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "authenticated_update_own_team_messages" ON team_messages
   FOR UPDATE TO authenticated
-  USING (auth.uid() = sender_id OR get_my_role() = ANY (ARRAY['superadmin','manager']))
-  WITH CHECK (auth.uid() = sender_id OR get_my_role() = ANY (ARRAY['superadmin','manager']));
+  USING (get_my_role() = ANY (ARRAY['superadmin','manager']))
+  WITH CHECK (get_my_role() = ANY (ARRAY['superadmin','manager']));
 CREATE POLICY "manager_delete_team_messages" ON team_messages
   FOR DELETE TO authenticated
   USING (get_my_role() = ANY (ARRAY['superadmin','manager']));
