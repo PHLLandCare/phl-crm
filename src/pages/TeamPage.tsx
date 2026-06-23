@@ -113,6 +113,15 @@ interface EmployeeRow {
   employee_id: string
   fname: string
   lname: string
+  phone: string
+  email: string
+  personal_email: string
+  address: string
+  city: string
+  state_abbr: string
+  zip: string
+  hourly_rate: number
+  employee_type: string
   pto_balance: number
   sick_balance: number
   vacation_balance: number
@@ -379,8 +388,10 @@ export default function TeamPage() {
   const [paperworkFiles, setPaperworkFiles] = useState<{name:string;url:string}[]>([])
   const [showEdit, setShowEdit] = useState(false)
   const [editMember, setEditMember] = useState<TeamMember | null>(null)
-  const [drawerTab, setDrawerTab] = useState<'permissions' | 'timeoff'>('permissions')
+  const [drawerTab, setDrawerTab] = useState<'permissions' | 'timeoff' | 'profile'>('permissions')
   const [linkedEmployee, setLinkedEmployee] = useState<EmployeeRow | null>(null)
+  const [profileEdits, setProfileEdits] = useState<Partial<EmployeeRow>>({})
+  const [savingProfile, setSavingProfile] = useState(false)
   const [employeeLookupDone, setEmployeeLookupDone] = useState(false)
   const [balanceEdits, setBalanceEdits] = useState<{ pto: string; sick: string; vacation: string; approver_id: string }>({ pto: '', sick: '', vacation: '', approver_id: '' })
   const [savingBalances, setSavingBalances] = useState(false)
@@ -428,7 +439,7 @@ export default function TeamPage() {
   useEffect(() => { loadMembers() }, [])
 
   useEffect(() => {
-    supabase.from('employees').select('id, employee_id, fname, lname, pto_balance, sick_balance, vacation_balance, time_off_approver_id')
+    supabase.from('employees').select('id, employee_id, fname, lname, phone, email, personal_email, address, city, state_abbr, zip, hourly_rate, employee_type, pto_balance, sick_balance, vacation_balance, time_off_approver_id')
       .then(({ data }) => setAllEmployees((data ?? []) as EmployeeRow[]))
   }, [])
 
@@ -440,7 +451,7 @@ export default function TeamPage() {
     setEmployeeLookupDone(false)
     const name = editMember.full_name.trim().toLowerCase()
     supabase.from('employees')
-      .select('id, employee_id, fname, lname, pto_balance, sick_balance, vacation_balance, time_off_approver_id')
+      .select('id, employee_id, fname, lname, phone, email, personal_email, address, city, state_abbr, zip, hourly_rate, employee_type, pto_balance, sick_balance, vacation_balance, time_off_approver_id')
       .then(({ data }) => {
         const match = (data ?? []).find((e: any) => `${e.fname} ${e.lname}`.trim().toLowerCase() === name) || null
         setLinkedEmployee(match as EmployeeRow | null)
@@ -450,6 +461,17 @@ export default function TeamPage() {
             sick: String((match as any).sick_balance ?? 0),
             vacation: String((match as any).vacation_balance ?? 0),
             approver_id: (match as any).time_off_approver_id || '',
+          })
+          setProfileEdits({
+            phone: (match as any).phone || '',
+            email: (match as any).email || '',
+            personal_email: (match as any).personal_email || '',
+            address: (match as any).address || '',
+            city: (match as any).city || '',
+            state_abbr: (match as any).state_abbr || '',
+            zip: (match as any).zip || '',
+            hourly_rate: (match as any).hourly_rate || 0,
+            employee_type: (match as any).employee_type || 'W2',
           })
           loadTimeOffForEmployee((match as any).employee_id)
         }
@@ -463,6 +485,28 @@ export default function TeamPage() {
       .eq('employee_id', employeeId).order('created_at', { ascending: false })
     setTimeOffRequests((data ?? []) as TimeOffRequest[])
     setLoadingTimeOff(false)
+  }
+
+  const handleSaveProfile = async () => {
+    if (!linkedEmployee) return
+    setSavingProfile(true); setError(null)
+    try {
+      const updates: any = {
+        phone: profileEdits.phone || null,
+        email: profileEdits.email || null,
+        personal_email: profileEdits.personal_email || null,
+        address: profileEdits.address || null,
+        city: profileEdits.city || null,
+        state_abbr: profileEdits.state_abbr || null,
+        zip: profileEdits.zip || null,
+        hourly_rate: parseFloat(String(profileEdits.hourly_rate)) || 0,
+        employee_type: profileEdits.employee_type || 'W2',
+      }
+      const { error: err } = await supabase.from('employees').update(updates).eq('id', linkedEmployee.id)
+      if (err) throw new Error(err.message)
+      setSuccess('Profile saved.'); setTimeout(() => setSuccess(null), 3000)
+    } catch (e: any) { setError('Failed: ' + e.message) }
+    setSavingProfile(false)
   }
 
   const handleSaveBalances = async () => {
@@ -951,7 +995,7 @@ export default function TeamPage() {
             </div>
 
             <div style={{ display: 'flex', gap: 0, padding: '10px 20px 0', borderBottom: '1px solid #1e293b', flexShrink: 0 }}>
-              {[{ key: 'permissions', label: 'Permissions' }, { key: 'timeoff', label: '🌴 Time Off' }].map(t => (
+              {[{ key: 'permissions', label: 'Permissions' }, { key: 'profile', label: '👤 Profile' }, { key: 'timeoff', label: '🌴 Time Off' }].map(t => (
                 <button key={t.key} onClick={() => setDrawerTab(t.key as any)}
                   style={{ padding: '8px 14px', border: 'none', borderBottom: drawerTab === t.key ? '2px solid #16a34a' : '2px solid transparent', background: 'transparent', color: drawerTab === t.key ? '#f1f5f9' : '#64748b', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit', marginBottom: -1 }}>
                   {t.label}
@@ -1061,6 +1105,73 @@ export default function TeamPage() {
                 <Section title="Payments" enabled={editMember.permissions.payments_enabled} onToggle={v => updatePerm('payments_enabled', v)} subtitle="Allow payment collection on quotes and invoices." />
                 <Section title="Reports" enabled={editMember.permissions.reports_enabled} onToggle={v => updatePerm('reports_enabled', v)} subtitle="Users will only see reports available based on their other permissions." />
               </div>
+              </>)}
+
+
+              {drawerTab === 'profile' && (<>
+                {!employeeLookupDone ? (
+                  <div style={{ textAlign: 'center', padding: '2rem', color: '#475569', fontSize: 13 }}>Loading…</div>
+                ) : !linkedEmployee ? (
+                  <div style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 10, padding: '14px 16px', fontSize: 13, color: '#fbbf24' }}>
+                    No employee record linked to <strong>{editMember?.full_name}</strong> by name match. Add them in the Employees tab first (TimeClock admin page) with the same full name.
+                  </div>
+                ) : (<>
+                  <p style={{ margin: '0 0 16px', fontSize: 12, color: '#475569' }}>
+                    This info is shared with the TimeClock employee file. Changes here update both places.
+                  </p>
+
+                  <label style={lbl}>Work Email <span style={{ color: '#475569', fontWeight: 400, textTransform: 'none' }}>(CRM login email)</span></label>
+                  <input style={{ ...inp, marginBottom: 12 }} type="email"
+                    value={profileEdits.email || ''} onChange={e => setProfileEdits(p => ({ ...p, email: e.target.value }))}
+                    placeholder="work@phllandcare.com" />
+
+                  <label style={lbl}>Personal Email</label>
+                  <input style={{ ...inp, marginBottom: 12 }} type="email"
+                    value={profileEdits.personal_email || ''} onChange={e => setProfileEdits(p => ({ ...p, personal_email: e.target.value }))}
+                    placeholder="personal@email.com" />
+
+                  <label style={lbl}>Mobile Phone</label>
+                  <input style={{ ...inp, marginBottom: 16 }} type="tel"
+                    value={profileEdits.phone || ''} onChange={e => setProfileEdits(p => ({ ...p, phone: e.target.value }))}
+                    placeholder="(772) 000-0000" />
+
+                  <label style={lbl}>Home Address</label>
+                  <input style={{ ...inp, marginBottom: 8 }} placeholder="Street address"
+                    value={profileEdits.address || ''} onChange={e => setProfileEdits(p => ({ ...p, address: e.target.value }))} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 60px 90px', gap: 8, marginBottom: 16 }}>
+                    <input style={inp} placeholder="City" value={profileEdits.city || ''} onChange={e => setProfileEdits(p => ({ ...p, city: e.target.value }))} />
+                    <input style={inp} placeholder="ST" maxLength={2} value={profileEdits.state_abbr || ''} onChange={e => setProfileEdits(p => ({ ...p, state_abbr: e.target.value }))} />
+                    <input style={inp} placeholder="Zip" maxLength={10} value={profileEdits.zip || ''} onChange={e => setProfileEdits(p => ({ ...p, zip: e.target.value }))} />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+                    <div>
+                      <label style={lbl}>Hourly Rate</label>
+                      <div style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#64748b', fontSize: 13 }}>$</span>
+                        <input style={{ ...inp, paddingLeft: 22 }} type="number" min="0" step="0.50"
+                          value={profileEdits.hourly_rate || ''} onChange={e => setProfileEdits(p => ({ ...p, hourly_rate: parseFloat(e.target.value) || 0 }))}
+                          placeholder="15.00" />
+                      </div>
+                    </div>
+                    <div>
+                      <label style={lbl}>Employee Type</label>
+                      <select style={inp} value={profileEdits.employee_type || 'W2'} onChange={e => setProfileEdits(p => ({ ...p, employee_type: e.target.value }))}>
+                        <option value="W2">W2 — Employee</option>
+                        <option value="1099">1099 — Contractor</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ background: '#0a0f1a', borderRadius: 10, padding: '12px 14px', marginBottom: 16, fontSize: 12, color: '#64748b' }}>
+                    <span style={{ fontWeight: 700, color: '#475569' }}>Employee ID:</span> {linkedEmployee.employee_id}
+                  </div>
+
+                  <button onClick={handleSaveProfile} disabled={savingProfile}
+                    style={{ width: '100%', padding: '10px', border: 'none', borderRadius: 9, background: '#16a34a', color: '#fff', cursor: savingProfile ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', opacity: savingProfile ? 0.7 : 1 }}>
+                    {savingProfile ? 'Saving…' : 'Save Profile'}
+                  </button>
+                </>)}
               </>)}
 
               {drawerTab === 'timeoff' && (<>
