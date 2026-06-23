@@ -640,8 +640,10 @@ function renderEmps() {
       '<td>' + (e.division||'—') + '</td>' +
       '<td>' + (e.crew||'—') + '</td>' +
       '<td><span class="b bs">' + (e.role||'—') + '</span> <span style="font-size:10px;color:#6b7a90;display:block;margin-top:2px">' + (e.employee_type||'W2') + ' · $' + (e.hourly_rate||15) + '/hr</span></td>' +
-      '<td><div style="display:flex;gap:4px">' +
+      '<td><div style="display:flex;gap:4px;flex-wrap:wrap">' +
         '<button class="btn btn-qr" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px">⬛ QR</button>' +
+        '<button class="btn success btn-sms" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px">📱 SMS</button>' +
+        '<button class="btn btn-email" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px;background:rgba(139,92,246,.15);color:#a78bfa;border-color:rgba(139,92,246,.3)">📧 Email</button>' +
         '<button class="btn btn-edit" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px">✏️</button>' +
         '<button class="btn amber btn-arch" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px">📦</button>' +
       '</div></td>';
@@ -995,6 +997,66 @@ async function manualClockIn() {
 }
 
 // ── QR BADGE MODAL ──
+function getClockUrl(eid) {
+  return 'https://phllandcare.github.io/phl-crm/#/clockin?emp=' + encodeURIComponent(eid);
+}
+
+async function callEdgeFunction(fnName, body) {
+  var res = await fetch(SUPA_URL + '/functions/v1/' + fnName, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'apikey': SUPA_KEY
+    },
+    body: JSON.stringify(body)
+  });
+  var data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+async function sendQRSMS(eid) {
+  var emp = allEmployees.find(function(e){ return e.employee_id === eid; });
+  if (!emp) return alert('Employee not found.');
+  if (!emp.phone) return alert('No phone number on file for ' + fullName(emp) + '. Edit the employee record to add one first.');
+  if (!confirm('Send QR clock-in link via text to ' + fullName(emp) + ' at ' + emp.phone + '?')) return;
+  try {
+    var clockUrl = getClockUrl(eid);
+    var msg = 'Hi ' + (emp.fname||'there') + '! Here is your PHL Land Care clock-in link:\n' + clockUrl + '\n\nBookmark it on your phone to clock in / out anytime.';
+    await callEdgeFunction('send-sms', { to: emp.phone, message: msg });
+    alert('\u2705 QR link sent via text to ' + emp.phone);
+  } catch(err) {
+    alert('SMS error: ' + err.message);
+  }
+}
+
+async function sendQREmail(eid) {
+  var emp = allEmployees.find(function(e){ return e.employee_id === eid; });
+  if (!emp) return alert('Employee not found.');
+  var toEmail = emp.personal_email || emp.email;
+  if (!toEmail) return alert('No email address on file for ' + fullName(emp) + '. Edit the employee record to add one first.');
+  if (!confirm('Send QR code email to ' + fullName(emp) + ' at ' + toEmail + '?')) return;
+  try {
+    var clockUrl = getClockUrl(eid);
+    var qrImg = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(clockUrl);
+    var html = '<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#f8fafc;border-radius:12px">'
+      + '<h2 style="color:#1e3a5f;margin:0 0 8px">Your Clock-In QR Code</h2>'
+      + '<p style="color:#475569;margin:0 0 20px">Hi ' + (emp.fname||'there') + ', scan the QR code below or tap the button to clock in / out.</p>'
+      + '<div style="text-align:center;background:#fff;border-radius:10px;padding:20px;border:1px solid #e2e8f0;margin-bottom:20px">'
+      + '<img src="' + qrImg + '" alt="QR Code" style="width:180px;height:180px"/>'
+      + '<p style="margin:12px 0 0;font-size:12px;color:#64748b">Employee ID: ' + (emp.employee_id||'—') + '</p>'
+      + '</div>'
+      + '<a href="' + clockUrl + '" style="display:block;text-align:center;background:#16a34a;color:#fff;padding:12px;border-radius:8px;text-decoration:none;font-weight:700">Open Clock-In Page</a>'
+      + '<p style="color:#94a3b8;font-size:11px;margin-top:16px;text-align:center">PHL Land Care Inc. &middot; 772-466-3617 &middot; phllandcare.com</p>'
+      + '</div>';
+    await callEdgeFunction('send-email', { to: toEmail, subject: 'Your PHL Land Care Clock-In QR Code', html: html });
+    alert('\u2705 QR code email sent to ' + toEmail);
+  } catch(err) {
+    alert('Email error: ' + err.message);
+  }
+}
+
 function showQR(eid) {
   var e = allEmployees.find(function(x){return x.employee_id===eid;});
   if (!e) { toast('Employee not found — try refreshing'); return; }
@@ -1165,6 +1227,8 @@ document.addEventListener('click', function(ev) {
   var eid = btn.getAttribute('data-eid');
   if (!eid) return;
   if (btn.classList.contains('btn-qr'))      { ev.stopPropagation(); showQR(eid); }
+  else if (btn.classList.contains('btn-sms'))   { ev.stopPropagation(); sendQRSMS(eid); }
+  else if (btn.classList.contains('btn-email')) { ev.stopPropagation(); sendQREmail(eid); }
   else if (btn.classList.contains('btn-edit'))  { ev.stopPropagation(); editEmp(eid); }
   else if (btn.classList.contains('btn-arch'))  { ev.stopPropagation(); archiveEmp(eid); }
   else if (btn.classList.contains('btn-restore')){ ev.stopPropagation(); restoreEmp(eid); }
