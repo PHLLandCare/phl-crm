@@ -637,18 +637,26 @@ export default function TeamPage() {
 
   // ── Reset password ────────────────────────────────────────────
   const [resetTarget, setResetTarget] = useState<TeamMember | null>(null)
-  const [newPassword, setNewPassword] = useState('')
   const [resetMsg, setResetMsg] = useState('')
+  const [sendingReset, setSendingReset] = useState(false)
 
-  const handleResetPassword = async () => {
-    if (!resetTarget || newPassword.length < 8) { setResetMsg('Password must be at least 8 characters.'); return }
-    setResetMsg('Saving…')
-    const { error } = await supabase.functions.invoke('reset-user-password', {
-      body: { userId: resetTarget.id, newPassword }
+  const handleSendResetEmail = async () => {
+    if (!resetTarget) return
+    // Get the email for this user — prefer work email from their employee profile,
+    // fall back to what's on the member record
+    const email = resetTarget.email && resetTarget.email !== '—' ? resetTarget.email : null
+    if (!email) {
+      setResetMsg('No email address on file. Add one in the Profile tab first.')
+      return
+    }
+    setSendingReset(true); setResetMsg('')
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://phllandcare.github.io/phl-crm/#/change-password'
     })
-    if (error) { setResetMsg('Error: ' + error.message); return }
-    setResetMsg('✅ Password updated!')
-    setTimeout(() => { setResetTarget(null); setNewPassword(''); setResetMsg('') }, 2000)
+    if (error) { setResetMsg('Error: ' + error.message); setSendingReset(false); return }
+    setResetMsg('✅ Reset link sent to ' + email)
+    setTimeout(() => { setResetTarget(null); setResetMsg('') }, 3000)
+    setSendingReset(false)
   }
 
   // ── Send QR via SMS / Email ───────────────────────────────────
@@ -763,7 +771,7 @@ export default function TeamPage() {
                           style={{ background: 'rgba(96,165,250,0.1)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.2)', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
                           Edit permissions
                         </button>
-                        <button onClick={() => { setResetTarget(m); setNewPassword(''); setResetMsg('') }}
+                        <button onClick={() => { setResetTarget(m); setResetMsg('') }}
                           style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.2)', borderRadius: 6, padding: '5px 12px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>
                           🔑 Reset PW
                         </button>
@@ -1296,17 +1304,26 @@ export default function TeamPage() {
       {/* RESET PASSWORD MODAL */}
       {resetTarget && (
         <>
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 600 }} onClick={() => setResetTarget(null)} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 360, background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 601, padding: 24 }}>
-            <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>🔑 Reset Password</h3>
-            <p style={{ margin: '0 0 16px', fontSize: 13, color: '#64748b' }}>{resetTarget.full_name}</p>
-            <label style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, display: 'block' }}>New Password (min 8 characters)</label>
-            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="Enter new password"
-              style={{ width: '100%', padding: '9px 12px', background: '#0a0f1a', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', marginBottom: 12 }} />
-            {resetMsg && <p style={{ margin: '0 0 12px', fontSize: 13, color: resetMsg.startsWith('✅') ? '#22c55e' : '#f87171' }}>{resetMsg}</p>}
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 600 }} onClick={() => { setResetTarget(null); setResetMsg('') }} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 380, background: '#0d1526', border: '1px solid #1e293b', borderRadius: 16, zIndex: 601, padding: 24 }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 16, fontWeight: 700, color: '#f1f5f9' }}>🔑 Send Password Reset</h3>
+            <p style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 600, color: '#f1f5f9' }}>{resetTarget.full_name}</p>
+            <p style={{ margin: '0 0 16px', fontSize: 12, color: '#64748b' }}>
+              Supabase will email them a secure reset link. They click it and set their own password — you never need to know it.
+            </p>
+            <div style={{ background: '#0a0f1a', border: '1px solid #1e293b', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+              <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Sending to</p>
+              <p style={{ margin: 0, fontSize: 13, color: (resetTarget.email && resetTarget.email !== '—') ? '#60a5fa' : '#f87171', fontWeight: 600 }}>
+                {(resetTarget.email && resetTarget.email !== '—') ? resetTarget.email : '⚠️ No email on file — add one in Profile tab first'}
+              </p>
+            </div>
+            {resetMsg && <p style={{ margin: '0 0 12px', fontSize: 13, color: resetMsg.startsWith('✅') ? '#22c55e' : '#f87171', textAlign: 'center' }}>{resetMsg}</p>}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => setResetTarget(null)} style={{ flex: 1, padding: '10px', border: '1px solid #1e293b', borderRadius: 9, background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>Cancel</button>
-              <button onClick={handleResetPassword} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 9, background: '#f59e0b', color: '#000', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>Reset Password</button>
+              <button onClick={() => { setResetTarget(null); setResetMsg('') }} style={{ flex: 1, padding: '10px', border: '1px solid #1e293b', borderRadius: 9, background: 'transparent', color: '#64748b', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={handleSendResetEmail} disabled={sendingReset || !resetTarget.email || resetTarget.email === '—'}
+                style={{ flex: 1, padding: '10px', border: 'none', borderRadius: 9, background: '#f59e0b', color: '#000', cursor: (sendingReset || !resetTarget.email || resetTarget.email === '—') ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', opacity: (sendingReset || !resetTarget.email || resetTarget.email === '—') ? 0.6 : 1 }}>
+                {sendingReset ? 'Sending…' : '📧 Send Reset Link'}
+              </button>
             </div>
           </div>
         </>
