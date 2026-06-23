@@ -399,7 +399,7 @@ export default function TeamPage() {
     setLoading(true)
     const { data } = await supabase
       .from('user_profiles')
-      .select('id, full_name, role, permissions, created_at, active, email, phone')
+      .select('id, full_name, role, permissions, created_at, active')
       .order('full_name')
 
     // Also pull employee_id so QR codes and SMS use the right ID
@@ -413,8 +413,8 @@ export default function TeamPage() {
     setMembers((data ?? []).map(p => ({
       id: p.id,
       full_name: p.full_name || '—',
-      email: p.email || '—',
-      phone: p.phone || '',
+      email: (p as any).email || '—',
+      phone: (p as any).phone || '',
       role: (p.role as UserRole) || 'worker_limited',
       permissions: p.permissions || DEFAULT_PERMISSIONS[(p.role as UserRole) || 'worker_limited'],
       last_sign_in_at: null,
