@@ -367,23 +367,35 @@ CREATE POLICY "manager_up_delete_employees" ON employees
   USING (get_my_role() = ANY (ARRAY['superadmin','manager']));
 
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "users_read_own_profile"        ON user_profiles;
-DROP POLICY IF EXISTS "manager_up_read_all_profiles"  ON user_profiles;
-DROP POLICY IF EXISTS "manager_up_write_profiles"     ON user_profiles;
-DROP POLICY IF EXISTS "manager_up_update_profiles"    ON user_profiles;
+DROP POLICY IF EXISTS "users_read_own_profile"           ON user_profiles;
+DROP POLICY IF EXISTS "manager_up_read_all_profiles"     ON user_profiles;
+DROP POLICY IF EXISTS "manager_up_write_profiles"        ON user_profiles;
+DROP POLICY IF EXISTS "manager_up_update_profiles"       ON user_profiles;
+DROP POLICY IF EXISTS "authenticated_read_user_profiles" ON user_profiles;
 
--- Everyone can read their own profile (needed for auth to work).
--- Managers can read all profiles (needed for dropdowns, assignments).
-CREATE POLICY "users_read_own_profile" ON user_profiles
+-- IMPORTANT: do NOT use get_my_role() in user_profiles policies.
+-- get_my_role() queries user_profiles itself, causing infinite recursion
+-- that blocks all reads. Use direct subqueries instead.
+CREATE POLICY "authenticated_read_user_profiles" ON user_profiles
   FOR SELECT TO authenticated
-  USING (auth.uid() = id OR get_my_role() = ANY (ARRAY['superadmin','manager','dispatcher']));
+  USING (true);
+
 CREATE POLICY "manager_up_write_profiles" ON user_profiles
   FOR INSERT TO authenticated
-  WITH CHECK (get_my_role() = ANY (ARRAY['superadmin','manager']));
+  WITH CHECK (
+    auth.uid() IN (SELECT id FROM user_profiles WHERE role IN ('superadmin','manager'))
+  );
+
 CREATE POLICY "manager_up_update_profiles" ON user_profiles
   FOR UPDATE TO authenticated
-  USING (auth.uid() = id OR get_my_role() = ANY (ARRAY['superadmin','manager']))
-  WITH CHECK (auth.uid() = id OR get_my_role() = ANY (ARRAY['superadmin','manager']));
+  USING (
+    auth.uid() = id OR
+    auth.uid() IN (SELECT id FROM user_profiles WHERE role IN ('superadmin','manager'))
+  )
+  WITH CHECK (
+    auth.uid() = id OR
+    auth.uid() IN (SELECT id FROM user_profiles WHERE role IN ('superadmin','manager'))
+  );
 
 
 -- ============================================================
@@ -450,36 +462,27 @@ CREATE POLICY "manager_up_delete_products_services" ON products_services
 
 -- ============================================================
 -- 14. clock_events / time_off_requests
---     Workers can read/write their own records only.
---     Manager+ can read/write all records.
+--     Managed by admins/managers only. Field workers clock in
+--     via the public kiosk page which uses the service role,
+--     bypassing RLS entirely. employees table has no user_id column.
 -- ============================================================
 ALTER TABLE clock_events ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "own_or_manager_clock_events"  ON clock_events;
+DROP POLICY IF EXISTS "manager_full_clock_events"    ON clock_events;
 
-CREATE POLICY "own_or_manager_clock_events" ON clock_events
+CREATE POLICY "manager_full_clock_events" ON clock_events
   FOR ALL TO authenticated
-  USING (
-    employee_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
-    OR get_my_role() = ANY (ARRAY['superadmin','manager','dispatcher'])
-  )
-  WITH CHECK (
-    employee_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
-    OR get_my_role() = ANY (ARRAY['superadmin','manager','dispatcher'])
-  );
+  USING (get_my_role() = ANY (ARRAY['superadmin','manager','dispatcher']))
+  WITH CHECK (get_my_role() = ANY (ARRAY['superadmin','manager','dispatcher']));
 
 ALTER TABLE time_off_requests ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "own_or_manager_time_off"  ON time_off_requests;
+DROP POLICY IF EXISTS "own_or_manager_time_off"         ON time_off_requests;
+DROP POLICY IF EXISTS "manager_full_time_off_requests"  ON time_off_requests;
 
-CREATE POLICY "own_or_manager_time_off" ON time_off_requests
+CREATE POLICY "manager_full_time_off_requests" ON time_off_requests
   FOR ALL TO authenticated
-  USING (
-    employee_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
-    OR get_my_role() = ANY (ARRAY['superadmin','manager'])
-  )
-  WITH CHECK (
-    employee_id IN (SELECT id FROM employees WHERE user_id = auth.uid())
-    OR get_my_role() = ANY (ARRAY['superadmin','manager'])
-  );
+  USING (get_my_role() = ANY (ARRAY['superadmin','manager']))
+  WITH CHECK (get_my_role() = ANY (ARRAY['superadmin','manager']));
 
 
 -- ============================================================
