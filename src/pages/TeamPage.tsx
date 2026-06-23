@@ -125,6 +125,7 @@ interface EmployeeRow {
   pto_balance: number
   sick_balance: number
   vacation_balance: number
+  working_hours: Record<string, { available: boolean; start?: string; end?: string }> | null
   time_off_approver_id: string | null
 }
 
@@ -472,6 +473,7 @@ export default function TeamPage() {
             zip: (match as any).zip || '',
             hourly_rate: (match as any).hourly_rate || 0,
             employee_type: (match as any).employee_type || 'W2',
+            working_hours: (match as any).working_hours || null,
           })
           loadTimeOffForEmployee((match as any).employee_id)
         }
@@ -501,6 +503,7 @@ export default function TeamPage() {
         zip: profileEdits.zip || null,
         hourly_rate: parseFloat(String(profileEdits.hourly_rate)) || 0,
         employee_type: profileEdits.employee_type || 'W2',
+        working_hours: profileEdits.working_hours || null,
       }
       const { error: err } = await supabase.from('employees').update(updates).eq('id', linkedEmployee.id)
       if (err) throw new Error(err.message)
@@ -1173,6 +1176,48 @@ export default function TeamPage() {
 
                   <div style={{ background: '#0a0f1a', borderRadius: 10, padding: '12px 14px', marginBottom: 16, fontSize: 12, color: '#64748b' }}>
                     <span style={{ fontWeight: 700, color: '#475569' }}>Employee ID:</span> {linkedEmployee.employee_id}
+                  </div>
+
+                  {/* Working Hours */}
+                  <label style={{ ...lbl, marginBottom: 8 }}>Working Hours</label>
+                  <div style={{ background: '#0a0f1a', border: '1px solid #1e293b', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+                    {['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map(day => {
+                      const dayData = (profileEdits.working_hours as any)?.[day]
+                      const isOn = dayData?.available || false
+                      return (
+                        <div key={day} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 0', borderBottom: '1px solid #1e293b' }}>
+                          <input type="checkbox" checked={isOn}
+                            onChange={e => {
+                              const wh = { ...((profileEdits.working_hours as any) || {}) }
+                              wh[day] = e.target.checked
+                                ? { available: true, start: dayData?.start || '08:00', end: dayData?.end || '16:00' }
+                                : { available: false }
+                              setProfileEdits(p => ({ ...p, working_hours: wh as any }))
+                            }}
+                            style={{ width: 14, height: 14, cursor: 'pointer', flexShrink: 0 }} />
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#cbd5e1', width: 86, flexShrink: 0 }}>{day}</span>
+                          {isOn ? (<>
+                            <input type="time" value={dayData?.start || '08:00'}
+                              onChange={e => {
+                                const wh = { ...((profileEdits.working_hours as any) || {}) }
+                                wh[day] = { ...wh[day], start: e.target.value }
+                                setProfileEdits(p => ({ ...p, working_hours: wh as any }))
+                              }}
+                              style={{ padding: '3px 6px', background: '#0d1526', border: '1px solid #334155', borderRadius: 6, color: '#f1f5f9', fontSize: 11, fontFamily: 'inherit' }} />
+                            <span style={{ fontSize: 11, color: '#475569' }}>–</span>
+                            <input type="time" value={dayData?.end || '16:00'}
+                              onChange={e => {
+                                const wh = { ...((profileEdits.working_hours as any) || {}) }
+                                wh[day] = { ...wh[day], end: e.target.value }
+                                setProfileEdits(p => ({ ...p, working_hours: wh as any }))
+                              }}
+                              style={{ padding: '3px 6px', background: '#0d1526', border: '1px solid #334155', borderRadius: 6, color: '#f1f5f9', fontSize: 11, fontFamily: 'inherit' }} />
+                          </>) : (
+                            <span style={{ fontSize: 11, color: '#475569' }}>Unavailable</span>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
 
                   <button onClick={handleSaveProfile} disabled={savingProfile}
