@@ -1,0 +1,21 @@
+[Unit]
+Description=PHL Land Care Scanner Station
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi
+# Pipes stdin from the scanner USB device (HID keyboard)
+# The scanner sends keystrokes to /dev/input — we capture via evdev or stdin
+ExecStart=/usr/bin/python3 /home/pi/phl_scanner.py
+Restart=always
+RestartSec=5
+StandardInput=tty-force
+TTYPath=/dev/tty1
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
