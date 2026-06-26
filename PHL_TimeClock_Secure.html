@@ -4,18 +4,54 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PHL Land Care - Time Clock</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/dist/tabler-icons.min.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<link rel="icon" type="image/png" href="https://phllandcare.github.io/phl-crm/favicon.png">
+<!-- fonts loaded from system stack -->
+<style>
+/* Inline icon replacements — no CDN needed */
+.ti::before { font-style: normal; }
+.ti-qrcode::before { content: "⊞"; }
+.ti-edit::before { content: "✎"; }
+.ti-archive::before { content: "▾"; }
+.ti-refresh::before { content: "↺"; }
+.ti-user-plus::before { content: "+"; }
+.ti-search::before { content: "⌕"; }
+.ti-download::before { content: "↓"; }
+.ti-arrow-left::before { content: "←"; }
+.ti-shield-check::before { content: "✓"; }
+.ti-map-pin::before { content: "📍"; }
+.ti-lock::before { content: "🔒"; }
+.ti-printer::before { content: "🖨"; }
+</style>
+<script>
+// Inline QR Code — no CDN needed, CSP-safe
+(function(g){
+  function QRCode(el,opts){
+    if(typeof opts==='string')opts={text:opts};
+    this.el=typeof el==='string'?document.getElementById(el):el;
+    this.opts=Object.assign({width:180,height:180,colorDark:'#0a2540',colorLight:'#fff'},opts);
+    this._draw();
+  }
+  QRCode.CorrectLevel={L:1,M:0,Q:3,H:2};
+  QRCode.prototype._draw=function(){
+    var img=document.createElement('img');
+    img.width=this.opts.width; img.height=this.opts.height;
+    img.style.borderRadius='8px';
+    img.src='https://api.qrserver.com/v1/create-qr-code/?size='+this.opts.width+'x'+this.opts.height+'&data='+encodeURIComponent(this.opts.text)+'&color=0a2540&bgcolor=ffffff&margin=2';
+    this.el.innerHTML=''; this.el.appendChild(img);
+  };
+  QRCode.prototype.clear=function(){this.el.innerHTML='';};
+  g.QRCode=QRCode;
+})(window);
+</script>
 <style>
 :root{--navy:#0a2540;--teal:#29b6d8;--teal2:#1d9bc0;--green:#1d9e75;--red:#c0392b;--amber:#ba7517;--purple:#7f77dd;--border:#e1e8ef;--bg:#f4f6f9;--surface:#fff;--text:#1a2332;--muted:#6b7a90}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text)}
 .page{display:none}.page.active{display:block}
 .topbar{height:52px;background:var(--navy);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:20}
 .topbar img{height:34px;object-fit:contain;background:#fff;border-radius:8px;padding:4px 10px}
 .topbar-title{color:rgba(255,255,255,.7);font-size:13px;font-weight:500;flex:1}
-.tb-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;display:inline-flex;align-items:center;gap:5px;text-decoration:none}
+.tb-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;display:inline-flex;align-items:center;gap:5px;text-decoration:none}
 .tb-btn:hover{background:rgba(255,255,255,.2)}
 .tb-btn.teal{background:var(--teal);border-color:var(--teal)}
 .tab-bar{display:flex;background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px}
@@ -42,7 +78,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .bg{background:#e1f5ee;color:#085041}.br{background:#fcebeb;color:#791f1f}
 .ba{background:#faeeda;color:#633806}.bm{background:#e6f1fb;color:#0c447c}
 .bs{background:#f1efe8;color:#444}.bp{background:#eeedfe;color:#3c3489}
-.btn{padding:7px 14px;border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-weight:500;border:1px solid var(--border);background:#fff;color:var(--text)}
+.btn{padding:7px 14px;border-radius:8px;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;font-weight:500;border:1px solid var(--border);background:#fff;color:var(--text)}
 .btn:hover{background:#f0f4f8}
 .btn.primary{background:var(--teal);color:#fff;border-color:var(--teal)}
 .btn.primary:hover{background:var(--teal2)}
@@ -51,10 +87,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .btn.amber{background:var(--amber);color:#fff;border-color:var(--amber)}
 .filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
 .srch{position:relative;flex:1;min-width:180px}
-.srch input{width:100%;padding:7px 10px 7px 30px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none}
+.srch input{width:100%;padding:7px 10px 7px 30px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;outline:none}
 .srch input:focus{border-color:var(--teal)}
 .srch i{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px}
-.fsel{padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;background:#fff;cursor:pointer}
+.fsel{padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;outline:none;background:#fff;cursor:pointer}
 .spinner{display:inline-block;width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
 .empty{text-align:center;padding:32px;color:var(--muted);font-size:13px}
@@ -77,10 +113,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .manual-toggle{font-size:11px;color:rgba(255,255,255,.35);cursor:pointer;text-decoration:underline;margin-bottom:14px;display:block}
 .manual-form{display:none;text-align:left}.manual-form.open{display:block}
 .mf-label{font-size:11px;color:rgba(255,255,255,.45);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
-.mf-input{width:100%;padding:10px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:10px}
+.mf-input{width:100%;padding:10px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;outline:none;margin-bottom:10px}
 .mf-input::placeholder{color:rgba(255,255,255,.25)}
 .mf-input:focus{border-color:var(--teal)}
-.mf-btn{width:100%;padding:11px;border-radius:9px;border:none;background:var(--teal);color:#fff;font-size:14px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;margin-bottom:10px}
+.mf-btn{width:100%;padding:11px;border-radius:9px;border:none;background:var(--teal);color:#fff;font-size:14px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;cursor:pointer;margin-bottom:10px}
 .recent-label{font-size:10px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px;text-align:left}
 .r-row{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border-radius:8px;padding:7px 10px;margin-bottom:5px}
 .r-av{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0}
@@ -103,7 +139,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .fg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .fg-full{grid-column:1/-1}
 .fl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}
-.fi,.fs{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;color:var(--text)}
+.fi,.fs{width:100%;padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;outline:none;color:var(--text)}
 .fi:focus,.fs:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(41,182,216,.1)}
 
 /* QR MODAL */
@@ -121,6 +157,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:500;border-left:3px solid var(--teal);z-index:200;display:none;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.3)}
 .toast.show{display:block}
 </style>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://api.qrserver.com https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; font-src 'self' data:; worker-src 'self' blob:; form-action 'self';">
 </head>
 <body>
 
@@ -133,9 +170,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
     <div class="kiosk-clock" id="kiosk-clock">--:--:--</div>
     <div class="kiosk-date" id="kiosk-date"></div>
     <div class="sec-badges">
-      <div class="k-badge"><i class="ti ti-shield-check" style="font-size:12px"></i> 30s rotating QR</div>
-      <div class="k-badge"><i class="ti ti-map-pin" style="font-size:12px"></i> GPS verified</div>
-      <div class="k-badge"><i class="ti ti-lock" style="font-size:12px"></i> Secure</div>
+      <div class="k-badge">🔒 30s rotating QR</div>
+      <div class="k-badge">📍 GPS verified</div>
+      <div class="k-badge">🔐 Secure</div>
     </div>
     <div class="qr-wrap">
       <div id="kiosk-qr" style="display:flex;align-items:center;justify-content:center;min-height:140px"></div>
@@ -152,7 +189,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
     <div class="recent-label">Recent clock events</div>
     <div id="kiosk-recent"><div style="text-align:center;color:rgba(255,255,255,.3);font-size:12px;padding:8px">Loading...</div></div>
     <div style="margin-top:16px;display:flex;gap:8px;justify-content:center">
-      <button onclick="showPage('admin-page')" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">Admin dashboard →</button>
+      <button onclick="showPage('admin-page')" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif">Admin dashboard →</button>
     </div>
   </div>
 </div>
@@ -162,7 +199,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
   <div class="topbar">
     <img id="admin-logo" src="" alt="PHL">
     <span class="topbar-title">PHL Land Care — Time Clock Admin</span>
-    <button class="tb-btn" onclick="exportTimesheet()"><i class="ti ti-download"></i> Export</button>
+    <button class="tb-btn" onclick="exportTimesheet()">⬇ Export</button>
     <button class="tb-btn teal" onclick="showPage('kiosk-page')">← Kiosk</button>
     <a href="index.html" class="tb-btn">← CRM dashboard</a>
   </div>
@@ -179,7 +216,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
     <div class="tab-screen active" id="tab-today">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div><div style="font-size:17px;font-weight:700">Today's clock log</div><div style="font-size:12px;color:var(--muted)" id="today-label"></div></div>
-        <button class="btn primary" onclick="exportTimesheet()"><i class="ti ti-download"></i> Export CSV</button>
+        <button class="btn primary" onclick="exportTimesheet()">⬇ Export CSV</button>
       </div>
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-lbl">Clocked in</div><div class="stat-val" id="cnt-in">—</div><div class="stat-sub" id="cnt-in-sub"></div></div>
@@ -190,10 +227,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
       <div class="tcard">
         <div class="tcard-hdr">
           <span class="tcard-title">Clock events</span>
-          <input type="text" id="log-search" placeholder="Search..." oninput="renderLog()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;width:180px">
+          <input type="text" id="log-search" placeholder="Search..." oninput="renderLog()" style="padding:6px 10px;border:1px solid var(--border);border-radius:7px;font-size:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;outline:none;width:180px">
         </div>
         <table class="dt">
-          <thead><tr><th>Employee</th><th>Division</th><th>Clock in</th><th>Clock out</th><th>Hours</th><th>Method</th><th>Status</th></tr></thead>
+          <thead><tr><th>Employee</th><th>Division</th><th>Clock in</th><th>Clock out</th><th>Hours</th><th>Method</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody id="log-tbody"><tr><td colspan="7" class="empty"><div class="spinner"></div> Loading...</td></tr></tbody>
         </table>
       </div>
@@ -203,14 +240,14 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
     <div class="tab-screen" id="tab-employees">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div><div style="font-size:17px;font-weight:700">Active employees</div><div style="font-size:12px;color:var(--muted)" id="emp-count-sub">Loading...</div></div>
-        <button class="btn primary" onclick="openAddEmp()"><i class="ti ti-user-plus"></i> Add employee</button>
+        <button class="btn primary" onclick="openAddEmp()">+ User Add employee</button>
       </div>
       <div class="filters">
-        <div class="srch"><i class="ti ti-search"></i><input type="text" id="emp-search" placeholder="Search employees..." oninput="renderEmps()"></div>
+        <div class="srch">🔍<input type="text" id="emp-search" placeholder="Search employees..." oninput="renderEmps()"></div>
         <select class="fsel" id="emp-div-filter" onchange="renderEmps()">
           <option value="">All divisions</option>
           <option>Lawn & Tree</option><option>Irrigation</option>
-          <option>Extermination</option><option>Nursery</option><option>Farm</option>
+          <option>Extermination</option><option>Nursery</option><option>Farm</option><option>Hardscape</option>
         </select>
       </div>
       <div class="tcard">
@@ -228,7 +265,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
         <div style="font-size:12px;color:var(--muted)">Never deleted — all history kept forever for payroll and compliance</div>
       </div>
       <div style="background:#e6f9fd;border:1px solid #9fe1cb;border-radius:10px;padding:12px 16px;font-size:12px;color:#085041;margin-bottom:14px">
-        <i class="ti ti-shield-check"></i> <strong>Archive policy:</strong> Archiving removes clock-in access but keeps ALL time records permanently. You can restore any employee at any time.
+        ✅ <strong>Archive policy:</strong> Archiving removes clock-in access but keeps ALL time records permanently. You can restore any employee at any time.
       </div>
       <div class="tcard">
         <table class="dt">
@@ -242,7 +279,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
     <div class="tab-screen" id="tab-timesheets">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
         <div style="font-size:17px;font-weight:700">Weekly timesheets</div>
-        <button class="btn primary" onclick="exportTimesheet()"><i class="ti ti-download"></i> Export payroll CSV</button>
+        <button class="btn primary" onclick="exportTimesheet()">⬇ Export payroll CSV</button>
       </div>
       <div class="tcard">
         <div class="tcard-hdr"><span class="tcard-title">All clock events this week</span></div>
@@ -284,21 +321,37 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
     <span class="drawer-title" id="emp-drawer-title">Add New Employee</span>
     <button class="drawer-close" onclick="closeEmpDrawer()">×</button>
   </div>
-  <div class="drawer-body">
+  <!-- Drawer tabs -->
+  <div style="display:flex;border-bottom:1px solid var(--border);background:#fafbfc;flex-shrink:0">
+    <button id="dtab-info" onclick="switchDrawerTab('info')" style="flex:1;padding:10px;border:none;background:transparent;font-size:12px;font-weight:700;color:#1e3a5f;border-bottom:2px solid #1e3a5f;cursor:pointer;font-family:inherit">👤 Employee Info</button>
+    <button id="dtab-timeoff" onclick="switchDrawerTab('timeoff')" style="flex:1;padding:10px;border:none;background:transparent;font-size:12px;font-weight:600;color:#6b7a90;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit">🌴 Time Off</button>
+    <button id="dtab-docs" onclick="switchDrawerTab('docs')" style="flex:1;padding:10px;border:none;background:transparent;font-size:12px;font-weight:600;color:#6b7a90;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit">📁 Documents</button>
+  </div>
+
+  <!-- INFO TAB -->
+  <div class="drawer-body" id="dtab-info-panel">
     <div class="form-sec">Personal info</div>
     <div class="fg">
       <div><div class="fl">First name *</div><input class="fi" id="ef-fname" placeholder="First name"></div>
       <div><div class="fl">Last name *</div><input class="fi" id="ef-lname" placeholder="Last name"></div>
       <div><div class="fl">Employee ID (auto)</div><input class="fi" id="ef-eid" placeholder="PHL-0001" readonly style="background:#f8fafc"></div>
       <div><div class="fl">Phone</div><input class="fi" id="ef-phone" placeholder="(561) 000-0000"></div>
+      <div><div class="fl">Personal email</div><input class="fi" id="ef-personal-email" type="email" placeholder="personal@email.com"></div>
+      <div class="fg-full"><div class="fl">Home address</div><input class="fi" id="ef-address" placeholder="Street address"></div>
+      <div><div class="fl">City</div><input class="fi" id="ef-city" placeholder="City"></div>
+      <div><div class="fl">State / ZIP</div><div style="display:flex;gap:6px"><input class="fi" id="ef-state" placeholder="FL" maxlength="2" style="width:60px;flex-shrink:0"><input class="fi" id="ef-zip" placeholder="00000" maxlength="10"></div></div>
     </div>
     <div class="form-sec">Work details</div>
     <div class="fg">
-      <div><div class="fl">Division *</div>
-        <select class="fs" id="ef-div">
-          <option>Lawn & Tree</option><option>Irrigation</option>
-          <option>Extermination</option><option>Nursery</option><option>Farm</option>
-        </select>
+      <div class="fg-full"><div class="fl">Divisions * <span style="font-size:10px;color:#6b7a90;font-weight:400">(select all that apply)</span></div>
+        <div id="ef-div-checks" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:#f4f6f9;border:1px solid #e1e8ef;border-radius:6px;padding:4px 10px"><input type="checkbox" value="Lawn & Tree" class="div-check"> Lawn &amp; Tree</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:#f4f6f9;border:1px solid #e1e8ef;border-radius:6px;padding:4px 10px"><input type="checkbox" value="Irrigation" class="div-check"> Irrigation</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:#f4f6f9;border:1px solid #e1e8ef;border-radius:6px;padding:4px 10px"><input type="checkbox" value="Extermination" class="div-check"> Extermination</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:#f4f6f9;border:1px solid #e1e8ef;border-radius:6px;padding:4px 10px"><input type="checkbox" value="Nursery" class="div-check"> Nursery</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:#f4f6f9;border:1px solid #e1e8ef;border-radius:6px;padding:4px 10px"><input type="checkbox" value="Farm" class="div-check"> Farm</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;background:#f4f6f9;border:1px solid #e1e8ef;border-radius:6px;padding:4px 10px"><input type="checkbox" value="Hardscape" class="div-check"> Hardscape</label>
+        </div>
       </div>
       <div><div class="fl">Crew</div>
         <select class="fs" id="ef-crew">
@@ -307,20 +360,173 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
           <option>Crew D</option><option>Crew E</option>
         </select>
       </div>
-      <div class="fg-full"><div class="fl">Role</div>
+      <div><div class="fl">Role</div>
         <select class="fs" id="ef-role">
-          <option>Time clock only</option><option>Field Tech</option>
-          <option>Crew Lead</option><option>Office Manager</option>
+          <option>Time clock only</option><option value="worker">Worker</option><option>Field Tech</option>
+          <option>Crew Lead</option><option>Office Manager</option><option>Admin</option>
         </select>
       </div>
     </div>
+    <div class="form-sec">Pay & Tax info</div>
+    <div class="fg">
+      <div><div class="fl">Employee type *</div>
+        <select class="fs" id="ef-emptype">
+          <option value="W2">W2 — Employee</option>
+          <option value="1099">1099 — Contractor</option>
+        </select>
+      </div>
+      <div><div class="fl">Hourly rate ($)</div>
+        <input class="fi" id="ef-rate" type="number" min="0" step="0.01" placeholder="e.g. 18.00">
+      </div>
+      <div><div class="fl">Tax filing status</div>
+        <select class="fs" id="ef-filing-status">
+          <option value="">— Select —</option>
+          <option>Single</option>
+          <option>Married Filing Jointly</option>
+          <option>Married Filing Separately</option>
+          <option>Head of Household</option>
+          <option>Qualifying Widow(er)</option>
+        </select>
+      </div>
+      <div class="fg-full"><div class="fl">Social Security # <span style="font-size:10px;color:#6b7a90;font-weight:400">(stored securely, for payroll only)</span></div>
+        <input class="fi" id="ef-ssn" type="password" placeholder="XXX-XX-XXXX" autocomplete="off" maxlength="11">
+      </div>
+      <div class="fg-full"><div class="fl">Employee Portal PIN <span style="font-size:10px;color:#6b7a90;font-weight:400">(default: 1234 if blank)</span></div>
+        <input class="fi" id="ef-pin" type="text" placeholder="1234" maxlength="10" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-sec">Working Hours</div>
+    <div style="font-size:11px;color:#6b7a90;margin-bottom:10px">Set availability for each day. Leave unchecked for days off.</div>
+    <div id="ef-working-hours" style="display:flex;flex-direction:column;gap:6px">
+    </div>
+    <script>
+    (function(){
+      var DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      var container = document.getElementById('ef-working-hours');
+      DAYS.forEach(function(day, i) {
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f0f2f5';
+        row.innerHTML =
+          '<input type="checkbox" id="wh-'+i+'-on" style="width:14px;height:14px;cursor:pointer" onchange="toggleWhDay('+i+')">' +
+          '<span style="font-size:12px;font-weight:600;color:#1e3a5f;width:90px">'+day+'</span>' +
+          '<span id="wh-'+i+'-unavail" style="font-size:12px;color:#94a3b8">Unavailable</span>' +
+          '<input type="time" id="wh-'+i+'-start" value="08:00" style="display:none;padding:4px 8px;border:1px solid #e1e8ef;border-radius:6px;font-size:12px;font-family:inherit">' +
+          '<span id="wh-'+i+'-dash" style="display:none;font-size:12px;color:#6b7a90">–</span>' +
+          '<input type="time" id="wh-'+i+'-end" value="16:00" style="display:none;padding:4px 8px;border:1px solid #e1e8ef;border-radius:6px;font-size:12px;font-family:inherit">';
+        container.appendChild(row);
+      });
+    })();
+    function toggleWhDay(i) {
+      var on = document.getElementById('wh-'+i+'-on').checked;
+      document.getElementById('wh-'+i+'-unavail').style.display = on ? 'none' : '';
+      document.getElementById('wh-'+i+'-start').style.display = on ? '' : 'none';
+      document.getElementById('wh-'+i+'-dash').style.display = on ? '' : 'none';
+      document.getElementById('wh-'+i+'-end').style.display = on ? '' : 'none';
+    }
+    function getWorkingHours() {
+      var DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      var result = {};
+      DAYS.forEach(function(day, i) {
+        var on = document.getElementById('wh-'+i+'-on') && document.getElementById('wh-'+i+'-on').checked;
+        result[day] = on
+          ? { available: true, start: document.getElementById('wh-'+i+'-start').value, end: document.getElementById('wh-'+i+'-end').value }
+          : { available: false };
+      });
+      return result;
+    }
+    function setWorkingHours(wh) {
+      if (!wh) return;
+      var DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      DAYS.forEach(function(day, i) {
+        var day_data = wh[day];
+        var cb = document.getElementById('wh-'+i+'-on');
+        if (!cb) return;
+        if (day_data && day_data.available) {
+          cb.checked = true;
+          document.getElementById('wh-'+i+'-start').value = day_data.start || '08:00';
+          document.getElementById('wh-'+i+'-end').value = day_data.end || '16:00';
+          toggleWhDay(i);
+        } else {
+          cb.checked = false;
+          toggleWhDay(i);
+        }
+      });
+    }
+    </script>
     <div style="background:#e6f9fd;border-radius:8px;padding:10px 12px;font-size:12px;color:#0c447c;margin-top:10px">
-      <i class="ti ti-qrcode"></i> <strong>QR badge:</strong> After saving, click the QR button next to the employee to print their personal badge. They scan it to clock in — no PIN needed.
+      ⬛ QR <strong>QR badge:</strong> After saving, click the QR button next to the employee to print their personal badge. They scan it to clock in — no PIN needed.
     </div>
   </div>
+
+  <!-- TIME OFF TAB -->
+  <div class="drawer-body" id="dtab-timeoff-panel" style="display:none">
+    <div id="timeoff-no-employee-msg" style="display:none;background:#fff3cd;border:1px solid #f0d68a;border-radius:8px;padding:10px 12px;font-size:12px;color:#7a5c00">
+      Save this employee first, then balances and requests will show here.
+    </div>
+    <div id="timeoff-content">
+      <div class="form-sec" style="margin-top:0">Balances</div>
+      <div class="fg">
+        <div><div class="fl">PTO days</div><input class="fi" id="to-pto" type="number" step="0.5" value="0"></div>
+        <div><div class="fl">Sick days</div><input class="fi" id="to-sick" type="number" step="0.5" value="0"></div>
+        <div><div class="fl">Vacation days</div><input class="fi" id="to-vacation" type="number" step="0.5" value="0"></div>
+      </div>
+      <div class="fg" style="margin-top:8px">
+        <div class="fg-full">
+          <div class="fl">Time off approver <span style="font-size:10px;color:#6b7a90;font-weight:400">(leave blank to allow any Admin/Manager)</span></div>
+          <select class="fs" id="to-approver"><option value="">— Any Admin/Manager (default) —</option></select>
+        </div>
+      </div>
+      <button onclick="saveTimeOffBalances()" id="to-save-btn" style="width:100%;margin-top:12px;padding:10px;border:none;border-radius:8px;background:#1e3a5f;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">Save Balances</button>
+
+      <div class="form-sec">Requests</div>
+      <div id="timeoff-requests-list" style="font-size:12px;color:#6b7a90">Loading…</div>
+    </div>
+  </div>
+
+  <!-- DOCUMENTS TAB -->
+  <div class="drawer-body" id="dtab-docs-panel" style="display:none">
+    <div class="form-sec" style="margin-top:0">Employee Paperwork & Documents</div>
+    <p style="font-size:12px;color:#6b7a90;margin:0 0 12px">Upload W4, I-9, direct deposit forms, contracts, or any other employee documents. Files are stored securely and only visible to admins.</p>
+
+    <!-- Upload area -->
+    <div id="doc-drop-zone" style="border:2px dashed #c7d2e0;border-radius:10px;padding:20px;text-align:center;cursor:pointer;margin-bottom:14px;transition:border-color .2s"
+      onclick="document.getElementById('doc-file-input').click()"
+      ondragover="event.preventDefault();this.style.borderColor='#1e3a5f'"
+      ondragleave="this.style.borderColor='#c7d2e0'"
+      ondrop="handleDocDrop(event)">
+      <div style="font-size:28px;margin-bottom:6px">📎</div>
+      <p style="margin:0 0 3px;font-size:13px;font-weight:700;color:#1e3a5f">Click to upload or drag files here</p>
+      <p style="margin:0;font-size:11px;color:#6b7a90">PDF, Word, images accepted · Max 10MB per file</p>
+      <input type="file" id="doc-file-input" multiple accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif" style="display:none" onchange="handleDocFiles(this.files)">
+    </div>
+
+    <!-- Document type quick-label buttons -->
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+      <span style="font-size:10px;color:#6b7a90;font-weight:700;text-transform:uppercase;width:100%;margin-bottom:2px">Quick label for next upload:</span>
+      <button class="doc-type-btn" onclick="setDocLabel('W-4 Form')" style="padding:4px 10px;border:1px solid #c7d2e0;border-radius:20px;background:#f4f6f9;font-size:11px;cursor:pointer;font-family:inherit">W-4</button>
+      <button class="doc-type-btn" onclick="setDocLabel('I-9 Form')" style="padding:4px 10px;border:1px solid #c7d2e0;border-radius:20px;background:#f4f6f9;font-size:11px;cursor:pointer;font-family:inherit">I-9</button>
+      <button class="doc-type-btn" onclick="setDocLabel('Direct Deposit')" style="padding:4px 10px;border:1px solid #c7d2e0;border-radius:20px;background:#f4f6f9;font-size:11px;cursor:pointer;font-family:inherit">Direct Deposit</button>
+      <button class="doc-type-btn" onclick="setDocLabel('Employment Contract')" style="padding:4px 10px;border:1px solid #c7d2e0;border-radius:20px;background:#f4f6f9;font-size:11px;cursor:pointer;font-family:inherit">Contract</button>
+      <button class="doc-type-btn" onclick="setDocLabel('Background Check')" style="padding:4px 10px;border:1px solid #c7d2e0;border-radius:20px;background:#f4f6f9;font-size:11px;cursor:pointer;font-family:inherit">Background Check</button>
+      <button class="doc-type-btn" onclick="setDocLabel('Driver License')" style="padding:4px 10px;border:1px solid #c7d2e0;border-radius:20px;background:#f4f6f9;font-size:11px;cursor:pointer;font-family:inherit">Driver License</button>
+      <button class="doc-type-btn" onclick="setDocLabel('Other')" style="padding:4px 10px;border:1px solid #c7d2e0;border-radius:20px;background:#f4f6f9;font-size:11px;cursor:pointer;font-family:inherit">Other</button>
+    </div>
+    <div id="doc-label-display" style="display:none;margin-bottom:10px;padding:6px 10px;background:#e6f9fd;border-radius:6px;font-size:12px;color:#0c447c">
+      Next upload will be labeled: <strong id="doc-label-text"></strong> <button onclick="clearDocLabel()" style="background:none;border:none;color:#6b7a90;cursor:pointer;font-size:13px;margin-left:6px">×</button>
+    </div>
+
+    <!-- Upload progress -->
+    <div id="doc-uploading" style="display:none;padding:10px;text-align:center;color:#6b7a90;font-size:13px">⏳ Uploading...</div>
+
+    <!-- File list -->
+    <div id="doc-file-list" style="display:flex;flex-direction:column;gap:8px">
+      <p style="color:#9aacbc;font-size:13px;text-align:center;margin:16px 0" id="doc-empty-msg">No documents uploaded yet.<br>Save the employee first, then upload their paperwork.</p>
+    </div>
+  </div>
+
   <div class="drawer-footer">
     <button class="btn" onclick="closeEmpDrawer()">Cancel</button>
-    <button class="btn primary" id="emp-save-btn" onclick="saveEmployee()"><i class="ti ti-user-plus"></i> <span id="emp-save-lbl">Add employee</span></button>
+    <button class="btn primary" id="emp-save-btn" onclick="saveEmployee()">+ User <span id="emp-save-lbl">Add employee</span></button>
   </div>
 </div>
 
@@ -337,7 +543,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text)}
     </div>
     <div style="display:flex;gap:8px">
       <button class="btn" style="flex:1" onclick="closeQRModal()">Close</button>
-      <button class="btn primary" style="flex:1" onclick="toast('QR badge sent to printer!')"><i class="ti ti-printer"></i> Print badge</button>
+      <button class="btn primary" style="flex:1" id="print-badge-btn">🖨️ Print badge</button>
     </div>
   </div>
 </div>
@@ -442,9 +648,30 @@ async function loadEmployees() {
 // ── LOAD CLOCK EVENTS ──
 async function loadClockEvents() {
   try {
-    var today = new Date().toISOString().split('T')[0];
-    var data = await sb('GET', '/clock_events?order=created_at.desc&select=*&created_at=gte.' + today + 'T00:00:00');
-    allClockEvents = data;
+    var now = new Date();
+    var y = now.getFullYear(), m = String(now.getMonth()+1).padStart(2,'0'), d = String(now.getDate()).padStart(2,'0');
+    var todayStart = y+'-'+m+'-'+d+'T00:00:00.000';
+    var todayEnd   = y+'-'+m+'-'+d+'T23:59:59.999';
+    // Convert local midnight to UTC offset for Supabase
+    var offsetMs = now.getTimezoneOffset() * 60000;
+    var tsStart = new Date(new Date(todayStart).getTime() + offsetMs).toISOString();
+    var tsEnd   = new Date(new Date(todayEnd).getTime()   + offsetMs).toISOString();
+
+    // 1. Events that STARTED today
+    var byIn  = await sb('GET', '/clock_events?select=*&clock_in=gte.' + tsStart + '&clock_in=lte.' + tsEnd);
+    // 2. Events that ENDED today (overnight — started yesterday, ended today)
+    var byOut = await sb('GET', '/clock_events?select=*&clock_out=gte.' + tsStart + '&clock_out=lte.' + tsEnd);
+    // 3. Currently open sessions (clocked in, not out yet — regardless of start date)
+    var open  = await sb('GET', '/clock_events?select=*&clock_out=is.null&clock_in=not.is.null');
+
+    // Merge and deduplicate by id
+    var seen = {}, merged = [];
+    [].concat(byIn||[], byOut||[], open||[]).forEach(function(r) {
+      if (!seen[r.id]) { seen[r.id] = true; merged.push(r); }
+    });
+    merged.sort(function(a,b){ return new Date(b.clock_in||b.created_at) - new Date(a.clock_in||a.created_at); });
+
+    allClockEvents = merged;
     renderLog();
     renderKioskRecent();
     renderTimesheets();
@@ -456,7 +683,7 @@ function renderEmps() {
   var q = (document.getElementById('emp-search')||{value:''}).value.toLowerCase();
   var dv = (document.getElementById('emp-div-filter')||{value:''}).value;
   var list = allEmployees.filter(function(e) {
-    return e.active && (!q || fullName(e).toLowerCase().includes(q)) && (!dv || e.division === dv);
+    return e.active && (!q || fullName(e).toLowerCase().includes(q)) && (!dv || (e.division||'').split(',').map(function(d){return d.trim();}).indexOf(dv) > -1);
   });
   var tb = document.getElementById('emp-tbody');
   if (!tb) return;
@@ -473,11 +700,13 @@ function renderEmps() {
       '<td style="font-size:11px;color:var(--muted)">' + (e.employee_id||'—') + '</td>' +
       '<td>' + (e.division||'—') + '</td>' +
       '<td>' + (e.crew||'—') + '</td>' +
-      '<td><span class="b bs">' + (e.role||'—') + '</span></td>' +
-      '<td><div style="display:flex;gap:4px">' +
-        '<button class="btn" style="padding:4px 8px;font-size:11px" onclick="showQR(' + JSON.stringify(e.employee_id) + ')"><i class="ti ti-qrcode"></i> QR</button>' +
-        '<button class="btn" style="padding:4px 8px;font-size:11px" onclick="editEmp(' + JSON.stringify(e.employee_id) + ')"><i class="ti ti-edit"></i></button>' +
-        '<button class="btn amber" style="padding:4px 8px;font-size:11px" onclick="archiveEmp(' + JSON.stringify(e.employee_id) + ')"><i class="ti ti-archive"></i></button>' +
+      '<td><span class="b bs">' + (e.role||'—') + '</span> <span style="font-size:10px;color:#6b7a90;display:block;margin-top:2px">' + (e.employee_type||'W2') + ' · $' + (e.hourly_rate||15) + '/hr</span></td>' +
+      '<td><div style="display:flex;gap:4px;flex-wrap:wrap">' +
+        '<button class="btn btn-qr" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px">⬛ QR</button>' +
+        '<button class="btn success btn-sms" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px">📱 SMS</button>' +
+        '<button class="btn btn-email" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px;background:rgba(139,92,246,.15);color:#a78bfa;border-color:rgba(139,92,246,.3)">📧 Email</button>' +
+        '<button class="btn btn-edit" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px">✏️</button>' +
+        '<button class="btn amber btn-arch" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px">📦</button>' +
       '</div></td>';
     tb.appendChild(tr);
   });
@@ -500,15 +729,21 @@ function renderArch() {
       '<td style="font-size:11px;color:var(--muted)">' + (e.employee_id||'—') + '</td>' +
       '<td style="color:var(--muted)">' + (e.division||'—') + '</td>' +
       '<td style="color:var(--muted)">' + new Date(e.created_at).toLocaleDateString() + '</td>' +
-      '<td><button class="btn success" style="padding:4px 8px;font-size:11px" onclick="restoreEmp(' + JSON.stringify(e.employee_id) + ')"><i class="ti ti-refresh"></i> Restore</button></td>';
+      '<td><button class="btn success btn-restore" data-eid="' + (e.employee_id||'').replace(/"/g,'&quot;') + '" style="padding:4px 8px;font-size:11px">↩️ Restore</button></td>';
     tb.appendChild(tr);
   });
 }
 
-// ── RENDER LOG ──
+// ── RENDER LOG — one row per employee, latest event only ──
 function renderLog() {
   var q = (document.getElementById('log-search')||{value:''}).value.toLowerCase();
-  var list = allClockEvents.filter(function(r) { return !q || (r.employee_name||'').toLowerCase().includes(q); });
+  // Deduplicate: keep only the most recent event per employee
+  var seen = {};
+  var deduped = [];
+  allClockEvents.forEach(function(r) {
+    if (!seen[r.employee_id]) { seen[r.employee_id] = true; deduped.push(r); }
+  });
+  var list = deduped.filter(function(r) { return !q || (r.employee_name||'').toLowerCase().includes(q); });
   var tb = document.getElementById('log-tbody');
   if (!tb) return;
   if (!list.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">No clock events today yet</td></tr>'; return; }
@@ -516,10 +751,10 @@ function renderLog() {
   tb.innerHTML = '';
   list.forEach(function(r) {
     var emp = allEmployees.find(function(e) { return e.employee_id === r.employee_id; }) || {};
-    var inTime = r.clock_in ? new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '—';
+    var inTime  = r.clock_in  ? new Date(r.clock_in).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '—';
     var outTime = r.clock_out ? new Date(r.clock_out).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) : '—';
     var hrs = '—';
-    if (r.clock_in && r.clock_out) { hrs = ((new Date(r.clock_out) - new Date(r.clock_in)) / 3600000).toFixed(1); }
+    if (r.clock_in && r.clock_out) { hrs = ((new Date(r.clock_out) - new Date(r.clock_in)) / 3600000).toFixed(1) + 'h'; }
     if (!r.clock_out) ins++; else outs++;
     var tr = document.createElement('tr');
     tr.innerHTML =
@@ -530,9 +765,13 @@ function renderLog() {
       '<td>' + (r.division||'—') + '</td>' +
       '<td style="color:var(--green);font-weight:600">' + inTime + '</td>' +
       '<td style="color:' + (r.clock_out?'var(--red)':'var(--muted)') + '">' + outTime + '</td>' +
-      '<td>' + hrs + '</td>' +
+      '<td style="font-weight:600">' + hrs + '</td>' +
       '<td><span class="b bm">' + (r.method||'QR scan') + '</span></td>' +
-      '<td>' + (r.clock_out ? '<span class="b bs">Out</span>' : '<span class="b bg">In</span>') + '</td>';
+      '<td>' + (r.clock_out ? '<span class="b bs">Out</span>' : '<span class="b bg">In</span>') + '</td>' +
+      '<td style="white-space:nowrap">' +
+        '<button onclick="editPunch(\''+r.id+'\')" style="background:rgba(74,222,128,0.15);color:#4ade80;border:1px solid rgba(74,222,128,0.3);border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;margin-right:4px">✏️ Edit</button>' +
+        '<button onclick="deletePunch(\''+r.id+'\')" style="background:rgba(248,113,113,0.15);color:#f87171;border:1px solid rgba(248,113,113,0.3);border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer">🗑 Del</button>' +
+      '</td>';
     tb.appendChild(tr);
   });
   var ci = document.getElementById('cnt-in'); if (ci) ci.textContent = ins;
@@ -588,9 +827,22 @@ function openAddEmp() {
   document.getElementById('ef-fname').value = '';
   document.getElementById('ef-lname').value = '';
   document.getElementById('ef-phone').value = '';
-  document.getElementById('ef-div').value = 'Lawn & Tree';
+  document.getElementById('ef-personal-email').value = '';
+  document.getElementById('ef-address').value = '';
+  document.getElementById('ef-city').value = '';
+  document.getElementById('ef-state').value = '';
+  document.getElementById('ef-zip').value = '';
+  document.querySelectorAll('.div-check').forEach(function(cb){ cb.checked = false; });
   document.getElementById('ef-crew').value = '';
   document.getElementById('ef-role').value = 'Time clock only';
+  document.getElementById('ef-emptype').value = 'W2';
+  document.getElementById('ef-rate').value = '';
+  document.getElementById('ef-filing-status').value = '';
+  document.getElementById('ef-ssn').value = '';
+  var efPin = document.getElementById('ef-pin'); if (efPin) efPin.value = '';
+  if (typeof setWorkingHours === 'function') setWorkingHours({});
+  currentDocEmpId = null;
+  switchDrawerTab('info');
   updateEmpIdField();
   document.getElementById('emp-drawer').classList.add('open');
   document.getElementById('emp-overlay').classList.add('show');
@@ -607,9 +859,24 @@ function editEmp(eid) {
   document.getElementById('ef-eid').value = e.employee_id||'';
   document.getElementById('ef-eid').removeAttribute('readonly');
   document.getElementById('ef-phone').value = e.phone||'';
-  document.getElementById('ef-div').value = e.division||'Lawn & Tree';
+  document.getElementById('ef-personal-email').value = e.personal_email||'';
+  document.getElementById('ef-address').value = e.address||'';
+  document.getElementById('ef-city').value = e.city||'';
+  document.getElementById('ef-state').value = e.state||'';
+  document.getElementById('ef-zip').value = e.zip||'';
+  // Multi-division checkboxes
+  var empDivs = (e.division||'').split(',').map(function(d){return d.trim();});
+  document.querySelectorAll('.div-check').forEach(function(cb){ cb.checked = empDivs.indexOf(cb.value) > -1; });
   document.getElementById('ef-crew').value = e.crew||'';
   document.getElementById('ef-role').value = e.role||'Time clock only';
+  document.getElementById('ef-emptype').value = e.employee_type||'W2';
+  document.getElementById('ef-rate').value = e.hourly_rate||'';
+  document.getElementById('ef-filing-status').value = e.filing_status||'';
+  document.getElementById('ef-ssn').value = e.ssn ? '••••••••••' : '';
+  var efPinEdit = document.getElementById('ef-pin'); if (efPinEdit) efPinEdit.value = e.pin || '';
+  if (typeof setWorkingHours === 'function') setWorkingHours(e.working_hours || {});
+  currentDocEmpId = eid;
+  switchDrawerTab('info');
   document.getElementById('emp-drawer').classList.add('open');
   document.getElementById('emp-overlay').classList.add('show');
   setTimeout(function(){ document.getElementById('ef-fname').focus(); }, 250);
@@ -625,27 +892,94 @@ async function saveEmployee() {
   var btn = document.getElementById('emp-save-btn');
   btn.disabled = true;
   document.getElementById('emp-save-lbl').textContent = 'Saving...';
+  
+  var checkedDivs = Array.from(document.querySelectorAll('.div-check:checked')).map(function(cb){ return cb.value; });
+  var divisionValue = checkedDivs.length > 0 ? checkedDivs.join(', ') : 'Lawn & Tree';
+
+  // Base data — fields that definitely exist in the employees table
   var data = {
     fname: fn, lname: ln,
     employee_id: document.getElementById('ef-eid').value,
     phone: document.getElementById('ef-phone').value.trim(),
-    division: document.getElementById('ef-div').value,
+    division: divisionValue,
     crew: document.getElementById('ef-crew').value,
     role: document.getElementById('ef-role').value,
-    color: COLORS[Math.floor(Math.random() * COLORS.length)],
     active: true
   };
+  
+  // Only set color for new employees (don't randomize on edit)
+  if (!editingEmpId) {
+    data.color = COLORS[Math.floor(Math.random() * COLORS.length)];
+  }
+  
+  // Add extended fields — these silently fail if columns don't exist yet
+  var empTypeEl = document.getElementById('ef-emptype');
+  var rateEl = document.getElementById('ef-rate');
+  var ssnEl = document.getElementById('ef-ssn');
+  var filingEl = document.getElementById('ef-filing-status');
+  var personalEmailEl = document.getElementById('ef-personal-email');
+  var addressEl = document.getElementById('ef-address');
+  var cityEl = document.getElementById('ef-city');
+  var stateEl = document.getElementById('ef-state');
+  var zipEl = document.getElementById('ef-zip');
+  if (empTypeEl) data.employee_type = empTypeEl.value;
+  if (rateEl && rateEl.value) data.hourly_rate = parseFloat(rateEl.value) || 15;
+  if (ssnEl) { var ssnVal = ssnEl.value.trim(); if (ssnVal && ssnVal !== '••••••••••') data.ssn = ssnVal; }
+  if (filingEl && filingEl.value) data.filing_status = filingEl.value;
+  if (personalEmailEl && personalEmailEl.value) data.personal_email = personalEmailEl.value.trim();
+  if (addressEl && addressEl.value) data.address = addressEl.value.trim();
+  if (cityEl && cityEl.value) data.city = cityEl.value.trim();
+  if (stateEl && stateEl.value) data.state = stateEl.value.trim();
+  if (zipEl && zipEl.value) data.zip = zipEl.value.trim();
+  var pinEl = document.getElementById('ef-pin');
+  if (pinEl && pinEl.value.trim()) data.pin = pinEl.value.trim();
+  if (typeof getWorkingHours === 'function') data.working_hours = getWorkingHours();
+
   try {
+    // Find the row's UUID primary key for reliable PATCH
+    var empRow = allEmployees.find(function(x){ return x.employee_id === editingEmpId; });
+    var patchId = empRow ? empRow.id : null;
+
     if (editingEmpId) {
-      await sb('PATCH', '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId), data);
-      toast('Employee updated!');
+      // Try PATCH by UUID first, fall back to employee_id string
+      var patchUrl = patchId
+        ? '/employees?id=eq.' + patchId
+        : '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId);
+      var res = await sb('PATCH', patchUrl, data);
+
+      if (!res || res.length === 0) {
+        // PATCH returned 0 rows — likely RLS blocking UPDATE for anon key.
+        // Workaround: try updating via employee_id fallback
+        try {
+          res = await sb('PATCH', '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId), data);
+        } catch(rlsErr) { /* ignore */ }
+        if (!res || res.length === 0) {
+          toast('⚠️ Division save blocked by database permissions. Ask your admin to run: ALTER POLICY ... or grant UPDATE to anon role on employees table.');
+          btn.disabled = false;
+          document.getElementById('emp-save-lbl').textContent = 'Save changes';
+          return;
+        }
+      }
+
+      // Force-update allEmployees in memory immediately
+      var updatedEmp = res[0];
+      allEmployees = allEmployees.map(function(x) {
+        return x.id === updatedEmp.id ? updatedEmp : x;
+      });
+      renderEmps();
+      toast('✅ ' + fn + ' ' + ln + ' updated! Divisions: ' + divisionValue);
     } else {
-      await sb('POST', '/employees', data);
-      toast('Employee added and saved to database!');
+      var res2 = await sb('POST', '/employees', data);
+      toast('✅ ' + fn + ' ' + ln + ' added!');
     }
-    closeEmpDrawer();
+    // Load fresh from DB then close so drawer always shows current data
     await loadEmployees();
-  } catch(e) { toast('Error: ' + e.message); }
+    closeEmpDrawer();
+  } catch(e) {
+    console.error('saveEmployee error:', e);
+    alert('Save failed: ' + e.message);
+    toast('Error: ' + e.message);
+  }
   btn.disabled = false;
   document.getElementById('emp-save-lbl').textContent = editingEmpId ? 'Save changes' : 'Add employee';
 }
@@ -656,7 +990,8 @@ async function archiveEmp(eid) {
   if (!e) return;
   if (!confirm('Archive ' + fullName(e) + '?\n\nThis removes their clock-in access but KEEPS all their time records permanently. You can restore them at any time.')) return;
   try {
-    await sb('PATCH', '/employees?employee_id=eq.' + encodeURIComponent(eid), {active: false});
+    var url = e.id ? '/employees?id=eq.' + e.id : '/employees?employee_id=eq.' + encodeURIComponent(eid);
+    await sb('PATCH', url, {active: false});
     toast(fullName(e) + ' archived — all records preserved');
     await loadEmployees();
   } catch(e2) { toast('Error: ' + e2.message); }
@@ -665,7 +1000,8 @@ async function restoreEmp(eid) {
   var e = allEmployees.find(function(x){return x.employee_id===eid;});
   if (!e) return;
   try {
-    await sb('PATCH', '/employees?employee_id=eq.' + encodeURIComponent(eid), {active: true});
+    var url = e.id ? '/employees?id=eq.' + e.id : '/employees?employee_id=eq.' + encodeURIComponent(eid);
+    await sb('PATCH', url, {active: true});
     toast(fullName(e) + ' restored — clock-in access re-enabled');
     await loadEmployees();
   } catch(e2) { toast('Error: ' + e2.message); }
@@ -679,31 +1015,125 @@ async function manualClockIn() {
   if (!emp) { toast('Employee ID not found or inactive'); return; }
   var now = new Date().toISOString();
   try {
-    await sb('POST', '/clock_events', {
-      employee_id: emp.employee_id,
-      employee_name: fullName(emp),
-      division: emp.division,
-      clock_in: now,
-      method: 'Manual ID',
-      flagged: false
-    });
-    document.getElementById('m-eid').value = '';
-    document.getElementById('manual-form').classList.remove('open');
-    toast('✓ ' + fullName(emp) + ' clocked in!');
+    // Check if employee already has an open clock-in (no clock_out)
+    var openEvents = await sb('GET', '/clock_events?employee_id=eq.' + encodeURIComponent(emp.employee_id) + '&clock_out=is.null&clock_in=not.is.null&order=clock_in.desc&limit=10');
+    if (openEvents && openEvents.length > 0) {
+      // Close ALL open sessions
+      for (var oe of openEvents) {
+        await sb('PATCH', '/clock_events?id=eq.' + oe.id, { clock_out: now });
+      }
+      // Check if the open session started on a PREVIOUS day — if so, also create a new clock-in for today
+      var oldestOpen = openEvents[openEvents.length - 1];
+      var openDate = oldestOpen.clock_in ? new Date(oldestOpen.clock_in).toDateString() : '';
+      var todayStr = new Date(now).toDateString();
+      if (openDate && openDate !== todayStr) {
+        // Overnight session — close it AND start a fresh clock-in for today
+        await sb('POST', '/clock_events', {
+          employee_id: emp.employee_id,
+          employee_name: fullName(emp),
+          division: emp.division,
+          clock_in: now,
+          method: 'Manual ID',
+          flagged: false
+        });
+        toast('✓ ' + fullName(emp) + ' — overnight session closed & clocked in at ' + new Date(now).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) + '!');
+      } else {
+        toast('✓ ' + fullName(emp) + ' clocked out at ' + new Date(now).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) + '!');
+      }
+      document.getElementById('m-eid').value = '';
+      document.getElementById('manual-form').classList.remove('open');
+    } else {
+      // Clock IN — no open event found
+      var newEvent = await sb('POST', '/clock_events', {
+        employee_id: emp.employee_id,
+        employee_name: fullName(emp),
+        division: emp.division,
+        clock_in: now,
+        method: 'Manual ID',
+        flagged: false
+      });
+      if (!newEvent) {
+        toast('⚠️ Clock-in may not have saved — please try again or contact admin');
+      } else {
+        toast('✓ ' + fullName(emp) + ' clocked in at ' + new Date(now).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}) + '!');
+      }
+      document.getElementById('m-eid').value = '';
+      document.getElementById('manual-form').classList.remove('open');
+    }
     await loadClockEvents();
   } catch(e) { toast('Error: ' + e.message); }
 }
 
 // ── QR BADGE MODAL ──
+function getClockUrl(eid) {
+  return 'https://phllandcare.github.io/phl-crm/#/clockin?emp=' + encodeURIComponent(eid);
+}
+
+async function callEdgeFunction(fnName, body) {
+  var res = await fetch(SUPA_URL + '/functions/v1/' + fnName, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'apikey': SUPA_KEY
+    },
+    body: JSON.stringify(body)
+  });
+  var data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+async function sendQRSMS(eid) {
+  var emp = allEmployees.find(function(e){ return e.employee_id === eid; });
+  if (!emp) return alert('Employee not found.');
+  if (!emp.phone) return alert('No phone number on file for ' + fullName(emp) + '. Edit the employee record to add one first.');
+  if (!confirm('Send QR clock-in link via text to ' + fullName(emp) + ' at ' + emp.phone + '?')) return;
+  try {
+    var clockUrl = getClockUrl(eid);
+    var msg = 'Hi ' + (emp.fname||'there') + '! Here is your PHL Land Care clock-in link:\n' + clockUrl + '\n\nBookmark it on your phone to clock in / out anytime.';
+    await callEdgeFunction('send-sms', { to: emp.phone, message: msg });
+    alert('\u2705 QR link sent via text to ' + emp.phone);
+  } catch(err) {
+    alert('SMS error: ' + err.message);
+  }
+}
+
+async function sendQREmail(eid) {
+  var emp = allEmployees.find(function(e){ return e.employee_id === eid; });
+  if (!emp) return alert('Employee not found.');
+  var toEmail = emp.personal_email || emp.email;
+  if (!toEmail) return alert('No email address on file for ' + fullName(emp) + '. Edit the employee record to add one first.');
+  if (!confirm('Send QR code email to ' + fullName(emp) + ' at ' + toEmail + '?')) return;
+  try {
+    var clockUrl = getClockUrl(eid);
+    var qrImg = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(clockUrl);
+    var html = '<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#f8fafc;border-radius:12px">'
+      + '<h2 style="color:#1e3a5f;margin:0 0 8px">Your Clock-In QR Code</h2>'
+      + '<p style="color:#475569;margin:0 0 20px">Hi ' + (emp.fname||'there') + ', scan the QR code below or tap the button to clock in / out.</p>'
+      + '<div style="text-align:center;background:#fff;border-radius:10px;padding:20px;border:1px solid #e2e8f0;margin-bottom:20px">'
+      + '<img src="' + qrImg + '" alt="QR Code" style="width:180px;height:180px"/>'
+      + '<p style="margin:12px 0 0;font-size:12px;color:#64748b">Employee ID: ' + (emp.employee_id||'—') + '</p>'
+      + '</div>'
+      + '<a href="' + clockUrl + '" style="display:block;text-align:center;background:#16a34a;color:#fff;padding:12px;border-radius:8px;text-decoration:none;font-weight:700">Open Clock-In Page</a>'
+      + '<p style="color:#94a3b8;font-size:11px;margin-top:16px;text-align:center">PHL Land Care Inc. &middot; 772-466-3617 &middot; phllandcare.com</p>'
+      + '</div>';
+    await callEdgeFunction('send-email', { to: toEmail, subject: 'Your PHL Land Care Clock-In QR Code', html: html });
+    alert('\u2705 QR code email sent to ' + toEmail);
+  } catch(err) {
+    alert('Email error: ' + err.message);
+  }
+}
+
 function showQR(eid) {
   var e = allEmployees.find(function(x){return x.employee_id===eid;});
   if (!e) { toast('Employee not found — try refreshing'); return; }
   document.getElementById('qr-modal-title').textContent = 'QR Badge — ' + fullName(e);
   document.getElementById('qr-emp-name').textContent = fullName(e);
   document.getElementById('qr-emp-id').textContent = e.employee_id + ' · ' + e.division;
-  var container = document.getElementById('qr-code-display');
+  var container = document.getElementById('qr-display');
   container.innerHTML = '';
-  var qrUrl = 'https://phllandcare.github.io/phl-crm/PHL_TimeClock_Secure.html?emp=' + encodeURIComponent(e.employee_id) + '&name=' + encodeURIComponent(fullName(e));
+  var qrUrl = 'https://phllandcare.github.io/phl-crm/#/clockin?emp=' + encodeURIComponent(e.employee_id);
   try {
     new QRCode(container, {text:qrUrl, width:180, height:180, colorDark:'#0a2540', colorLight:'#ffffff'});
   } catch(err) {
@@ -713,6 +1143,42 @@ function showQR(eid) {
 }
 
 function closeQRModal() { document.getElementById('qr-modal').classList.remove('open'); document.getElementById('qr-display').innerHTML = ''; }
+
+function printCurrentBadge() {
+  var name = document.getElementById('qr-emp-name').textContent || 'Employee';
+  var empIdLine = document.getElementById('qr-emp-id').textContent || '';
+  var empId = empIdLine.split(' · ')[0].trim();
+  var qrUrl = 'https://phllandcare.github.io/phl-crm/#/clockin?emp=' + encodeURIComponent(empId);
+  var qrImg = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(qrUrl) + '&color=0a2540&bgcolor=ffffff&margin=2';
+  var win = window.open('', '_blank', 'width=420,height=560');
+  if (!win) { toast('Pop-up blocked — allow pop-ups for this site and try again'); return; }
+  win.document.write('<!DOCTYPE html><html><head><title>QR Badge — ' + name + '</title>' +
+    '<style>body{margin:0;padding:20px;font-family:Arial,sans-serif;background:#f1f5f9;display:flex;flex-direction:column;align-items:center;min-height:100vh}' +
+    '.badge{background:#fff;border-radius:16px;overflow:hidden;width:280px;box-shadow:0 4px 20px rgba(0,0,0,.15);border:2px solid #0a2540}' +
+    '.hdr{background:#0a2540;padding:18px;text-align:center;color:#fff}' +
+    '.hdr h1{margin:0 0 4px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8}' +
+    '.hdr h2{margin:0;font-size:17px;font-weight:800}' +
+    '.hdr p{margin:4px 0 0;font-size:11px;color:#94a3b8}' +
+    '.body{padding:18px;text-align:center}' +
+    '.eid{font-size:12px;font-weight:700;color:#0a2540;margin-bottom:10px}' +
+    '.note{font-size:10px;color:#6b7a90;margin-top:8px}' +
+    '.foot{background:#f8fafc;padding:10px;text-align:center;border-top:1px solid #e2e8f0}' +
+    '.foot p{margin:0;font-size:9px;color:#6b7a90}' +
+    '@media print{body{padding:0;background:#fff}.badge{box-shadow:none}button{display:none!important}}' +
+    '</style></head><body>' +
+    '<div class="badge">' +
+    '<div class="hdr"><h1>PHL Land Care Inc.</h1><h2>' + name + '</h2><p>' + empIdLine + '</p></div>' +
+    '<div class="body"><div class="eid">ID: ' + empId + '</div>' +
+    '<img src="' + qrImg + '" width="160" height="160" style="border-radius:8px">' +
+    '<p class="note">Scan to clock in / out</p></div>' +
+    '<div class="foot"><p>772-466-3617 | phllandcare.com</p></div>' +
+    '</div>' +
+    '<div style="text-align:center;margin-top:16px">' +
+    '<button onclick="window.print()" style="background:#0a2540;color:#fff;border:none;border-radius:8px;padding:10px 24px;font-size:14px;font-weight:700;cursor:pointer;margin-right:8px">Print Badge</button>' +
+    '<button onclick="window.close()" style="background:#e2e8f0;color:#475569;border:none;border-radius:8px;padding:10px 24px;font-size:14px;cursor:pointer">Close</button>' +
+    '</div></body></html>');
+  win.document.close();
+}
 
 // ── EXPORT ──
 function exportTimesheet() {
@@ -726,6 +1192,69 @@ function exportTimesheet() {
   var blob = new Blob([rows.join('\n')], {type:'text/csv'});
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'PHL_Timesheet.csv'; a.click();
   toast('Timesheet exported!');
+}
+
+// ── ADMIN ACCESS ── (PIN removed — auth handled by Supabase login)
+
+// ── PUNCH EDIT / DELETE ──
+async function deletePunch(id) {
+  if (!confirm('Delete this punch entry? This cannot be undone.')) return;
+  try {
+    await sb('DELETE', '/clock_events?id=eq.' + id);
+    toast('✅ Punch deleted');
+    await loadClockEvents();
+  } catch(e) { toast('❌ Delete failed: ' + e.message); }
+}
+
+function editPunch(id) {
+  var r = allClockEvents.find(function(e){ return String(e.id) === String(id); });
+  if (!r) { toast('Event not found'); return; }
+
+  // Build a simple modal dynamically
+  var existing = document.getElementById('punch-edit-modal');
+  if (existing) existing.remove();
+
+  var fmtForInput = function(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    var pad = function(n){return String(n).padStart(2,'0');};
+    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes());
+  };
+
+  var modal = document.createElement('div');
+  modal.id = 'punch-edit-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;z-index:9999;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif';
+  modal.innerHTML =
+    '<div style="background:#111827;border:1px solid #1f2d3d;border-radius:14px;padding:24px;width:100%;max-width:420px;color:#f1f5f9">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">' +
+        '<h2 style="margin:0;font-size:17px;font-weight:700">Edit Punch — ' + (r.employee_name||r.employee_id) + '</h2>' +
+        '<button onclick="document.getElementById(&quot;punch-edit-modal&quot;).remove()" style="background:none;border:none;color:#64748b;font-size:22px;cursor:pointer">×</button>' +
+      '</div>' +
+      '<label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px">Clock In</label>' +
+      '<input id="pe-in" type="datetime-local" value="' + fmtForInput(r.clock_in) + '" style="width:100%;padding:9px 12px;background:#1a2332;border:1px solid #2d3f55;border-radius:7px;font-size:14px;color:#f1f5f9;box-sizing:border-box;margin-bottom:14px;outline:none">' +
+      '<label style="display:block;font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;margin-bottom:4px">Clock Out</label>' +
+      '<input id="pe-out" type="datetime-local" value="' + fmtForInput(r.clock_out) + '" style="width:100%;padding:9px 12px;background:#1a2332;border:1px solid #2d3f55;border-radius:7px;font-size:14px;color:#f1f5f9;box-sizing:border-box;margin-bottom:20px;outline:none">' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end">' +
+        '<button onclick="document.getElementById(&quot;punch-edit-modal&quot;).remove()" style="padding:9px 18px;border:1px solid #334155;border-radius:7px;background:transparent;color:#94a3b8;cursor:pointer;font-size:13px">Cancel</button>' +
+        '<button onclick="savePunch(\''+id+'\')" style="padding:9px 18px;border:none;border-radius:7px;background:#16a34a;color:#fff;cursor:pointer;font-size:13px;font-weight:700">Save</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+}
+
+async function savePunch(id) {
+  var inVal  = document.getElementById('pe-in').value;
+  var outVal = document.getElementById('pe-out').value;
+  if (!inVal) { toast('Clock In time is required'); return; }
+  var payload = { clock_in: new Date(inVal).toISOString() };
+  if (outVal) payload.clock_out = new Date(outVal).toISOString();
+  else payload.clock_out = null;
+  try {
+    await sb('PATCH', '/clock_events?id=eq.' + id, payload);
+    document.getElementById('punch-edit-modal').remove();
+    toast('✅ Punch updated');
+    await loadClockEvents();
+  } catch(e) { toast('❌ Save failed: ' + e.message); }
 }
 
 // ── NAVIGATION ──
@@ -755,7 +1284,296 @@ function toast(msg) {
 document.getElementById('qr-modal').addEventListener('click', function(e){if(e.target===this)closeQRModal();});
 document.getElementById('emp-overlay').addEventListener('click', closeEmpDrawer);
 
-// Init
+// Wire print badge button
+var _pbBtn = document.getElementById('print-badge-btn');
+if (_pbBtn) _pbBtn.addEventListener('click', printCurrentBadge);
+
+// Event delegation for employee table buttons (avoids JSON.stringify quote-in-attr bugs)
+document.addEventListener('click', function(ev) {
+  var btn = ev.target.closest('button');
+  if (!btn) return;
+  var eid = btn.getAttribute('data-eid');
+  if (!eid) return;
+  if (btn.classList.contains('btn-qr'))      { ev.stopPropagation(); showQR(eid); }
+  else if (btn.classList.contains('btn-sms'))   { ev.stopPropagation(); sendQRSMS(eid); }
+  else if (btn.classList.contains('btn-email')) { ev.stopPropagation(); sendQREmail(eid); }
+  else if (btn.classList.contains('btn-edit'))  { ev.stopPropagation(); editEmp(eid); }
+  else if (btn.classList.contains('btn-arch'))  { ev.stopPropagation(); archiveEmp(eid); }
+  else if (btn.classList.contains('btn-restore')){ ev.stopPropagation(); restoreEmp(eid); }
+});
+
+// ── DOCUMENT TAB ──────────────────────────────────────────────────────────────
+var currentDocEmpId = null;
+var pendingDocLabel = null;
+
+function switchDrawerTab(tab) {
+  var infoPanel = document.getElementById('dtab-info-panel');
+  var docsPanel = document.getElementById('dtab-docs-panel');
+  var toPanel   = document.getElementById('dtab-timeoff-panel');
+  var infoBtn   = document.getElementById('dtab-info');
+  var docsBtn   = document.getElementById('dtab-docs');
+  var toBtn     = document.getElementById('dtab-timeoff');
+  var tabs = [
+    { key:'info',    panel:infoPanel, btn:infoBtn },
+    { key:'timeoff', panel:toPanel,   btn:toBtn },
+    { key:'docs',    panel:docsPanel, btn:docsBtn },
+  ];
+  tabs.forEach(function(t){
+    var active = t.key === tab;
+    t.panel.style.display = active ? '' : 'none';
+    t.btn.style.color = active ? '#1e3a5f' : '#6b7a90';
+    t.btn.style.borderBottomColor = active ? '#1e3a5f' : 'transparent';
+    t.btn.style.fontWeight = active ? '700' : '600';
+  });
+  if (tab === 'docs') {
+    if (currentDocEmpId) loadDocuments(currentDocEmpId);
+    else {
+      document.getElementById('doc-empty-msg').textContent = 'Save the employee first, then upload their paperwork.';
+      document.getElementById('doc-empty-msg').style.display = 'block';
+    }
+  }
+  if (tab === 'timeoff') {
+    if (editingEmpId) loadTimeOffTab(editingEmpId);
+    else {
+      document.getElementById('timeoff-content').style.display = 'none';
+      document.getElementById('timeoff-no-employee-msg').style.display = 'block';
+    }
+  }
+}
+
+// ── TIME OFF TAB ──
+function populateApproverDropdown(excludeEid) {
+  var sel = document.getElementById('to-approver');
+  sel.innerHTML = '<option value="">— Any Admin/Manager (default) —</option>';
+  allEmployees.forEach(function(e){
+    if (e.employee_id === excludeEid) return;
+    var opt = document.createElement('option');
+    opt.value = e.id;
+    opt.textContent = fullName(e);
+    sel.appendChild(opt);
+  });
+}
+
+async function loadTimeOffTab(eid) {
+  document.getElementById('timeoff-no-employee-msg').style.display = 'none';
+  document.getElementById('timeoff-content').style.display = '';
+  var e = allEmployees.find(function(x){ return x.employee_id === eid; });
+  if (!e) return;
+
+  document.getElementById('to-pto').value = e.pto_balance || 0;
+  document.getElementById('to-sick').value = e.sick_balance || 0;
+  document.getElementById('to-vacation').value = e.vacation_balance || 0;
+  populateApproverDropdown(eid);
+  document.getElementById('to-approver').value = e.time_off_approver_id || '';
+
+  var listEl = document.getElementById('timeoff-requests-list');
+  listEl.textContent = 'Loading…';
+  try {
+    var reqs = await sb('GET', '/time_off_requests?employee_id=eq.' + encodeURIComponent(eid) + '&order=created_at.desc');
+    if (!reqs.length) { listEl.innerHTML = '<div style="padding:8px 0">No time off requests yet.</div>'; return; }
+    listEl.innerHTML = reqs.map(function(r){
+      var statusColors = { pending:'#7a5c00', approved:'#0a7a3c', denied:'#b3261e', cancelled:'#6b7a90' };
+      var statusBg = { pending:'#fff3cd', approved:'#e6f7ec', denied:'#fde8e6', cancelled:'#f0f1f3' };
+      var actions = r.status === 'pending'
+        ? '<div style="display:flex;gap:6px;margin-top:6px">'
+          + '<button onclick="reviewTimeOffRequest(\'' + r.id + '\',\'approved\')" style="flex:1;padding:6px;border:none;border-radius:6px;background:#e6f7ec;color:#0a7a3c;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Approve</button>'
+          + '<button onclick="reviewTimeOffRequest(\'' + r.id + '\',\'denied\')" style="flex:1;padding:6px;border:none;border-radius:6px;background:#fde8e6;color:#b3261e;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit">Deny</button>'
+          + '</div>'
+        : '';
+      return '<div style="background:#f8fafc;border:1px solid #e1e8ef;border-radius:8px;padding:8px 10px;margin-bottom:6px">'
+        + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px">'
+        + '<span style="font-weight:700;text-transform:capitalize;color:#1e3a5f">' + r.type + '</span>'
+        + '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:' + statusBg[r.status] + ';color:' + statusColors[r.status] + ';text-transform:capitalize">' + r.status + '</span>'
+        + '</div>'
+        + '<div style="color:#6b7a90">' + r.start_date + ' – ' + r.end_date + ' · ' + r.days + ' day' + (r.days != 1 ? 's' : '') + '</div>'
+        + (r.reason ? '<div style="color:#475569;margin-top:4px">"' + r.reason + '"</div>' : '')
+        + actions
+        + '</div>';
+    }).join('');
+  } catch(err) {
+    listEl.innerHTML = '<div style="color:#b3261e">Failed to load requests: ' + err.message + '</div>';
+  }
+}
+
+async function saveTimeOffBalances() {
+  if (!editingEmpId) return;
+  var btn = document.getElementById('to-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  var e = allEmployees.find(function(x){ return x.employee_id === editingEmpId; });
+  var data = {
+    pto_balance: parseFloat(document.getElementById('to-pto').value) || 0,
+    sick_balance: parseFloat(document.getElementById('to-sick').value) || 0,
+    vacation_balance: parseFloat(document.getElementById('to-vacation').value) || 0,
+    time_off_approver_id: document.getElementById('to-approver').value || null,
+  };
+  try {
+    var patchUrl = e && e.id ? '/employees?id=eq.' + e.id : '/employees?employee_id=eq.' + encodeURIComponent(editingEmpId);
+    await sb('PATCH', patchUrl, data);
+    if (e) { e.pto_balance = data.pto_balance; e.sick_balance = data.sick_balance; e.vacation_balance = data.vacation_balance; e.time_off_approver_id = data.time_off_approver_id; }
+    toast('✅ Time off balances saved');
+  } catch(err) {
+    toast('❌ Failed: ' + err.message);
+  }
+  btn.disabled = false; btn.textContent = 'Save Balances';
+}
+
+async function reviewTimeOffRequest(reqId, status) {
+  try {
+    var updated = await sb('PATCH', '/time_off_requests?id=eq.' + reqId, { status: status, reviewed_by: 'Admin', reviewed_at: new Date().toISOString() });
+    if (status === 'approved' && updated && updated[0]) {
+      var r = updated[0];
+      var e = allEmployees.find(function(x){ return x.employee_id === r.employee_id; });
+      if (e) {
+        var col = r.type === 'pto' ? 'pto_balance' : r.type === 'sick' ? 'sick_balance' : 'vacation_balance';
+        var newBal = Math.max(0, (e[col] || 0) - r.days);
+        var patchBody = {};
+        patchBody[col] = newBal;
+        await sb('PATCH', '/employees?id=eq.' + e.id, patchBody);
+        e[col] = newBal;
+        if (col === 'pto_balance') document.getElementById('to-pto').value = newBal;
+        if (col === 'sick_balance') document.getElementById('to-sick').value = newBal;
+        if (col === 'vacation_balance') document.getElementById('to-vacation').value = newBal;
+      }
+    }
+    toast(status === 'approved' ? '✅ Request approved' : '✅ Request denied');
+    loadTimeOffTab(editingEmpId);
+  } catch(err) {
+    toast('❌ Failed: ' + err.message);
+  }
+}
+
+
+function setDocLabel(label) {
+  pendingDocLabel = label;
+  document.getElementById('doc-label-text').textContent = label;
+  document.getElementById('doc-label-display').style.display = 'block';
+  document.querySelectorAll('.doc-type-btn').forEach(function(b) {
+    b.style.background = b.textContent.trim() === label.replace(' Form','') || b.textContent.trim() === label ? '#1e3a5f' : '#f4f6f9';
+    b.style.color = b.textContent.trim() === label.replace(' Form','') || b.textContent.trim() === label ? '#fff' : '';
+    b.style.borderColor = b.style.background === '#1e3a5f' ? '#1e3a5f' : '#c7d2e0';
+  });
+}
+
+function clearDocLabel() {
+  pendingDocLabel = null;
+  document.getElementById('doc-label-display').style.display = 'none';
+  document.querySelectorAll('.doc-type-btn').forEach(function(b) {
+    b.style.background = '#f4f6f9'; b.style.color = ''; b.style.borderColor = '#c7d2e0';
+  });
+}
+
+function handleDocDrop(ev) {
+  ev.preventDefault();
+  document.getElementById('doc-drop-zone').style.borderColor = '#c7d2e0';
+  handleDocFiles(ev.dataTransfer.files);
+}
+
+async function handleDocFiles(files) {
+  if (!currentDocEmpId) {
+    toast('Please save the employee first before uploading documents');
+    return;
+  }
+  var uploading = document.getElementById('doc-uploading');
+  uploading.style.display = 'block';
+  for (var i = 0; i < files.length; i++) {
+    var file = files[i];
+    if (file.size > 10 * 1024 * 1024) { toast('File too large: ' + file.name + ' (max 10MB)'); continue; }
+    var label = pendingDocLabel || file.name;
+    var safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    var path = 'employee-docs/' + currentDocEmpId + '/' + Date.now() + '_' + safeName;
+    try {
+      // Upload to Supabase Storage
+      var formData = new FormData();
+      formData.append('', file);
+      var uploadRes = await fetch(SUPA_URL + '/storage/v1/object/' + path, {
+        method: 'POST',
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY },
+        body: file
+      });
+      if (!uploadRes.ok) {
+        var errText = await uploadRes.text();
+        // Bucket may not exist yet — store as base64 in the DB as fallback
+        await saveDocToDb(currentDocEmpId, file.name, label, '', file.size, file.type);
+        toast('⚠️ Storage bucket not set up — doc name saved. See setup instructions.');
+      } else {
+        var publicUrl = SUPA_URL + '/storage/v1/object/public/' + path;
+        await saveDocToDb(currentDocEmpId, file.name, label, publicUrl, file.size, file.type);
+        toast('✅ ' + file.name + ' uploaded!');
+      }
+      clearDocLabel();
+    } catch(e) {
+      toast('Error uploading ' + file.name + ': ' + e.message);
+    }
+  }
+  uploading.style.display = 'none';
+  loadDocuments(currentDocEmpId);
+}
+
+async function saveDocToDb(empId, fileName, label, url, size, mimeType) {
+  // Store in employee_documents table (falls back gracefully if table doesn't exist)
+  try {
+    await sb('POST', '/employee_documents', {
+      employee_id: empId,
+      file_name: fileName,
+      label: label,
+      url: url,
+      file_size: size,
+      mime_type: mimeType,
+      uploaded_at: new Date().toISOString()
+    });
+  } catch(e) {
+    // Table doesn't exist yet — create it or use employees.notes as fallback
+    console.warn('employee_documents table not found. Please create it in Supabase.', e.message);
+    throw e;
+  }
+}
+
+async function loadDocuments(empId) {
+  var list = document.getElementById('doc-file-list');
+  var emptyMsg = document.getElementById('doc-empty-msg');
+  list.innerHTML = '<p style="color:#9aacbc;font-size:13px;text-align:center;margin:16px 0">Loading...</p>';
+  try {
+    var docs = await sb('GET', '/employee_documents?employee_id=eq.' + encodeURIComponent(empId) + '&order=uploaded_at.desc');
+    list.innerHTML = '';
+    if (!docs || docs.length === 0) {
+      list.innerHTML = '<p style="color:#9aacbc;font-size:13px;text-align:center;margin:16px 0" id="doc-empty-msg">No documents yet. Upload W4, I-9, and other paperwork above.</p>';
+      return;
+    }
+    docs.forEach(function(doc) {
+      var ext = (doc.file_name||'').split('.').pop().toLowerCase();
+      var icon = ext === 'pdf' ? '📄' : ['jpg','jpeg','png','gif'].includes(ext) ? '🖼️' : ['doc','docx'].includes(ext) ? '📝' : '📁';
+      var size = doc.file_size ? (doc.file_size > 1024*1024 ? (doc.file_size/1024/1024).toFixed(1)+'MB' : Math.round(doc.file_size/1024)+'KB') : '';
+      var date = doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : '';
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f8fafc;border:1px solid #e1e8ef;border-radius:8px';
+      row.innerHTML = '<span style="font-size:22px;flex-shrink:0">' + icon + '</span>' +
+        '<div style="flex:1;min-width:0">' +
+          '<p style="margin:0 0 1px;font-size:13px;font-weight:600;color:#1a2a3a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (doc.label||doc.file_name) + '</p>' +
+          '<p style="margin:0;font-size:11px;color:#6b7a90">' + [doc.file_name, size, date].filter(Boolean).join(' · ') + '</p>' +
+        '</div>' +
+        (doc.url ? '<a href="' + doc.url + '" target="_blank" style="font-size:12px;color:#1e3a5f;font-weight:600;text-decoration:none;white-space:nowrap;flex-shrink:0">View ↗</a>' : '') +
+        '<button onclick="deleteDoc(\'' + doc.id + '\',\'' + (doc.url||'') + '\')" style="background:none;border:none;color:#e53e3e;cursor:pointer;font-size:16px;flex-shrink:0;padding:0 2px" title="Delete">🗑</button>';
+      list.appendChild(row);
+    });
+  } catch(e) {
+    list.innerHTML = '<p style="color:#e53e3e;font-size:12px;text-align:center;margin:12px 0">⚠️ employee_documents table not found.<br>Run the setup SQL in Supabase to enable document storage.</p>';
+  }
+}
+
+async function deleteDoc(docId, url) {
+  if (!confirm('Delete this document? This cannot be undone.')) return;
+  try {
+    await sb('DELETE', '/employee_documents?id=eq.' + encodeURIComponent(docId));
+    if (url) {
+      var path = url.replace(SUPA_URL + '/storage/v1/object/public/', '');
+      await fetch(SUPA_URL + '/storage/v1/object/' + path, { method:'DELETE', headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY} });
+    }
+    toast('Document deleted');
+    loadDocuments(currentDocEmpId);
+  } catch(e) { toast('Error deleting: ' + e.message); }
+}
+
+// ── Init
 loadEmployees();
 loadClockEvents();
 </script>
