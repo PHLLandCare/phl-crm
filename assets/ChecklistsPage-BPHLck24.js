@@ -1,5 +1,5 @@
-import{c as e,d as t,n,t as r}from"./index-DqsKYlwG.js";
-var a=t(e(),1),sb=r();
+import{c as e,d as t,n}from"./index-DqsKYlwG.js";
+var a=t(e(),1),sb=n;
 
 function ChecklistsPage(){
   var [templates,setTemplates]=a.useState([]);
