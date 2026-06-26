@@ -391,6 +391,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
       <div class="fg-full"><div class="fl">Social Security # <span style="font-size:10px;color:#6b7a90;font-weight:400">(stored securely, for payroll only)</span></div>
         <input class="fi" id="ef-ssn" type="password" placeholder="XXX-XX-XXXX" autocomplete="off" maxlength="11">
       </div>
+      <div class="fg-full"><div class="fl">Employee Portal PIN <span style="font-size:10px;color:#6b7a90;font-weight:400">(default: 1234 if blank)</span></div>
+        <input class="fi" id="ef-pin" type="text" placeholder="1234" maxlength="10" autocomplete="off">
+      </div>
     </div>
     <div class="form-sec">Working Hours</div>
     <div style="font-size:11px;color:#6b7a90;margin-bottom:10px">Set availability for each day. Leave unchecked for days off.</div>
@@ -836,6 +839,7 @@ function openAddEmp() {
   document.getElementById('ef-rate').value = '';
   document.getElementById('ef-filing-status').value = '';
   document.getElementById('ef-ssn').value = '';
+  var efPin = document.getElementById('ef-pin'); if (efPin) efPin.value = '';
   if (typeof setWorkingHours === 'function') setWorkingHours({});
   currentDocEmpId = null;
   switchDrawerTab('info');
@@ -869,6 +873,7 @@ function editEmp(eid) {
   document.getElementById('ef-rate').value = e.hourly_rate||'';
   document.getElementById('ef-filing-status').value = e.filing_status||'';
   document.getElementById('ef-ssn').value = e.ssn ? '••••••••••' : '';
+  var efPinEdit = document.getElementById('ef-pin'); if (efPinEdit) efPinEdit.value = e.pin || '';
   if (typeof setWorkingHours === 'function') setWorkingHours(e.working_hours || {});
   currentDocEmpId = eid;
   switchDrawerTab('info');
@@ -926,6 +931,8 @@ async function saveEmployee() {
   if (cityEl && cityEl.value) data.city = cityEl.value.trim();
   if (stateEl && stateEl.value) data.state = stateEl.value.trim();
   if (zipEl && zipEl.value) data.zip = zipEl.value.trim();
+  var pinEl = document.getElementById('ef-pin');
+  if (pinEl && pinEl.value.trim()) data.pin = pinEl.value.trim();
   if (typeof getWorkingHours === 'function') data.working_hours = getWorkingHours();
 
   try {
