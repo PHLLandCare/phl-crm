@@ -1,4 +1,4 @@
-import{c as e,d as t,n,o as r,t as i}from"./index-DqsKYlwG.js";var a=t(e(),1),o=i();
+import{c as e,d as t,n,o as r,t as i}from"./index-Fix002.js";var a=t(e(),1),o=i();
 
 function ChecklistsPage(){
   var [templates,setTemplates]=a.useState([]);
